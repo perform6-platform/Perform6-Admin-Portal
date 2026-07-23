@@ -23,7 +23,7 @@ jobs:
     environment: ${{ github.event.inputs.environment || 'staging' }}
     steps:
       - name: Deploy to VPS (Docker)
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
