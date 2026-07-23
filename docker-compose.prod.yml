@@ -1,0 +1,7 @@
+services:
+  admin:
+    image: ${ADMIN_IMAGE:?Set ADMIN_IMAGE to ghcr.io/org/perform6-admin:tag}
+    build: ~
+    ports: []
+    expose:
+      - '80'

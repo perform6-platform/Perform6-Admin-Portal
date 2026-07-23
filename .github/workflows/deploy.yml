@@ -1,0 +1,37 @@
+name: Deploy Admin
+
+on:
+  workflow_run:
+    workflows: [Docker Publish]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    steps:
+      - name: Deploy to VPS (Docker)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH || '/opt/perform6/perform6-admin' }}
+            export ADMIN_IMAGE=ghcr.io/${{ github.repository }}:main
+            docker compose pull admin || true
+            docker compose up -d --remove-orphans
+            docker image prune -f
