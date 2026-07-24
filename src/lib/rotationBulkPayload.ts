@@ -88,21 +88,18 @@ function buildRotatingLibraryPayload(
   const categoryIds = getSectionCategoryIds(section, groups);
 
   return {
-    libraries: categoryIds
-      .map((categoryId) => ({
-        libraryType: categoryToLibraryType(categoryId),
-        assignments: sectionAssignments
-          .filter((assignment) => assignment.categoryId === categoryId && assignment.included)
-          .map((assignment) => {
-            const mediaVersionId = findMediaVersionId(items, categoryId, assignment.videoTitle);
-            if (!mediaVersionId) return null;
-            return { dayNumber: assignment.day, mediaVersionId };
-          })
-          .filter((entry): entry is { dayNumber: number; mediaVersionId: string } => entry !== null),
-      }))
-      // Rotating sections must not send libraries with empty assignments
-      // (backend rejects empty arrays); only patch libraries that have content.
-      .filter((library) => library.assignments.length > 0),
+    libraries: categoryIds.map((categoryId) => ({
+      libraryType: categoryToLibraryType(categoryId),
+      // Full desired set for this library (may be []). Backend clears days not listed.
+      assignments: sectionAssignments
+        .filter((assignment) => assignment.categoryId === categoryId && assignment.included)
+        .map((assignment) => {
+          const mediaVersionId = findMediaVersionId(items, categoryId, assignment.videoTitle);
+          if (!mediaVersionId) return null;
+          return { dayNumber: assignment.day, mediaVersionId };
+        })
+        .filter((entry): entry is { dayNumber: number; mediaVersionId: string } => entry !== null),
+    })),
   };
 }
 

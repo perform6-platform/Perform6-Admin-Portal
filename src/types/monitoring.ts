@@ -50,3 +50,26 @@ export interface AnalyticsQuery {
   from?: string;
   to?: string;
 }
+
+/** GET /monitoring/devices/:deviceId/live-playback */
+export interface LivePlaybackScreen {
+  screenKey: string;
+  mediaVersionId: string | null;
+  title: string | null;
+  positionMs: number;
+  durationMs: number | null;
+  isPlaying: boolean;
+  fileUrl: string | null;
+  thumbnailUrl: string | null;
+}
+
+export interface LivePlaybackStatus {
+  deviceId: string;
+  deviceName: string | null;
+  serialNumber: string | null;
+  updatedAt: string | null;
+  ageMs: number | null;
+  isStale: boolean;
+  isLive: boolean;
+  screens: LivePlaybackScreen[];
+}

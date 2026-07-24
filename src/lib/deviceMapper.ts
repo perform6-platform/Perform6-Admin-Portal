@@ -69,7 +69,13 @@ export function mapInventoryItem(item: DeviceInventoryItem): Device {
 /** Map a registered device detail / fleet-status row into the UI Device shape. */
 export function mapRegisteredDevice(device: RegisteredDevice): Device {
   const online =
-    device.health?.status === 'ACTIVE' || device.activationStatus === 'ACTIVE';
+    typeof device.isOnline === 'boolean'
+      ? device.isOnline
+      : Boolean(
+          device.lastSeenAt &&
+            Date.now() - new Date(device.lastSeenAt).getTime() < 5 * 60 * 1000 &&
+            device.activationStatus !== 'DISABLED',
+        );
   const rotationDay = device.rotationStartDate
     ? getRotationDayFromConnectionStart(device.rotationStartDate)
     : null;

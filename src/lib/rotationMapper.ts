@@ -60,6 +60,7 @@ export function mapRotationProgramsToScheduleRows(programs: Program[] | unknown)
 
     if (program.isRotating) {
       for (const session of sessions) {
+        if (!getSessionMediaVersionId(session)) continue;
         const row = rows.find((entry) => entry.day === session.dayNumber);
         if (!row) continue;
         const title = toScheduleVideoName(sessionDisplayTitle(session));
@@ -69,7 +70,7 @@ export function mapRotationProgramsToScheduleRows(programs: Program[] | unknown)
     }
 
     const session = sessions.find((entry) => entry.dayNumber === 1) ?? sessions[0];
-    if (!session) continue;
+    if (!session || !getSessionMediaVersionId(session)) continue;
     const title = toScheduleVideoName(sessionDisplayTitle(session));
     if (!title) continue;
     rows.forEach((row) => {
@@ -93,7 +94,7 @@ export function mapGlobalRotationToScheduleRow(
 
     const column = getScheduleColumnForCategory(categoryId);
     const session = library.sessions[0];
-    if (!session) continue;
+    if (!session || !getSessionMediaVersionId(session)) continue;
 
     const title = toScheduleVideoName(sessionDisplayTitle(session));
     if (title) row[column] = title;

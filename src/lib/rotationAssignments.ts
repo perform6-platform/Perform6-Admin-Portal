@@ -127,6 +127,8 @@ export function buildVideoAssignmentsFromPrograms(
 
     if (program.isRotating) {
       for (const session of sessions) {
+        // Cleared days keep a session row with null media — do not revive via title match.
+        if (!getSessionMediaVersionId(session)) continue;
         const video = findVideoForSession(videos, session);
         if (!video) continue;
         const dayNumber = Number(session.dayNumber);
@@ -139,7 +141,7 @@ export function buildVideoAssignmentsFromPrograms(
     }
 
     const session = sessions.find((entry: ProgramSession) => entry.dayNumber === 1) ?? sessions[0];
-    if (!session) continue;
+    if (!session || !getSessionMediaVersionId(session)) continue;
     const video = findVideoForSession(videos, session);
     if (!video) continue;
     assignments[getVideoAssignmentKey(categoryId, video.title)] = {

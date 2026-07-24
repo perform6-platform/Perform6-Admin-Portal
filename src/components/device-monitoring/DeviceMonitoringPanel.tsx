@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Monitor } from 'lucide-react';
 import type { Device } from '../../constants/devices';
 import { useDevicePlayback } from '../../hooks/useRotation';
@@ -6,6 +7,7 @@ import { resolveStorageUrl } from '../../lib/libraryType';
 import type { ManifestSlot } from '../../types/deployments';
 import { BrightSignDeviceImage } from '../devices/BrightSignDeviceImage';
 import { Badge, CARD_SURFACE_CLASS, SectionLabel } from '../ui';
+import { LiveSyncPreviewModal } from './LiveSyncPreviewModal';
 
 export interface DeviceMonitoringPanelProps {
   device: Device | null;
@@ -63,6 +65,11 @@ export function DeviceMonitoringPanel({
   autoRefresh = false,
   className,
 }: DeviceMonitoringPanelProps) {
+  const [preview, setPreview] = useState<{
+    screenKey: string;
+    title: string;
+    thumbnail?: string;
+  } | null>(null);
   const hasFleetScreens = Boolean(device?.screens && device.screens.length > 0);
   const { data: playback, isLoading, isError } = useDevicePlayback(
     hasFleetScreens ? null : (device?.id ?? null),
@@ -89,6 +96,8 @@ export function DeviceMonitoringPanel({
       : device.currentDay !== '—'
         ? device.currentDay
         : null;
+
+  const registeredDeviceId = device.deviceId ?? (device.inventoryState === 'registered' ? device.id : null);
 
   return (
     <div className={cn(CARD_SURFACE_CLASS, 'p-5 sm:p-6', className)}>
@@ -122,6 +131,9 @@ export function DeviceMonitoringPanel({
               {playback?.variant ? ` · ${playback.variant}` : ''}
               {dayLabel ? ` · ${dayLabel}` : ''}
             </p>
+            <p className="mt-1 text-caption text-content-muted">
+              Click a screen to open a live sync preview (≈8s drift).
+            </p>
           </div>
         </div>
 
@@ -140,35 +152,55 @@ export function DeviceMonitoringPanel({
         ) : (
           <ul className="space-y-2">
             {currentVideos.map((entry) => (
-              <li
-                key={entry.key}
-                className="flex items-center gap-3 rounded-lg border border-surface-border bg-surface-card px-3 py-2.5"
-              >
-                {entry.thumbnail ? (
-                  <img
-                    src={entry.thumbnail}
-                    alt=""
-                    className="h-10 w-14 shrink-0 rounded object-cover"
-                  />
-                ) : (
-                  <div className="flex h-10 w-14 shrink-0 items-center justify-center rounded bg-surface-muted text-[10px] text-content-muted">
-                    Screen
+              <li key={entry.key}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreview({
+                      // Fleet rows use real SCREEN_* keys; slot fallback maps to HDMI SCREEN_1.
+                      screenKey: hasFleetScreens ? entry.key : 'SCREEN_1',
+                      title: entry.video,
+                      thumbnail: entry.thumbnail,
+                    })
+                  }
+                  className="flex w-full items-center gap-3 rounded-lg border border-surface-border bg-surface-card px-3 py-2.5 text-left transition-colors hover:border-brand-500/40 hover:bg-brand-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35"
+                >
+                  {entry.thumbnail ? (
+                    <img
+                      src={entry.thumbnail}
+                      alt=""
+                      className="h-10 w-14 shrink-0 rounded object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-14 shrink-0 items-center justify-center rounded bg-surface-muted text-[10px] text-content-muted">
+                      Screen
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-body-sm font-medium text-content-primary">
+                      {entry.video}
+                    </p>
+                    <p className="truncate text-caption text-content-secondary">{entry.label}</p>
                   </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-body-sm font-medium text-content-primary">
-                    {entry.video}
-                  </p>
-                  <p className="truncate text-caption text-content-secondary">{entry.label}</p>
-                </div>
-                <Badge variant="neutral" className="shrink-0">
-                  {entry.group.replace(/_/g, ' ')}
-                </Badge>
+                  <Badge variant="neutral" className="shrink-0">
+                    {entry.group.replace(/_/g, ' ')}
+                  </Badge>
+                </button>
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      <LiveSyncPreviewModal
+        open={Boolean(preview)}
+        onClose={() => setPreview(null)}
+        deviceId={registeredDeviceId}
+        deviceName={device.name}
+        screenKey={preview?.screenKey ?? ''}
+        fallbackTitle={preview?.title}
+        fallbackThumbnail={preview?.thumbnail}
+      />
     </div>
   );
 }

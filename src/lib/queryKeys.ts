@@ -68,6 +68,7 @@ export const queryKeys = {
   monitoring: {
     fleetStatus: ['monitoring', 'fleet', 'status'] as const,
     fleetHealth: ['monitoring', 'fleet', 'health'] as const,
+    livePlayback: (deviceId: string) => ['monitoring', 'live-playback', deviceId] as const,
     analytics: (query: unknown) => ['monitoring', 'analytics', query] as const,
   },
   sync: {

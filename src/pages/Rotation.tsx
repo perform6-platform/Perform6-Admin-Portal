@@ -115,7 +115,7 @@ export default function Rotation() {
             sectionAssignments,
             items,
           );
-          if (payload.assignments.length === 0) continue;
+          // Empty assignments clears all days for this playlist (full replace).
           await patchProgram({ programId, payload });
         }
       } else {
@@ -128,7 +128,7 @@ export default function Rotation() {
         );
         if (payload.libraries.length === 0) {
           throw new Error(
-            'No videos assigned yet. Assign at least one video to a day before saving.',
+            'No libraries found for this section. Check category configuration.',
           );
         }
         await patchBulk({ section, payload });

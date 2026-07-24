@@ -174,6 +174,8 @@ export interface RegisteredDevice {
   lastSeenAt: string | null;
   storageUsed: string;
   rotationStartDate: string | null;
+  /** Presence from lastSeenAt (5 min window) — set by GET /monitoring/fleet/status */
+  isOnline?: boolean;
   registrationStatus?: PairingRegistrationStatus;
   deployment?: DeploymentSummary | null;
   health?: DeviceHealthEntity | null;

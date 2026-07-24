@@ -4,6 +4,7 @@ import type {
   AnalyticsResult,
   FleetHealth,
   FleetStatus,
+  LivePlaybackStatus,
 } from '../types/monitoring';
 import { apiClient } from './axios';
 
@@ -16,6 +17,14 @@ export async function getFleetStatus(): Promise<FleetStatus> {
 /** GET /monitoring/fleet/health */
 export async function getFleetHealth(): Promise<FleetHealth> {
   const { data } = await apiClient.get<ApiResponse<FleetHealth>>('/monitoring/fleet/health');
+  return data.data;
+}
+
+/** GET /monitoring/devices/:deviceId/live-playback — on-demand only (preview modal). */
+export async function getDeviceLivePlayback(deviceId: string): Promise<LivePlaybackStatus> {
+  const { data } = await apiClient.get<ApiResponse<LivePlaybackStatus>>(
+    `/monitoring/devices/${deviceId}/live-playback`,
+  );
   return data.data;
 }
 

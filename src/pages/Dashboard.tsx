@@ -42,18 +42,19 @@ export default function Dashboard() {
     const devices = fleetStatus?.devices ?? [];
     return devices.slice(0, 5).map((device) => ({
       device: device.deviceName || device.serialNumber,
-      action: device.activationStatus === 'ACTIVE' ? 'Device Online' : 'Device Offline',
+      action: device.isOnline ? 'Device Online' : 'Device Offline',
       time: device.lastSeenAt
         ? new Date(device.lastSeenAt).toLocaleString()
         : '—',
-      status:
-        device.activationStatus === 'ACTIVE'
-          ? ('success' as const)
-          : ('warning' as const),
+      status: device.isOnline ? ('success' as const) : ('warning' as const),
     }));
   }, [fleetStatus]);
 
   function handleQuickAction(label: string) {
+    if (label === 'Add New Device') {
+      navigate('/devices', { state: { openAddDevice: true } });
+      return;
+    }
     if (label === 'Upload New Content') {
       navigate('/content-library', { state: { openUpload: true } });
       return;
@@ -75,6 +76,7 @@ export default function Dashboard() {
           value={String(total)}
           subtext="All BrightSign devices"
           icon={<Monitor className="h-5 w-5" />}
+          onClick={() => navigate('/devices?status=all&state=all')}
         />
         <MetricCard
           label="Online Devices"
@@ -82,6 +84,7 @@ export default function Dashboard() {
           subtext={`${onlinePct}% online`}
           accent="success"
           icon={<Wifi className="h-5 w-5" />}
+          onClick={() => navigate('/devices?status=online&state=registered')}
         />
         <MetricCard
           label="Offline Devices"
@@ -89,6 +92,7 @@ export default function Dashboard() {
           subtext={`${offlinePct}% offline`}
           accent="warning"
           icon={<WifiOff className="h-5 w-5" />}
+          onClick={() => navigate('/devices?status=offline&state=registered')}
         />
       </section>
 

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { DeviceDetailsPanel } from '../components/devices/DeviceDetailsPanel';
 import { AddDeviceModal } from '../components/devices/AddDeviceModal';
 import {
   Badge,
   Button,
   Dropdown,
-  IconButton,
   Input,
   PageShell,
   Pagination,
@@ -17,8 +17,6 @@ import { statusOptions, type Device } from '../constants/devices';
 import { useToast } from '../context/ToastContext';
 import { useClaimPairing, useDevices } from '../hooks/useDevices';
 import { mapInventoryItem } from '../lib/deviceMapper';
-import { formatDeviceContentAxes } from '../lib/deploymentDisplay';
-import { cn } from '../lib/cn';
 import { getApiErrorMessage } from '../services/axios';
 import type { ClaimPairingPayload, DeviceInventoryState } from '../types/devices';
 
@@ -31,17 +29,62 @@ const fleetFilterOptions = [
   { value: 'pending', label: 'Pending pairing' },
 ] as const;
 
+const validFleetStates = new Set(['all', 'registered', 'claimed', 'pending']);
+const validStatusFilters = new Set(['all', 'online', 'offline']);
+
+function parseFleetState(value: string | null): DeviceInventoryState {
+  return value && validFleetStates.has(value)
+    ? (value as DeviceInventoryState)
+    : 'all';
+}
+
+function parseStatusFilter(value: string | null): string {
+  return value && validStatusFilters.has(value) ? value : 'all';
+}
+
 export default function Devices() {
   const { showToast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [fleetFilter, setFleetFilter] = useState<DeviceInventoryState>('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [fleetFilter, setFleetFilter] = useState<DeviceInventoryState>(() =>
+    parseFleetState(searchParams.get('state')),
+  );
+  const [statusFilter, setStatusFilter] = useState(() =>
+    parseStatusFilter(searchParams.get('status')),
+  );
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [addDeviceOpen, setAddDeviceOpen] = useState(false);
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useDevices({
+  useEffect(() => {
+    setFleetFilter(parseFleetState(searchParams.get('state')));
+    setStatusFilter(parseStatusFilter(searchParams.get('status')));
+    setPage(1);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const state = location.state as { openAddDevice?: boolean } | null;
+    if (!state?.openAddDevice) return;
+    setAddDeviceOpen(true);
+    navigate(location.pathname + location.search, { replace: true, state: {} });
+  }, [location.pathname, location.search, location.state, navigate]);
+
+  function updateFilters(next: { state?: DeviceInventoryState; status?: string }) {
+    const state = next.state ?? fleetFilter;
+    const status = next.status ?? statusFilter;
+    const params = new URLSearchParams();
+    if (state !== 'all') params.set('state', state);
+    if (status !== 'all') params.set('status', status);
+    setSearchParams(params, { replace: true });
+    if (next.state !== undefined) setFleetFilter(next.state);
+    if (next.status !== undefined) setStatusFilter(next.status);
+    setPage(1);
+  }
+
+  const { data, isLoading, isError, error } = useDevices({
     state: fleetFilter,
     search: search || undefined,
     page,
@@ -82,7 +125,7 @@ export default function Devices() {
     claimPairing(payload, {
       onSuccess: (result) => {
         setAddDeviceOpen(false);
-        setFleetFilter('claimed');
+        updateFilters({ state: 'claimed', status: 'all' });
         setSelectedDeviceId(result.data.pairingId ?? result.data.id);
         showToast({ title: result.message || 'Device claimed', variant: 'success' });
       },
@@ -131,53 +174,6 @@ export default function Devices() {
       },
     },
     {
-      key: 'model',
-      header: 'Model',
-      hideOnMobile: true,
-      render: (row) => row.model,
-    },
-    {
-      key: 'location',
-      header: 'Location',
-      hideOnMobile: true,
-      render: (row) => row.location,
-    },
-    {
-      key: 'fieldCategory',
-      header: 'Field / Content',
-      hideOnMobile: true,
-      render: (row) => formatDeviceContentAxes(row).fieldLabel,
-    },
-    {
-      key: 'exerciseVariant',
-      header: 'Variant / Program',
-      hideOnMobile: true,
-      render: (row) => formatDeviceContentAxes(row).variantLabel,
-    },
-    {
-      key: 'deploymentName',
-      header: 'Deployment',
-      hideOnMobile: true,
-      render: (row) => {
-        if (row.activationStatus === 'DISABLED') {
-          return <span className="text-content-secondary">Disabled</span>;
-        }
-        if (row.deploymentName) {
-          return (
-            <div className="min-w-0">
-              <span className="block truncate">{row.deploymentName}</span>
-              {row.deploymentType ? (
-                <span className="mt-0.5 block text-caption text-content-secondary">
-                  {row.deploymentType}
-                </span>
-              ) : null}
-            </div>
-          );
-        }
-        return <span className="text-content-secondary">—</span>;
-      },
-    },
-    {
       key: 'status',
       header: 'Status',
       render: (row) => (
@@ -187,32 +183,10 @@ export default function Devices() {
       ),
     },
     {
-      key: 'lastSync',
-      header: 'Last Seen',
+      key: 'model',
+      header: 'Model',
       hideOnMobile: true,
-      render: (row) => <span className="text-content-secondary">{row.lastSync}</span>,
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      className: 'text-right',
-      headerClassName: 'text-right',
-      render: (row) => (
-        <div
-          className="flex items-center justify-end gap-1.5"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <IconButton
-            label="Refresh device"
-            onClick={() => {
-              setSelectedDeviceId(row.id);
-              refetch();
-            }}
-          >
-            <RefreshCw className={cn('h-4 w-4 text-current', isFetching && 'animate-spin')} />
-          </IconButton>
-        </div>
-      ),
+      render: (row) => row.model,
     },
   ];
 
@@ -234,8 +208,7 @@ export default function Devices() {
             options={[...fleetFilterOptions]}
             value={fleetFilter}
             onChange={(value) => {
-              setFleetFilter(value as DeviceInventoryState);
-              setPage(1);
+              updateFilters({ state: value as DeviceInventoryState });
             }}
             fullWidth
             className="min-w-0"
@@ -244,8 +217,7 @@ export default function Devices() {
             options={[...statusOptions]}
             value={statusFilter}
             onChange={(value) => {
-              setStatusFilter(value);
-              setPage(1);
+              updateFilters({ status: value });
             }}
             fullWidth
             className="min-w-0"
