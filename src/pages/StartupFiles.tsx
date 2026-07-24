@@ -80,6 +80,12 @@ function StartupFileCard({
             </dd>
           </div>
           <div>
+            <dt className="text-content-muted">Source</dt>
+            <dd className="mt-0.5 font-medium text-content-primary">
+              {file.source === 'r2' ? 'Cloudflare R2' : 'Local disk'}
+            </dd>
+          </div>
+          <div>
             <dt className="text-content-muted">Updated</dt>
             <dd className="mt-0.5 font-medium text-content-primary">
               {formatDate(file.updatedAt)}
@@ -177,14 +183,15 @@ export default function StartupFiles() {
   return (
     <PageShell title="Startup Files">
       <p className="text-body-sm text-content-muted">
-        Download BrightSign startup folders (XT2145, XC4055, HD226). Click Download folder, pick
-        Downloads (or any parent once), and a ready folder like{' '}
-        <span className="font-mono text-content-primary">perform6-xt2145-0.1.0</span> is saved —
-        not a ZIP. Copy that folder&apos;s contents to the SD card root.
+        Download BrightSign startup folders (XT2145, XC4055, HD226). Packages are served from
+        Cloudflare R2 when the API uses <span className="font-mono">STORAGE_DRIVER=r2</span>. Pick
+        a parent folder once — a ready package like{' '}
+        <span className="font-mono text-content-primary">perform6-xt2145-0.1.0</span> is saved.
+        Copy that folder&apos;s contents to the SD card root.
       </p>
 
       {!anyAvailable ? (
-        <EmptyState message="No packages found. Build them from the device app with npm run release:zip:all, then refresh this page." />
+        <EmptyState message="No packages on R2/local. From device/perform6-touchscreen run npm run release:zip:all (builds + uploads to R2), then refresh." />
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">

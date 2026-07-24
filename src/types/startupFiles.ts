@@ -11,16 +11,20 @@ export type StartupFileInfo = {
   packageKind: StartupPackageKind | null;
   sizeBytes: number | null;
   updatedAt: string | null;
+  source: 'r2' | 'local';
+  downloadUrl: string | null;
 };
 
 export type StartupManifestFile = {
   path: string;
   sizeBytes: number;
+  url?: string;
 };
 
 export type StartupManifest = {
   profile: StartupProfileId;
   packageName: string;
   packageKind: StartupPackageKind;
+  source: 'r2' | 'local';
   files: StartupManifestFile[];
 };

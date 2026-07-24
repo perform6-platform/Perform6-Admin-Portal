@@ -38,14 +38,22 @@ async function getStartupManifest(profile: StartupProfileId): Promise<StartupMan
   return data.data;
 }
 
-/** GET /startup-files/:profile/file?path= */
+/** Fetch one package file — prefers public R2 URL when present. */
 async function downloadStartupPackageFile(
   profile: StartupProfileId,
-  relativePath: string,
+  file: { path: string; url?: string },
 ): Promise<Blob> {
+  if (file.url) {
+    const response = await fetch(file.url);
+    if (!response.ok) {
+      throw new Error(`Failed to download ${file.path} from R2 (${response.status})`);
+    }
+    return response.blob();
+  }
+
   try {
     const response = await apiClient.get<Blob>(`/startup-files/${profile}/file`, {
-      params: { path: relativePath },
+      params: { path: file.path },
       responseType: 'blob',
     });
     return response.data;
@@ -81,11 +89,12 @@ async function writeBlobToDirectory(
 export type DownloadStartupFolderResult = {
   packageName: string;
   fileCount: number;
+  source: 'r2' | 'local';
 };
 
 /**
- * Saves a real extracted folder (e.g. perform6-xt2145-0.1.0), not a ZIP.
- * Browser security requires choosing a parent folder once (e.g. Desktop or Downloads).
+ * Saves extracted folder (e.g. perform6-xt2145-0.1.0).
+ * Files come from R2 public URLs when STORAGE_DRIVER=r2.
  */
 export async function downloadStartupPackage(
   profile: StartupProfileId,
@@ -101,19 +110,19 @@ export async function downloadStartupPackage(
     throw new Error('Package folder is empty. Rebuild with npm run release:zip for this profile.');
   }
 
-  // User picks a parent (e.g. Downloads). We create perform6-xt2145-0.1.0 inside it.
   const parent = await window.showDirectoryPicker({ mode: 'readwrite' });
   const packageDir = await parent.getDirectoryHandle(manifest.packageName, {
     create: true,
   });
 
   for (const file of manifest.files) {
-    const blob = await downloadStartupPackageFile(profile, file.path);
+    const blob = await downloadStartupPackageFile(profile, file);
     await writeBlobToDirectory(packageDir, file.path, blob);
   }
 
   return {
     packageName: manifest.packageName,
     fileCount: manifest.files.length,
+    source: manifest.source,
   };
 }
