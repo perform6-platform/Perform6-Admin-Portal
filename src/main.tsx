@@ -8,7 +8,11 @@ import { DeploymentsProvider } from './context/DeploymentsContext';
 import { RotationScheduleProvider } from './context/RotationScheduleContext';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ensureRandomUuid } from './lib/createId';
 import './index.css';
+
+// HTTP on a public IP is not a secure context — crypto.randomUUID is missing.
+ensureRandomUuid();
 
 const queryClient = new QueryClient({
   defaultOptions: {

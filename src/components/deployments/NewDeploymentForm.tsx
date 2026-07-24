@@ -45,6 +45,7 @@ import {
   XC_SCREEN_KEYS,
 } from '../../lib/deploymentWizard';
 import { cn } from '../../lib/cn';
+import { createId } from '../../lib/createId';
 import { formatDateLabel } from '../../lib/formatDateLabel';
 import { getApiErrorMessage } from '../../services/axios';
 import type { DeviceInventoryItem } from '../../types/devices';
@@ -76,7 +77,7 @@ type HdPlayerRow = {
 
 function createHdRow(): HdPlayerRow {
   return {
-    id: crypto.randomUUID(),
+    id: createId(),
     pairingId: '',
     categoryId: '',
     playlistKey: undefined,
