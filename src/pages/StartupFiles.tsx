@@ -30,17 +30,6 @@ function formatDate(iso: string | null): string {
   }
 }
 
-function triggerBrowserDownload(blob: Blob, fileName: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-}
-
 function StartupFileCard({
   file,
   downloading,
@@ -69,9 +58,19 @@ function StartupFileCard({
       <CardContent className="space-y-4">
         <dl className="grid grid-cols-1 gap-2 text-body-sm sm:grid-cols-2">
           <div>
-            <dt className="text-content-muted">File</dt>
+            <dt className="text-content-muted">Package</dt>
             <dd className="mt-0.5 break-all font-medium text-content-primary">
               {file.fileName ?? 'Not built yet'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-content-muted">Type</dt>
+            <dd className="mt-0.5 font-medium text-content-primary">
+              {file.packageKind === 'folder'
+                ? 'Folder'
+                : file.packageKind === 'zip'
+                  ? 'ZIP'
+                  : '—'}
             </dd>
           </div>
           <div>
@@ -80,7 +79,7 @@ function StartupFileCard({
               {formatBytes(file.sizeBytes)}
             </dd>
           </div>
-          <div className="sm:col-span-2">
+          <div>
             <dt className="text-content-muted">Updated</dt>
             <dd className="mt-0.5 font-medium text-content-primary">
               {formatDate(file.updatedAt)}
@@ -97,7 +96,7 @@ function StartupFileCard({
           className="w-full sm:w-auto"
         >
           <Download className="h-4 w-4" />
-          {downloading ? 'Downloading…' : 'Download ZIP'}
+          {downloading ? 'Saving folder…' : 'Download folder'}
         </Button>
       </CardContent>
     </Card>
@@ -120,11 +119,17 @@ export default function StartupFiles() {
       return next;
     });
     downloadMutation.mutate(profile, {
-      onSuccess: ({ blob, fileName }) => {
-        triggerBrowserDownload(blob, fileName);
+      onSuccess: () => {
         setActiveProfile(null);
       },
       onError: (err) => {
+        const aborted =
+          err instanceof DOMException &&
+          (err.name === 'AbortError' || err.name === 'NotAllowedError');
+        if (aborted) {
+          setActiveProfile(null);
+          return;
+        }
         setDownloadErrors((prev) => ({
           ...prev,
           [profile]: getApiErrorMessage(err, 'Download failed'),
@@ -172,11 +177,14 @@ export default function StartupFiles() {
   return (
     <PageShell title="Startup Files">
       <p className="text-body-sm text-content-muted">
-        Download BrightSign startup packages to send to gym owners (XT2145, XC4055, HD226).
+        Download BrightSign startup folders (XT2145, XC4055, HD226). Click Download folder, pick
+        Downloads (or any parent once), and a ready folder like{' '}
+        <span className="font-mono text-content-primary">perform6-xt2145-0.1.0</span> is saved —
+        not a ZIP. Copy that folder&apos;s contents to the SD card root.
       </p>
 
       {!anyAvailable ? (
-        <EmptyState message="No ZIP packages found. Build them from the device app with npm run release:zip:all, then refresh this page." />
+        <EmptyState message="No packages found. Build them from the device app with npm run release:zip:all, then refresh this page." />
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">

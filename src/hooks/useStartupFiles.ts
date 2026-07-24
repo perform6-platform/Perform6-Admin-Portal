@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryKeys';
-import { downloadStartupFile, getStartupFiles } from '../services/startupFiles.api';
+import { downloadStartupPackage, getStartupFiles } from '../services/startupFiles.api';
 import type { StartupProfileId } from '../types/startupFiles';
 
 export function useStartupFiles() {
@@ -12,6 +12,6 @@ export function useStartupFiles() {
 
 export function useDownloadStartupFile() {
   return useMutation({
-    mutationFn: (profile: StartupProfileId) => downloadStartupFile(profile),
+    mutationFn: (profile: StartupProfileId) => downloadStartupPackage(profile),
   });
 }
