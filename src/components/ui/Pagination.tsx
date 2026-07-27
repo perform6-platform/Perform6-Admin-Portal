@@ -49,7 +49,7 @@ export function Pagination({
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between',
         className,
       )}
     >
@@ -68,7 +68,7 @@ export function Pagination({
 
         {pages.map((item, index) =>
           item === 'ellipsis' ? (
-            <span key={`ellipsis-${index}`} className="px-1 text-content-muted">
+            <span key={`ellipsis-${index}`} className="px-2 text-content-muted">
               …
             </span>
           ) : (

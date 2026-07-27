@@ -25,13 +25,13 @@ export function RotationVideoCard({
   return (
     <li
       className={cn(
-        'flex flex-col gap-3 rounded-lg border p-3 transition-colors sm:flex-row sm:items-center',
+        'flex flex-col gap-4 rounded-lg border p-4 transition-colors sm:flex-row sm:items-center',
         assignment.included
           ? 'border-brand-300 bg-brand-50/50 dark:border-brand-600/40 dark:bg-brand-600/10'
           : 'border-surface-border bg-surface-muted/30',
       )}
     >
-      <div className="flex min-w-0 flex-1 items-start gap-3">
+      <div className="flex min-w-0 flex-1 items-start gap-4">
         <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-md border border-surface-border bg-gradient-to-br from-p6-gray-300 to-p6-gray-400 dark:from-p6-gray-700 dark:to-p6-gray-900">
           {video.thumbnailUrl ? (
             <img src={video.thumbnailUrl} alt="" className="h-full w-full object-cover" />
@@ -71,7 +71,7 @@ export function RotationVideoCard({
               />
               Include
             </label>
-            <label className="flex items-center gap-1.5 text-body-sm text-content-secondary">
+            <label className="flex items-center gap-2 text-body-sm text-content-secondary">
               <CalendarDays className="h-3.5 w-3.5" />
               <select
                 value={assignment.day ?? 1}

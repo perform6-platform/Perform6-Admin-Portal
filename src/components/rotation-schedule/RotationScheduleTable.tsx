@@ -25,7 +25,7 @@ const FIXED_COLUMNS = [
 ] as const;
 
 const thBaseClass =
-  'whitespace-nowrap px-3 py-2 text-center text-table-header font-semibold uppercase';
+  'whitespace-nowrap px-4 py-2 text-center text-table-header font-semibold uppercase';
 
 function isGolfColumn(column: DeploymentScheduleTableColumn): boolean {
   const libraryType = (column.libraryType ?? '').toUpperCase();
@@ -235,14 +235,14 @@ export function RotationScheduleTable({
   return (
     <div className={cn(CARD_SURFACE_CLASS, 'overflow-hidden p-0')}>
       {isEditing && (
-        <div className="border-b border-surface-border bg-brand-50/50 px-4 py-2.5 text-body-sm text-brand-700 dark:bg-brand-600/10 dark:text-brand-300">
+        <div className="border-b border-surface-border bg-brand-50/50 px-4 py-2 text-body-sm text-brand-700 dark:bg-brand-600/10 dark:text-brand-300">
           {highlightCell
             ? 'Deployed video highlighted below — tap Edit to adjust the schedule.'
             : 'Edit mode — choose category and program, then set the video for each day.'}
         </div>
       )}
 
-      <p className="scroll-hint px-4 pt-3 text-caption text-content-muted">
+      <p className="scroll-hint px-4 pt-4 text-caption text-content-muted">
         Swipe horizontally to view all columns →
       </p>
       <div className="rotation-schedule-scroll table-scroll-x w-full max-w-full max-h-[min(70vh,720px)] overflow-auto overscroll-contain">
@@ -255,19 +255,23 @@ export function RotationScheduleTable({
             columnGroups={columnGroups}
           />
           <tbody>
-            {rows.map((row) => {
+            {rows.map((row, index) => {
               const isHighlightedRow =
                 highlightRotationDay === row.rotationDay || highlightCell?.day === row.day;
               return (
                 <tr
                   key={`${row.day}-${row.dateLabel}`}
                   className={cn(
-                    'border-b border-surface-border transition-colors hover:bg-surface-muted/25',
-                    isHighlightedRow && 'bg-brand-50/60 dark:bg-brand-600/10',
+                    'border-b border-surface-border transition-colors',
+                    isHighlightedRow
+                      ? 'bg-brand-50'
+                      : index % 2 === 1
+                        ? 'bg-surface-muted hover:bg-[#F2F7FF]'
+                        : 'bg-surface hover:bg-[#F2F7FF]',
                   )}
                 >
                   {showActions && (
-                    <td className="px-2 py-2.5 text-center">
+                    <td className="px-2 py-2 text-center">
                       <IconButton
                         label={`Edit Day ${row.day}`}
                         className="mx-auto h-8 w-8"
@@ -277,13 +281,13 @@ export function RotationScheduleTable({
                       </IconButton>
                     </td>
                   )}
-                  <td className="px-3 py-2.5 text-body-sm font-medium text-content-primary">
+                  <td className="px-4 py-2 text-body-sm text-content-primary">
                     {row.dayLabel}
                   </td>
-                  <td className="px-3 py-2.5 text-body-sm font-medium text-content-primary">
+                  <td className="px-4 py-2 text-body-sm text-content-primary">
                     {row.dateLabel}
                   </td>
-                  <td className="px-3 py-2.5 text-body-sm font-medium text-content-primary">
+                  <td className="px-4 py-2 text-body-sm text-content-primary">
                     {row.rotationDay}
                   </td>
                   {columns.map((column) => {
@@ -293,9 +297,8 @@ export function RotationScheduleTable({
                       <td
                         key={column.key}
                         className={cn(
-                          'px-3 py-2.5',
-                          isHighlightedCell &&
-                            'bg-brand-100 dark:bg-brand-600/20',
+                          'px-4 py-2',
+                          isHighlightedCell && 'bg-brand-50',
                         )}
                       >
                         <ScheduleTableCell
@@ -307,7 +310,7 @@ export function RotationScheduleTable({
                     );
                   })}
                   {showViewActions && onViewRow && (
-                    <td className="px-2 py-2.5 text-center">
+                    <td className="px-2 py-2 text-center">
                       <IconButton
                         label={`View Day ${row.day} videos`}
                         className="mx-auto h-8 w-8"
@@ -325,7 +328,7 @@ export function RotationScheduleTable({
             <tr>
               <td
                 colSpan={totalColumns}
-                className="bg-surface-muted/80 px-4 py-3 text-center text-body-sm text-content-secondary"
+                className="bg-surface-muted/80 px-4 py-4 text-center text-body-sm text-content-secondary"
               >
                 {resolvedFooterNote}
               </td>

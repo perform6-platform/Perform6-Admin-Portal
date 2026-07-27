@@ -148,7 +148,7 @@ export function LiveSyncPreviewModal({
               poster={thumbnail ?? undefined}
             />
           ) : (
-            <div className="flex aspect-video flex-col items-center justify-center gap-3 px-6 text-center">
+            <div className="flex aspect-video flex-col items-center justify-center gap-4 px-6 text-center">
               {thumbnail ? (
                 <img src={thumbnail} alt="" className="h-24 w-40 rounded object-cover opacity-80" />
               ) : null}
@@ -161,7 +161,7 @@ export function LiveSyncPreviewModal({
           )}
         </div>
 
-        <div className="rounded-lg border border-surface-border bg-surface-muted/40 px-3 py-2.5">
+        <div className="rounded-lg border border-surface-border bg-surface-muted/40 px-4 py-2">
           <p className="truncate text-body-sm font-medium text-content-primary">{title}</p>
           <p className="mt-0.5 text-caption text-content-secondary">
             {screen

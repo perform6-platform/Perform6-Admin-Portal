@@ -9,7 +9,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 const paddingMap = {
   none: '',
   sm: 'p-4',
-  md: 'p-5',
+  md: 'p-6',
   lg: 'p-6',
 };
 
@@ -90,7 +90,7 @@ export function PageShell({ title, children }: PageShellProps) {
 export function PageTitle({ className, children, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h1
-      className={cn('shrink-0 text-xl font-bold tracking-tight text-content-primary sm:text-2xl', className)}
+      className={cn('shrink-0 text-page-title text-content-primary', className)}
       {...props}
     >
       {children}

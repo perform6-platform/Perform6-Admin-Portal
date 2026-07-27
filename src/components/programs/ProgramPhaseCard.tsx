@@ -175,7 +175,7 @@ export function ProgramPhaseCardView({ program, onManage }: ProgramPhaseCardProp
     >
       <div className="p-4">
         <h3
-          className="text-section-label font-bold uppercase tracking-[0.08em]"
+          className="text-section-label font-semibold uppercase tracking-[0.08em]"
           style={{ color: accent.title }}
         >
           {program.title}
@@ -183,7 +183,7 @@ export function ProgramPhaseCardView({ program, onManage }: ProgramPhaseCardProp
 
         <div
           className={cn(
-            'relative mt-3 overflow-hidden rounded-lg border',
+            'relative mt-4 overflow-hidden rounded-lg border',
             isDark ? 'border-white/5' : 'border-surface-border',
           )}
         >
@@ -200,14 +200,14 @@ export function ProgramPhaseCardView({ program, onManage }: ProgramPhaseCardProp
 
         <p
           className={cn(
-            'mt-3 text-body-sm leading-relaxed',
+            'mt-4 text-body-sm leading-relaxed',
             isDark ? 'text-content-primary/90' : 'text-content-secondary',
           )}
         >
           {program.description}
         </p>
 
-        <div className="mt-2.5 flex items-center gap-1.5 text-caption font-medium">
+        <div className="mt-2.5 flex items-center gap-2 text-caption font-medium">
           <Play className="h-3.5 w-3.5 shrink-0" style={{ color: accent.icon }} />
           <span style={{ color: accent.icon }}>{videoLabel}</span>
         </div>
@@ -216,7 +216,7 @@ export function ProgramPhaseCardView({ program, onManage }: ProgramPhaseCardProp
           type="button"
           className={cn(
             'mt-4 flex h-9 w-full items-center justify-center rounded-lg',
-            'text-sm font-semibold text-white transition-all',
+            'text-sm font-medium text-white transition-all',
             'hover:brightness-110 active:scale-[0.99]',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30',
           )}

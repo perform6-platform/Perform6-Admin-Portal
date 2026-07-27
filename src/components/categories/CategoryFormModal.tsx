@@ -125,7 +125,7 @@ export function CategoryFormModal({
         <div>
           <p className="mb-2 text-xs font-medium text-content-muted">Each day&apos;s video will</p>
           <div className="space-y-2">
-            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-surface-border p-3 hover:bg-surface-muted/40">
+            <label className="flex cursor-pointer items-start gap-4 rounded-lg border border-surface-border p-4 hover:bg-surface-muted/40">
               <input
                 type="radio"
                 name="dayPlaybackMode"
@@ -142,7 +142,7 @@ export function CategoryFormModal({
                 </span>
               </span>
             </label>
-            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-surface-border p-3 hover:bg-surface-muted/40">
+            <label className="flex cursor-pointer items-start gap-4 rounded-lg border border-surface-border p-4 hover:bg-surface-muted/40">
               <input
                 type="radio"
                 name="dayPlaybackMode"
@@ -171,7 +171,7 @@ export function CategoryFormModal({
               {SCOPE_OPTIONS.map((option) => (
                 <label
                   key={option.value}
-                  className="flex cursor-pointer items-start gap-3 rounded-lg border border-surface-border p-3 hover:bg-surface-muted/40"
+                  className="flex cursor-pointer items-start gap-4 rounded-lg border border-surface-border p-4 hover:bg-surface-muted/40"
                 >
                   <input
                     type="radio"
@@ -197,7 +197,7 @@ export function CategoryFormModal({
           </div>
         ) : (
           category && (
-            <div className="rounded-lg border border-surface-border bg-surface-muted/40 px-3 py-2">
+            <div className="rounded-lg border border-surface-border bg-surface-muted/40 px-4 py-2">
               <p className="text-caption text-content-muted">Content scope</p>
               <p className="text-body-sm font-medium text-content-primary">
                 {SCOPE_OPTIONS.find((o) => o.value === category.scope)?.title ?? category.scope}

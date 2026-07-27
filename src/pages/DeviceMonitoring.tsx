@@ -45,7 +45,7 @@ export default function DeviceMonitoring() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <PageTitle>Device Monitoring</PageTitle>
 
-        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+        <div className="flex flex-wrap items-center gap-4 sm:justify-end">
           <Dropdown
             options={[...deviceMonitoringFilterOptions]}
             value={filter}

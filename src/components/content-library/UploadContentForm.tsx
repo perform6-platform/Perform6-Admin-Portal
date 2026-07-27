@@ -242,7 +242,7 @@ export function UploadContentForm({
       onSubmit={handleSubmit}
       className={cn(
         'space-y-4',
-        !embedded && cn(CARD_SURFACE_CLASS, 'mb-4 border-brand-200/60 p-4 sm:p-5 dark:border-brand-600/30'),
+        !embedded && cn(CARD_SURFACE_CLASS, 'mb-4 border-brand-200/60 p-4 sm:p-6 dark:border-brand-600/30'),
       )}
     >
       {!embedded && (
@@ -290,7 +290,7 @@ export function UploadContentForm({
           <span className="text-caption text-content-muted">MP4, MOV, or WebM · max 1.5 GB</span>
         </label>
         {fileError && (
-          <p className="mt-1.5 text-caption text-red-600 dark:text-red-400">{fileError}</p>
+          <p className="mt-2 text-caption text-red-600 dark:text-red-400">{fileError}</p>
         )}
       </div>
 
@@ -311,7 +311,7 @@ export function UploadContentForm({
         />
 
         {thumbnailPreview ? (
-          <div className="flex items-center gap-3 rounded-lg border border-surface-border bg-surface-muted/30 p-3">
+          <div className="flex items-center gap-4 rounded-lg border border-surface-border bg-surface-muted/30 p-4">
             <img
               src={thumbnailPreview}
               alt=""
@@ -327,7 +327,7 @@ export function UploadContentForm({
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 shrink-0 px-3"
+              className="h-8 shrink-0 px-4"
               onClick={() => thumbnailInputRef.current?.click()}
             >
               Replace
@@ -361,7 +361,7 @@ export function UploadContentForm({
         )}
 
         {thumbnailError && (
-          <p className="mt-1.5 text-caption text-status-danger">{thumbnailError}</p>
+          <p className="mt-2 text-caption text-status-danger">{thumbnailError}</p>
         )}
       </div>
 

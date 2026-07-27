@@ -16,6 +16,7 @@ import {
   formatDeploymentAxes,
   formatEnumLabel,
 } from '../../lib/deploymentDisplay';
+import { cn } from '../../lib/cn';
 import type { DeploymentEntity } from '../../types/deployments';
 import { DeploymentDetailsModal } from './DeploymentDetailsModal';
 import { EditDeploymentModal } from './EditDeploymentModal';
@@ -53,7 +54,7 @@ export function DeploymentsList() {
   return (
     <>
       <Card padding="md" className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <SectionLabel>Registered deployments</SectionLabel>
             <p className="mt-1 text-caption text-content-secondary">
@@ -61,7 +62,7 @@ export function DeploymentsList() {
             </p>
           </div>
           <form
-            className="flex w-full gap-2 sm:max-w-sm"
+            className="flex w-full items-center gap-2 sm:max-w-sm"
             onSubmit={(event) => {
               event.preventDefault();
               setPage(1);
@@ -74,7 +75,7 @@ export function DeploymentsList() {
               placeholder="Search by name…"
               className="min-w-0 flex-1"
             />
-            <Button type="submit" variant="outline" size="sm" className="h-10 shrink-0 gap-1.5 px-3">
+            <Button type="submit" variant="outline" size="md" className="shrink-0 gap-2 px-4">
               <Search className="h-4 w-4" />
               Search
             </Button>
@@ -90,43 +91,51 @@ export function DeploymentsList() {
         ) : (
           <div className="overflow-x-auto rounded-lg border border-surface-border">
             <table className="min-w-full text-left text-body-sm">
-              <thead className="bg-surface-muted/60 text-caption uppercase tracking-wide text-content-muted">
+              <thead className="bg-surface text-caption uppercase tracking-wide text-content-muted">
                 <tr>
-                  <th className="px-3 py-2.5 font-medium">Name</th>
-                  <th className="px-3 py-2.5 font-medium">Type</th>
-                  <th className="px-3 py-2.5 font-medium">Field / Content</th>
-                  <th className="px-3 py-2.5 font-medium">Variant / Program</th>
-                  <th className="px-3 py-2.5 font-medium">Devices</th>
-                  <th className="px-3 py-2.5 font-medium">Branding</th>
-                  <th className="px-3 py-2.5 font-medium text-right">Actions</th>
+                  <th className="px-4 py-2 font-medium">Name</th>
+                  <th className="px-4 py-2 font-medium">Type</th>
+                  <th className="px-4 py-2 font-medium">Field / Content</th>
+                  <th className="px-4 py-2 font-medium">Variant / Program</th>
+                  <th className="px-4 py-2 font-medium">Devices</th>
+                  <th className="px-4 py-2 font-medium">Branding</th>
+                  <th className="px-4 py-2 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((deployment) => {
+                {items.map((deployment, index) => {
                   const axes = formatDeploymentAxes(deployment, {
                     categories: contentCategories,
                   });
                   return (
-                    <tr key={deployment.id} className="border-t border-surface-border">
-                      <td className="px-3 py-3 font-medium text-content-primary">
+                    <tr
+                      key={deployment.id}
+                      className={cn(
+                        'border-b border-surface-border last:border-b-0 transition-colors',
+                        index % 2 === 1
+                          ? 'bg-surface-muted hover:bg-[#F2F7FF]'
+                          : 'bg-surface hover:bg-[#F2F7FF]',
+                      )}
+                    >
+                      <td className="px-4 py-4 font-medium text-content-primary">
                         {deployment.name || deployment.id.slice(0, 8)}
                       </td>
-                      <td className="px-3 py-3 text-content-secondary">
+                      <td className="px-4 py-4 text-content-secondary">
                         {formatEnumLabel(deployment.deploymentType)}
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-4 py-4">
                         <Badge variant="brand">{axes.fieldLabel}</Badge>
                       </td>
-                      <td className="px-3 py-3 text-content-secondary">
+                      <td className="px-4 py-4 text-content-secondary">
                         {axes.variantLabel}
                       </td>
-                      <td className="px-3 py-3 text-content-secondary">
+                      <td className="px-4 py-4 text-content-secondary">
                         {deployment.devices?.length ?? 0}
                       </td>
-                      <td className="px-3 py-3 text-content-secondary">
+                      <td className="px-4 py-4 text-content-secondary">
                         {brandingLabel(deployment.config)}
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-4 py-4">
                         <div className="flex justify-end gap-1">
                           <IconButton
                             label={`View ${deployment.name ?? 'deployment'}`}

@@ -165,7 +165,7 @@ export function EditRotationDayModal({
       case 'video':
         return (
           <div className="space-y-4">
-            <div className="rounded-lg border border-surface-border bg-surface-muted/30 px-4 py-3">
+            <div className="rounded-lg border border-surface-border bg-surface-muted/30 px-4 py-4">
               <p className="text-caption text-content-muted">Program slot</p>
               <p className="text-body-sm font-medium text-content-primary">{scheduleLabel}</p>
             </div>
@@ -224,18 +224,18 @@ export function EditRotationDayModal({
       footer={footer}
     >
       <ModalBody>
-        <div className="space-y-5">
+        <div className="space-y-6">
           <div>
             <label className="mb-1 block text-xs font-medium text-content-muted">Rotation day</label>
             <Dropdown options={dayOptions} value={selectedDay} onChange={setSelectedDay} fullWidth />
-            <p className="mt-1.5 text-caption text-content-muted">
+            <p className="mt-2 text-caption text-content-muted">
               Day {selectedDay} of {ROTATION_DAYS}.
             </p>
           </div>
 
           {isDeploymentFocus ? (
             <div className="space-y-4">
-              <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 dark:border-brand-600/30 dark:bg-brand-600/10">
+              <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-4 dark:border-brand-600/30 dark:bg-brand-600/10">
                 <p className="text-caption font-medium text-brand-700 dark:text-brand-300">
                   Deployed content
                 </p>
@@ -256,7 +256,7 @@ export function EditRotationDayModal({
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between gap-3 border-t border-surface-border pt-4">
+              <div className="flex items-center justify-between gap-4 border-t border-surface-border pt-4">
                 <SectionLabel className="block">{getScheduleWizardStepLabel(currentWizardStep)}</SectionLabel>
                 <p className="text-caption text-content-muted">
                   Step {wizardIndex + 1} of {wizardSteps.length}
@@ -264,7 +264,7 @@ export function EditRotationDayModal({
               </div>
               {renderWizardStep(currentWizardStep)}
               {!isLastWizardStep && (
-                <div className="rounded-lg border border-dashed border-surface-border px-4 py-3 text-body-sm text-content-secondary">
+                <div className="rounded-lg border border-dashed border-surface-border px-4 py-4 text-body-sm text-content-secondary">
                   Scheduling: <strong className="text-content-primary">{scheduleLabel}</strong> on Day{' '}
                   {selectedDay}
                 </div>
@@ -291,14 +291,14 @@ function RadioOptionGroup<T extends string>({
   return (
     <fieldset>
       <legend className="sr-only">{label}</legend>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         {options.map((option) => {
           const selected = option.value === value;
           return (
             <label
               key={option.value}
               className={cn(
-                'flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors',
+                'flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition-colors',
                 selected
                   ? 'border-brand-600 bg-brand-50 dark:bg-brand-600/10'
                   : 'border-surface-border hover:border-brand-500/30',

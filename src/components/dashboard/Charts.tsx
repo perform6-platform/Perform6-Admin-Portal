@@ -44,7 +44,7 @@ export function DonutChart({ segments, totalLabel = 'Total' }: DonutChartProps) 
         </div>
       </div>
 
-      <ul className="w-full space-y-3 sm:w-auto">
+      <ul className="w-full space-y-4 sm:w-auto">
         {segments.map((segment) => {
           const percentage = total > 0 ? Math.round((segment.value / total) * 100) : 0;
           return (
@@ -95,7 +95,7 @@ export function BarChart({ items, maxValue }: BarChartProps) {
                 className="flex w-full flex-col items-center justify-end"
                 style={{ height: chartHeight + 28 }}
               >
-                <span className="mb-1.5 text-sm font-semibold leading-none text-content-primary">
+                <span className="mb-2 text-sm font-semibold leading-none text-content-primary">
                   {item.value}
                 </span>
                 <div

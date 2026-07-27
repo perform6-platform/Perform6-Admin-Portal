@@ -36,7 +36,7 @@ export function BrandingLogoUpload({
   }
 
   return (
-    <div className={cn('space-y-3', className)}>
+    <div className={cn('space-y-4', className)}>
       <div>
         <SectionLabel className="mb-1 block">Company logo</SectionLabel>
         <p className="text-body-sm text-content-secondary">
@@ -53,24 +53,24 @@ export function BrandingLogoUpload({
       />
 
       {previewUrl ? (
-        <div className="flex items-center gap-4 rounded-lg border border-surface-border bg-surface-muted/30 p-3">
+        <div className="flex items-center gap-4 rounded-lg border border-surface-border bg-surface-muted/30 p-4">
           <div className="relative h-16 w-28 overflow-hidden rounded-md border border-surface-border bg-surface">
             <img src={previewUrl} alt="" className="h-full w-full object-contain" />
             {companyName?.trim() && (
-              <div className="absolute left-1.5 top-1.5 max-w-[calc(100%-0.75rem)] truncate rounded bg-white/95 px-1 py-0.5 text-[8px] font-semibold text-p6-gray-950 shadow-sm">
+              <div className="absolute left-2 top-2 max-w-[calc(100%-0.75rem)] truncate rounded bg-white/95 px-2 py-0.5 text-[8px] font-medium text-p6-gray-950 shadow-sm">
                 {companyName.trim()}
               </div>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-body-sm font-medium text-content-primary">Logo ready</p>
+            <p className="text-body-sm text-content-primary">Logo ready</p>
             <p className="text-caption text-content-secondary">Will be uploaded on deploy.</p>
           </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-8 shrink-0 gap-1.5 px-3"
+            className="h-8 shrink-0 gap-2 px-4"
             onClick={() => inputRef.current?.click()}
           >
             Replace

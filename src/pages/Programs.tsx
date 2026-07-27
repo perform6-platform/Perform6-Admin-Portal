@@ -181,11 +181,11 @@ export default function Programs() {
   return (
     <>
       <div className="space-y-4 sm:space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <PageTitle>Programs</PageTitle>
           <Button
             size="sm"
-            className="h-9 w-full shrink-0 gap-1.5 px-4 sm:w-auto"
+            className="h-9 w-full shrink-0 gap-2 px-4 sm:w-auto"
             onClick={() => setAddProgramOpen(true)}
           >
             <Plus className="h-4 w-4" />
@@ -209,13 +209,13 @@ export default function Programs() {
         </section>
 
         <section>
-          <SectionLabel className="mb-3 block">Program List</SectionLabel>
+          <SectionLabel className="mb-4 block">Program List</SectionLabel>
           <Table
             columns={columns}
             data={programsWithCounts}
             rowKey={(row) => row.id}
             renderMobileCard={(row) => (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <button
                   type="button"
                   onClick={() => openManage(row)}
@@ -234,7 +234,7 @@ export default function Programs() {
                     {row.status === 'active' ? 'Active' : 'Inactive'}
                   </span>
                 </div>
-                <div className="flex items-center justify-end gap-1 border-t border-surface-border pt-3">
+                <div className="flex items-center justify-end gap-1 border-t border-surface-border pt-4">
                   <IconButton label={`Edit ${row.name}`} onClick={() => openEditProgram(row)}>
                     <Pencil />
                   </IconButton>

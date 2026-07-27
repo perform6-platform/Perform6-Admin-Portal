@@ -9,7 +9,7 @@ export function Calendar({ className, captionLayout = 'dropdown', ...props }: Ca
     <DayPicker
       showOutsideDays
       captionLayout={captionLayout}
-      className={cn('rdp-perform6 p-3', className)}
+      className={cn('rdp-perform6 p-4', className)}
       {...props}
     />
   );

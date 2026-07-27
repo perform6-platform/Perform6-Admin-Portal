@@ -168,7 +168,7 @@ export default function Rotation() {
             schedule.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4">
           <Button
             type="button"
             variant="outline"
@@ -192,14 +192,14 @@ export default function Rotation() {
         </div>
       </div>
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 hide-scrollbar sm:flex-wrap sm:overflow-visible sm:pb-0">
+      <div className="-mx-2 flex gap-2 overflow-x-auto px-2 pb-2 hide-scrollbar sm:flex-wrap sm:overflow-visible sm:pb-0">
         {categoryGroups.map((group) => (
           <button
             key={group.groupKey}
             type="button"
             onClick={() => setActiveGroupKey(group.groupKey)}
             className={cn(
-              'shrink-0 rounded-lg border px-3 py-1.5 text-body-sm font-medium transition-colors',
+              'shrink-0 rounded-lg border px-4 py-2 text-body-sm font-medium transition-colors',
               activeGroupKey === group.groupKey
                 ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
                 : 'border-surface-border bg-surface-muted text-content-secondary hover:text-content-primary',

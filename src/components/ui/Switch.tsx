@@ -12,7 +12,7 @@ export function Switch({ checked, onChange, label, className, id, ...props }: Sw
   const switchId = id ?? generatedId;
 
   return (
-    <div className={cn('flex shrink-0 items-center gap-2.5', className)}>
+    <div className={cn('flex shrink-0 items-center gap-2', className)}>
       {label && (
         <label htmlFor={switchId} className="cursor-pointer whitespace-nowrap text-body-sm text-content-primary">
           {label}

@@ -38,7 +38,7 @@ function useDropdownMenuPosition(open: boolean, anchorRef: RefObject<HTMLElement
       if (!anchorRef.current) return;
       const rect = anchorRef.current.getBoundingClientRect();
       setPosition({
-        top: rect.bottom + 4,
+        top: rect.bottom + 8,
         left: rect.left,
         width: rect.width,
       });
@@ -114,7 +114,7 @@ export function Dropdown<T extends string = string>({
               zIndex: 400,
             }}
             className={cn(
-              'dropdown-menu hide-scrollbar max-h-60 overflow-y-auto rounded-lg py-1',
+              'dropdown-menu hide-scrollbar max-h-60 overflow-y-auto rounded-control py-1',
               'border border-surface-border shadow-lg dark:shadow-black/40',
             )}
           >
@@ -129,9 +129,9 @@ export function Dropdown<T extends string = string>({
                       setOpen(false);
                     }}
                     className={cn(
-                      'flex w-full items-center bg-surface px-3 py-2 text-left text-body-sm transition-colors',
+                      'flex w-full items-center bg-surface px-4 py-2 text-left text-body-sm transition-colors',
                       isSelected
-                        ? 'bg-brand-50 font-medium text-brand-600 dark:bg-brand-600/20 dark:text-brand-400'
+                        ? 'bg-brand-50 font-medium text-brand-600'
                         : 'text-content-primary hover:bg-surface-muted',
                     )}
                   >
@@ -165,8 +165,8 @@ export function Dropdown<T extends string = string>({
           disabled={disabled}
           onClick={() => setOpen((prev) => !prev)}
           className={cn(
-            'ui-field inline-flex h-9 items-center justify-between gap-2 rounded-lg',
-            'px-3 text-sm font-normal',
+            'ui-field inline-flex h-10 items-center justify-between gap-2 rounded-control',
+            'px-4 text-body-sm font-normal',
             fullWidth ? 'w-full' : 'w-auto min-w-[160px]',
             'hover:border-brand-500/30',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
@@ -195,7 +195,7 @@ export function Dropdown<T extends string = string>({
                     setOpen(false);
                   }
                 }}
-                className="rounded p-0.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content-primary"
+                className="rounded p-2 text-content-muted transition-colors hover:bg-surface-muted hover:text-content-primary"
               >
                 <X className="h-3.5 w-3.5" />
               </span>
@@ -224,10 +224,7 @@ export function UserMenu({
   name,
   role,
   avatarUrl,
-  options = [
-    { value: 'profile', label: 'Profile' },
-    { value: 'settings', label: 'Settings' },
-  ],
+  options = [{ value: 'profile', label: 'Profile' }],
   onSelect,
   className,
 }: UserMenuProps) {
@@ -251,7 +248,7 @@ export function UserMenu({
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
-          'flex items-center gap-2 rounded-lg p-1.5 text-left transition-colors',
+          'flex items-center gap-2 rounded-lg p-2 text-left transition-colors',
           'hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
         )}
       >
@@ -279,7 +276,7 @@ export function UserMenu({
       </button>
 
       {open && (
-        <ul className="dropdown-menu absolute right-0 top-full z-[100] mt-1 min-w-[10rem] overflow-hidden rounded-lg border border-surface-border py-1 shadow-lg dark:shadow-black/40">
+        <ul className="dropdown-menu absolute right-0 top-full z-[100] mt-2 min-w-[10rem] overflow-hidden rounded-control border border-surface-border py-2 shadow-lg dark:shadow-black/40">
           {options.map((option) => (
             <li key={option.value} className="bg-surface">
               <button
@@ -288,7 +285,7 @@ export function UserMenu({
                   onSelect?.(option.value);
                   setOpen(false);
                 }}
-                className="flex w-full bg-surface px-3 py-2 text-left text-body-sm text-content-primary hover:bg-surface-muted"
+                className="flex w-full bg-surface px-4 py-2 text-left text-body-sm text-content-primary hover:bg-surface-muted"
               >
                 {option.label}
               </button>

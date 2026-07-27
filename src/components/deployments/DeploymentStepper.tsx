@@ -24,17 +24,17 @@ export function DeploymentStepper({
   }));
 
   return (
-    <ol className={cn('flex flex-wrap items-center gap-2 sm:gap-3', className)}>
+    <ol className={cn('flex flex-wrap items-center gap-2 sm:gap-4', className)}>
       {steps.map((step, index) => {
         const isActive = step.id === currentStep;
         const isComplete = step.id < currentStep;
 
         return (
-          <li key={step.id} className="flex items-center gap-2 sm:gap-3">
+          <li key={step.id} className="flex items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2">
               <span
                 className={cn(
-                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-caption font-semibold',
+                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-caption font-medium',
                   isActive || isComplete
                     ? 'bg-brand-600 text-white'
                     : 'border border-surface-border bg-surface-muted text-content-muted',

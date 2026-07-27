@@ -79,29 +79,29 @@ export default function Login() {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-brand-900/95 via-brand-900/55 to-brand-900/15" />
 
-        <div className="relative flex h-full min-h-screen flex-col p-10 xl:p-14">
+        <div className="relative flex h-full min-h-screen flex-col p-8 xl:p-16">
           <div className="flex flex-1 items-center">
             <div className="max-w-md">
               <h1 className="text-4xl font-bold leading-tight text-white">
                 Smart Fitness.
               </h1>
-              <p className="mt-1 text-4xl font-bold leading-tight text-brand-400">
+              <p className="mt-1 text-4xl font-bold leading-tight text-white">
                 Seamless Management.
               </p>
-              <p className="mt-5 text-sm leading-relaxed text-white/75">
+              <p className="mt-4 text-sm leading-relaxed text-white/75">
                 Perform6 is an interactive touchscreen fitness platform built for reliability,
                 offline performance and centralized control.
               </p>
 
-              <ul className="mt-8 space-y-5">
+              <ul className="mt-8 space-y-4">
                 {FEATURES.map(({ icon: Icon, title, description }) => (
                   <li key={title} className="flex gap-4">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-brand-400/40 bg-brand-500/15 text-brand-300">
                       <Icon className="h-5 w-5" strokeWidth={1.75} />
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-white">{title}</p>
-                      <p className="mt-0.5 text-xs leading-relaxed text-white/60">{description}</p>
+                      <p className="text-sm font-medium text-white">{title}</p>
+                      <p className="mt-0 text-xs leading-relaxed text-white/60">{description}</p>
                     </div>
                   </li>
                 ))}
@@ -114,7 +114,7 @@ export default function Login() {
       </div>
 
       {/* Right login form */}
-      <div className="flex w-full flex-col items-center justify-center bg-white px-6 py-10 sm:px-10 lg:w-1/2 lg:px-16 xl:px-20">
+      <div className="flex w-full flex-col items-center justify-center bg-white px-8 py-8 sm:px-8 lg:w-1/2 lg:px-16 xl:px-24">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <h2 className="text-3xl font-bold text-p6-gray-950">Welcome Back!</h2>
@@ -123,9 +123,9 @@ export default function Login() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-p6-gray-900">Email Address</label>
+              <label className="mb-2 block text-sm text-p6-gray-900">Email Address</label>
               <Input
                 type="email"
                 placeholder="Enter your email"
@@ -139,7 +139,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-p6-gray-900">Password</label>
+              <label className="mb-2 block text-sm text-p6-gray-900">Password</label>
               <Input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"

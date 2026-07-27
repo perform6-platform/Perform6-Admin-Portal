@@ -52,19 +52,19 @@ export function Table<T>({
 
           <div className={cn(useMobileCards && 'hidden md:block')}>
             {useMobileCards && (
-              <p className="scroll-hint px-4 pt-3 text-caption text-content-muted lg:hidden">
+              <p className="scroll-hint px-4 pt-4 text-caption text-content-muted lg:hidden">
                 Swipe horizontally to view all columns →
               </p>
             )}
             <div className="table-scroll-x overflow-x-auto">
               <table className="w-full min-w-[640px] border-collapse text-left lg:min-w-[720px]">
                 <thead>
-                  <tr className="border-b border-surface-border bg-surface-muted/50">
+                  <tr className="border-b border-surface-border bg-surface">
                     {columns.map((column) => (
                       <th
                         key={column.key}
                         className={cn(
-                          'whitespace-nowrap px-4 py-3 text-table-header uppercase text-content-secondary',
+                          'whitespace-nowrap px-4 py-4 text-table-header uppercase text-content-secondary',
                           column.hideOnMobile && 'hidden md:table-cell',
                           column.headerClassName,
                         )}
@@ -87,15 +87,17 @@ export function Table<T>({
                           'border-b border-surface-border last:border-b-0 transition-colors',
                           onRowClick && 'cursor-pointer',
                           isSelected
-                            ? 'bg-brand-50/70 dark:bg-brand-600/10'
-                            : 'hover:bg-surface-muted/40',
+                            ? 'bg-brand-50'
+                            : index % 2 === 1
+                              ? 'bg-surface-muted hover:bg-[#F2F7FF]'
+                              : 'bg-surface hover:bg-[#F2F7FF]',
                         )}
                       >
                         {columns.map((column) => (
                           <td
                             key={column.key}
                             className={cn(
-                              'px-4 py-3.5 text-body-sm text-content-primary',
+                              'px-4 py-4 text-body-sm text-content-primary',
                               column.hideOnMobile ? 'hidden md:table-cell' : 'whitespace-nowrap',
                               column.className,
                             )}

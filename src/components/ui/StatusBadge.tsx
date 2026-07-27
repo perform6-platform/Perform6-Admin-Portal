@@ -39,7 +39,7 @@ export function StatusBadge({ label, value, variant = 'success', className, ...p
   return (
     <div
       className={cn(
-        'ui-field inline-flex items-center gap-2 rounded-lg px-3 py-2',
+        'ui-field inline-flex items-center gap-2 rounded-lg px-4 py-2',
         className,
       )}
       {...props}
@@ -59,7 +59,7 @@ export function DateBadge({ label, className, ...props }: DateBadgeProps) {
   return (
     <div
       className={cn(
-        'ui-field inline-flex items-center gap-2 rounded-lg px-3 py-2',
+        'ui-field inline-flex items-center gap-2 rounded-lg px-4 py-2',
         className,
       )}
       {...props}

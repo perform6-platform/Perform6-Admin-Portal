@@ -51,7 +51,7 @@ export function RotationPhasePanel({
 
   return (
     <div className="space-y-4">
-      <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-5')}>
+      <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
         <SectionLabel className="mb-1 block">{group.label}</SectionLabel>
         <p className="text-body-sm text-content-secondary">{rule.behavior}</p>
         <p className="mt-2 text-caption text-content-muted">
@@ -68,9 +68,9 @@ export function RotationPhasePanel({
             : usesRotationForPlayback(getPlaybackCategoryForContent(category.id));
 
         return (
-          <section key={category.id} className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-5')}>
+          <section key={category.id} className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
             {group.children.length > 1 && (
-              <SectionLabel className="mb-3 block">{category.label}</SectionLabel>
+              <SectionLabel className="mb-4 block">{category.label}</SectionLabel>
             )}
 
             {videos.length === 0 ? (

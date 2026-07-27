@@ -37,11 +37,11 @@ export function CategorySidebar({
       </div>
 
       <aside className="hidden w-full shrink-0 border-surface-border lg:block lg:w-[200px] xl:w-[220px]">
-        <SectionLabel className="mb-3 block">Categories</SectionLabel>
+        <SectionLabel className="mb-4 block">Categories</SectionLabel>
         <nav className="space-y-4">
           {groups.map((group) => (
             <div key={group.groupKey}>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-content-muted">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-content-muted">
                 {group.label}
               </p>
               <div className="flex flex-wrap gap-1">

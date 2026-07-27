@@ -345,7 +345,7 @@ export function EditDeploymentModal({
           )}
 
           {showScreenEditor && (
-            <div className="space-y-3 rounded-lg border border-surface-border p-3">
+            <div className="space-y-4 rounded-lg border border-surface-border p-4">
               <SectionLabel className="block">Screen content</SectionLabel>
               <p className="text-caption text-content-secondary">
                 Change which parent category (and program, when needed) plays on each screen.

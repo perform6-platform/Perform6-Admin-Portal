@@ -25,7 +25,7 @@ export function DeploymentContentSummary({
   const thumbnailUrl = videos[0]?.thumbnailUrl;
 
   return (
-    <aside className={cn(CARD_SURFACE_CLASS, 'flex h-full flex-col p-4 sm:p-5', className)}>
+    <aside className={cn(CARD_SURFACE_CLASS, 'flex h-full flex-col p-4 sm:p-6', className)}>
       <SectionLabel className="mb-4 block">Content Summary</SectionLabel>
 
       <dl className="space-y-0 divide-y divide-surface-border">
@@ -44,7 +44,7 @@ export function DeploymentContentSummary({
           imageClassName="aspect-video w-full"
           logoClassName="h-5 w-5 sm:h-6 sm:w-6"
           nameClassName="text-[10px] sm:text-xs"
-          overlayClassName="left-2 top-2 gap-1.5 px-1.5 py-1"
+          overlayClassName="left-2 top-2 gap-2 px-2 py-1"
         />
       )}
     </aside>
@@ -53,9 +53,9 @@ export function DeploymentContentSummary({
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-3 first:pt-0">
+    <div className="flex items-start justify-between gap-4 py-4 first:pt-0">
       <dt className="text-caption text-content-secondary">{label}</dt>
-      <dd className="text-right text-body-sm font-medium text-content-primary">{value}</dd>
+      <dd className="text-right text-body-sm text-content-primary">{value}</dd>
     </div>
   );
 }

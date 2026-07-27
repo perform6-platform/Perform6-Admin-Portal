@@ -25,7 +25,7 @@ function SidebarTooltip({ label, collapsed, children }: SidebarTooltipProps) {
         role="tooltip"
         className={cn(
           'pointer-events-none absolute left-[calc(100%+0.625rem)] top-1/2 z-50 -translate-y-1/2',
-          'whitespace-nowrap rounded-lg bg-p6-gray-950 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg',
+          'whitespace-nowrap rounded-lg bg-p6-gray-950 px-2 py-2 text-xs font-medium text-white shadow-lg',
           'opacity-0 transition-opacity duration-150',
           'group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100',
         )}
@@ -58,12 +58,12 @@ function SidebarNavItem({
       <SidebarTooltip label={label} collapsed={collapsed}>
         <span
           className={cn(
-            'flex items-center rounded-lg text-body-sm text-white/50',
-            'cursor-not-allowed opacity-60',
-            collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5',
+            'flex items-center rounded-control text-body-sm text-[#D7DCE3]',
+            'cursor-not-allowed opacity-50',
+            collapsed ? 'justify-center px-2 py-2' : 'gap-4 px-4 py-2',
           )}
         >
-          <Icon className="h-[18px] w-[18px] shrink-0" />
+          <Icon className="h-[18px] w-[18px] shrink-0 text-[#D7DCE3]" />
           {!collapsed && label}
         </span>
       </SidebarTooltip>
@@ -90,7 +90,7 @@ function SidebarNavItem({
             <Icon
               className={cn(
                 'h-[18px] w-[18px] shrink-0',
-                isActive ? 'text-white' : 'text-white/60',
+                isActive ? 'text-white' : 'text-current',
               )}
             />
             {!collapsed && <span className="truncate">{label}</span>}
@@ -138,8 +138,8 @@ export function SidebarPanel({
     <div className={cn('flex h-full min-h-0 flex-col overflow-visible', className)}>
       <div
         className={cn(
-          'relative flex items-center gap-3 py-6',
-          collapsed ? 'justify-center px-3' : 'justify-between px-5',
+          'relative flex items-center gap-4 py-6',
+          collapsed ? 'justify-center px-4' : 'justify-between px-6',
         )}
       >
         {showCollapseToggle && onToggleCollapse && (
@@ -148,7 +148,7 @@ export function SidebarPanel({
             onClick={onToggleCollapse}
             aria-label={isCollapsedView ? 'Expand sidebar' : 'Collapse sidebar'}
             className={cn(
-              'absolute -right-3 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full',
+              'absolute -right-4 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full',
               'border-2 border-white bg-brand-600 text-white shadow-[0_4px_12px_rgba(17,85,204,0.35)]',
               'transition-transform hover:scale-105 hover:bg-brand-500',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
@@ -172,7 +172,7 @@ export function SidebarPanel({
             <img
               src={perform6Logo}
               alt="Perform6"
-              className="h-10 w-auto max-w-[180px] object-contain object-left"
+              className="h-10 w-full object-contain object-left"
             />
           )}
         </div>
@@ -182,7 +182,7 @@ export function SidebarPanel({
             onClick={onClose}
             aria-label="Close menu"
             className={cn(
-              'inline-flex h-9 w-9 items-center justify-center rounded-lg',
+              'inline-flex h-9 w-9 items-center justify-center rounded-control',
               'border border-white/20 text-white/80 hover:bg-brand-500/30 hover:text-white',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
             )}
@@ -196,7 +196,7 @@ export function SidebarPanel({
             onClick={onClose}
             aria-label="Close menu"
             className={cn(
-              'absolute right-3 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg',
+              'absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-control',
               'text-white/80 hover:bg-brand-500/30 hover:text-white',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
             )}
@@ -225,7 +225,7 @@ export function SidebarPanel({
       <div
         className={cn(
           'border-t border-white/15 py-4',
-          collapsed ? 'px-2' : 'px-5',
+          collapsed ? 'px-2' : 'px-6',
         )}
       >
         <SidebarTooltip label="Logout" collapsed={collapsed}>
@@ -234,9 +234,9 @@ export function SidebarPanel({
             onClick={handleLogout}
             disabled={isLoggingOut}
             className={cn(
-              'flex w-full items-center rounded-xl text-body-sm font-medium text-white/80 transition-colors',
+              'flex w-full items-center rounded-control text-body-sm font-medium text-white/80 transition-colors',
               'hover:bg-brand-500/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
-              collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5',
+              collapsed ? 'justify-center px-2 py-2' : 'gap-4 px-4 py-2',
             )}
           >
             <LogOut className="h-[18px] w-[18px] shrink-0" />

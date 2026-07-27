@@ -59,7 +59,7 @@ export default function ManageProgram() {
         <div className="space-y-2">
           <Link
             to="/programs"
-            className="inline-flex items-center gap-1.5 text-body-sm text-content-secondary transition-colors hover:text-brand-600 dark:hover:text-brand-400"
+            className="inline-flex items-center gap-2 text-body-sm text-content-secondary transition-colors hover:text-brand-600 dark:hover:text-brand-400"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Programs
@@ -85,7 +85,7 @@ export default function ManageProgram() {
       </div>
 
       {playbackRule && (
-        <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-5')}>
+        <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
           <SectionLabel className="mb-2 block">Playback Behavior</SectionLabel>
           <div className="flex flex-wrap gap-2">
             {playbackRule.loops ? (
@@ -98,19 +98,19 @@ export default function ManageProgram() {
             )}
             {playbackRule.supportsPause && <RuleBadge icon={Pause} label="Pause enabled on touchscreen" />}
           </div>
-          <p className="mt-2 text-body-sm text-content-secondary">{playbackRule.behavior}</p>
+          <p className="mt-4 text-body-sm text-content-secondary">{playbackRule.behavior}</p>
         </section>
       )}
 
       {isPhase1Parent && phase1Group && (
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 hide-scrollbar sm:flex-wrap sm:overflow-visible sm:pb-0">
+        <div className="-mx-2 flex gap-2 overflow-x-auto px-2 pb-2 hide-scrollbar sm:flex-wrap sm:overflow-visible sm:pb-0">
           {phase1Group.children.map((category) => (
             <button
               key={category.id}
               type="button"
               onClick={() => setActiveSubCategory(category.id)}
               className={cn(
-                'shrink-0 rounded-lg border px-3 py-1.5 text-body-sm font-medium transition-colors',
+                'shrink-0 rounded-lg border px-4 py-2 text-body-sm font-medium transition-colors',
                 activeSubCategory === category.id
                   ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
                   : 'border-surface-border bg-surface-muted text-content-secondary hover:text-content-primary',
@@ -122,8 +122,8 @@ export default function ManageProgram() {
         </div>
       )}
 
-      <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-5')}>
-        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <SectionLabel className="block">Program Videos</SectionLabel>
           <span className="text-body-sm font-medium text-content-secondary">{videoLabel}</span>
         </div>
@@ -156,7 +156,7 @@ export default function ManageProgram() {
 
 function RuleBadge({ icon: Icon, label }: { icon: typeof Repeat; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-muted px-2.5 py-1 text-caption font-medium text-content-secondary">
+    <span className="inline-flex items-center gap-2 rounded-full bg-surface-muted px-2 py-2 text-caption font-medium text-content-secondary">
       <Icon className="h-3.5 w-3.5" />
       {label}
     </span>

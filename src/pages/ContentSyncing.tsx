@@ -152,7 +152,7 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
 
   return (
     <div className="space-y-4 rounded-xl border border-surface-border bg-surface p-4 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-content-primary">
             {device.deviceName ?? device.serialNumber ?? device.deviceId}
@@ -162,28 +162,28 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
         <Badge variant={statusBadgeVariant(device.status)}>{device.status ?? 'IDLE'}</Badge>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-lg bg-surface-muted p-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="rounded-lg bg-surface-muted p-4">
           <p className="text-caption text-content-secondary">Progress</p>
           <p className="text-lg font-semibold">
             {device.cachedCount ?? 0}/{device.expectedCount ?? 0} ({device.progressPercent ?? 0}%)
           </p>
         </div>
-        <div className="rounded-lg bg-surface-muted p-3">
+        <div className="rounded-lg bg-surface-muted p-4">
           <p className="text-caption text-content-secondary">Rotation</p>
           <p className="text-lg font-semibold">
             {device.rotationDay != null ? `Day ${device.rotationDay}` : '—'}
           </p>
         </div>
-        <div className="rounded-lg bg-surface-muted p-3">
+        <div className="rounded-lg bg-surface-muted p-4">
           <p className="text-caption text-content-secondary">Window</p>
           <p className="text-lg font-semibold">{windowLabel(device)}</p>
         </div>
-        <div className="rounded-lg bg-surface-muted p-3">
+        <div className="rounded-lg bg-surface-muted p-4">
           <p className="text-caption text-content-secondary">Prefetch</p>
           <p className="text-lg font-semibold">{prefetchLabel(device)}</p>
         </div>
-        <div className="rounded-lg bg-surface-muted p-3">
+        <div className="rounded-lg bg-surface-muted p-4">
           <p className="text-caption text-content-secondary">Last sync</p>
           <p className="text-lg font-semibold">{formatLastSync(device.lastSyncAt)}</p>
         </div>
@@ -196,7 +196,7 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
       )}
 
       {device.activeDownload?.mediaVersionId && (
-        <div className="rounded-lg border border-brand-200 bg-brand-50 p-3 text-sm dark:border-brand-600/30 dark:bg-brand-600/10">
+        <div className="rounded-lg border border-brand-200 bg-brand-50 p-4 text-sm dark:border-brand-600/30 dark:bg-brand-600/10">
           Downloading{' '}
           <span className="font-mono text-xs">
             {device.activeDownload.mediaVersionId.slice(0, 8)}…
@@ -341,7 +341,7 @@ export default function ContentSyncing() {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-4">
           <Dropdown
             options={[...filterOptions]}
             value={filter}
@@ -351,7 +351,7 @@ export default function ContentSyncing() {
           <button
             type="button"
             onClick={() => void refetch()}
-            className="rounded-lg border border-surface-border px-3 py-2 text-sm text-content-secondary hover:bg-surface-muted"
+            className="rounded-lg border border-surface-border px-4 py-2 text-sm text-content-secondary hover:bg-surface-muted"
           >
             {isFetching ? 'Refreshing…' : 'Refresh'}
           </button>

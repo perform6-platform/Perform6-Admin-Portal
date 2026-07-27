@@ -97,7 +97,7 @@ export function Modal({
       >
         <div
           className={cn(
-            'flex items-start justify-between gap-3 px-4 py-4 sm:px-5',
+            'flex items-start justify-between gap-4 px-4 py-4 sm:px-6',
             hasBody && 'border-b border-surface-border',
           )}
         >
@@ -119,11 +119,11 @@ export function Modal({
         </div>
 
         {hasBody && (
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">{children}</div>
         )}
 
         {footer && (
-          <div className="flex flex-col-reverse gap-2 border-t border-surface-border px-4 py-4 sm:flex-row sm:justify-end sm:px-5">
+          <div className="flex flex-col-reverse gap-2 border-t border-surface-border px-4 py-4 sm:flex-row sm:justify-end sm:px-6">
             {footer}
           </div>
         )}

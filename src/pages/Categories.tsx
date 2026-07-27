@@ -49,7 +49,7 @@ export default function Categories() {
         header: 'Category',
         render: (row) => (
           <div>
-            <p className="font-medium text-content-primary">{row.name}</p>
+            <p className="text-content-primary">{row.name}</p>
             <p className="text-caption text-content-muted">{row.slug}</p>
           </div>
         ),
@@ -182,7 +182,7 @@ export default function Categories() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <PageTitle>Categories</PageTitle>
           <p className="mt-1 text-body-sm text-content-secondary">
@@ -192,7 +192,7 @@ export default function Categories() {
         </div>
         <Button
           size="sm"
-          className="h-9 shrink-0 gap-1.5 px-4"
+          className="h-9 shrink-0 gap-2 px-4"
           onClick={() => {
             setFormMode('create');
             setEditing(null);

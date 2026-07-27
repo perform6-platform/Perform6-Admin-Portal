@@ -9,7 +9,7 @@ import { CARD_SURFACE_CLASS, SectionLabel } from '../ui';
 
 export function PlaybackOverview() {
   return (
-    <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-5')}>
+    <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
       <SectionLabel className="mb-1 block">Content Playback &amp; Rotation</SectionLabel>
       <p className="mb-4 text-body-sm text-content-secondary">
         Touchscreen flow: user selects a category → assigned video plays per rules below → system
@@ -19,7 +19,7 @@ export function PlaybackOverview() {
         loop (Day {ROTATION_DAYS} → Day 1).
       </p>
 
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-4 md:hidden">
         {playbackRules.map((rule) => (
           <article
             key={rule.categoryId}
@@ -30,7 +30,7 @@ export function PlaybackOverview() {
               <span className="text-caption text-content-secondary">{rule.approxDuration}</span>
             </div>
             <p className="mt-1 text-caption text-content-muted">{rule.options}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {rule.loops ? (
                 <PlaybackBadge icon={Repeat} label="Loops" tone="brand" />
               ) : (
@@ -56,27 +56,35 @@ export function PlaybackOverview() {
         <div className="table-scroll-x overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-left text-body-sm lg:min-w-[720px]">
             <thead>
-              <tr className="border-b border-surface-border">
-                <th className="px-3 py-2.5 text-table-header font-semibold uppercase text-content-muted">
+              <tr className="border-b border-surface-border bg-surface">
+                <th className="px-4 py-2 text-table-header font-semibold uppercase text-content-muted">
                   Category
                 </th>
-                <th className="px-3 py-2.5 text-table-header font-semibold uppercase text-content-muted">
+                <th className="px-4 py-2 text-table-header font-semibold uppercase text-content-muted">
                   Options
                 </th>
-                <th className="px-3 py-2.5 text-table-header font-semibold uppercase text-content-muted">
+                <th className="px-4 py-2 text-table-header font-semibold uppercase text-content-muted">
                   Playback
                 </th>
-                <th className="px-3 py-2.5 text-table-header font-semibold uppercase text-content-muted">
+                <th className="px-4 py-2 text-table-header font-semibold uppercase text-content-muted">
                   Duration
                 </th>
               </tr>
             </thead>
             <tbody>
-              {playbackRules.map((rule) => (
-                <tr key={rule.categoryId} className="border-b border-surface-border last:border-0">
-                  <td className="px-3 py-3 font-semibold text-content-primary">{rule.label}</td>
-                  <td className="px-3 py-3 text-content-secondary">{rule.options}</td>
-                  <td className="px-3 py-3">
+              {playbackRules.map((rule, index) => (
+                <tr
+                  key={rule.categoryId}
+                  className={cn(
+                    'border-b border-surface-border last:border-b-0 transition-colors',
+                    index % 2 === 1
+                      ? 'bg-surface-muted hover:bg-[#F2F7FF]'
+                      : 'bg-surface hover:bg-[#F2F7FF]',
+                  )}
+                >
+                  <td className="px-4 py-4 font-semibold text-content-primary">{rule.label}</td>
+                  <td className="px-4 py-4 text-content-secondary">{rule.options}</td>
+                  <td className="px-4 py-4">
                     <div className="flex flex-wrap items-center gap-2">
                       {rule.loops ? (
                         <PlaybackBadge icon={Repeat} label="Loops" tone="brand" />
@@ -101,9 +109,9 @@ export function PlaybackOverview() {
                         />
                       )}
                     </div>
-                    <p className="mt-1.5 text-caption text-content-muted">{rule.behavior}</p>
+                    <p className="mt-2 text-caption text-content-muted">{rule.behavior}</p>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-content-secondary">
+                  <td className="whitespace-nowrap px-4 py-4 text-content-secondary">
                     {rule.approxDuration}
                   </td>
                 </tr>

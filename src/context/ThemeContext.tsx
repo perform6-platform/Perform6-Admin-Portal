@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -9,30 +9,17 @@ interface ThemeContextValue {
   toggleTheme: () => void;
 }
 
-const STORAGE_KEY = 'perform6-theme';
-
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function getInitialTheme(): Theme {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem(STORAGE_KEY, theme);
-  }, [theme]);
+  const theme: Theme = 'light';
 
   const value = useMemo(
     () => ({
       theme,
-      isDark: theme === 'dark',
-      setTheme,
-      toggleTheme: () => setTheme((current) => (current === 'light' ? 'dark' : 'light')),
+      isDark: false,
+      setTheme: () => undefined,
+      toggleTheme: () => undefined,
     }),
     [theme],
   );

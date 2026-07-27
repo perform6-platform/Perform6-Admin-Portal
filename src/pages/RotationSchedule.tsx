@@ -202,14 +202,14 @@ export default function RotationSchedule() {
       </div>
 
       {deploymentNotice && (
-        <div className="flex flex-col gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-brand-600/30 dark:bg-brand-600/10">
+        <div className="flex flex-col gap-4 rounded-lg border border-brand-200 bg-brand-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-brand-600/30 dark:bg-brand-600/10">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-status-success" />
             <div>
               <p className="text-body-sm font-medium text-content-primary">
                 Deployment added to rotation schedule
               </p>
-              <p className="mt-0.5 text-body-sm text-content-secondary">
+              <p className="mt-0 text-body-sm text-content-secondary">
                 <strong>{deploymentNotice.deploymentName}</strong>
                 {deploymentNotice.isBundleDeployment
                   ? deploymentNotice.deploymentMode === 'default'
@@ -227,7 +227,7 @@ export default function RotationSchedule() {
             type="button"
             size="sm"
             variant="outline"
-            className="h-8 shrink-0 px-3"
+            className="h-8 shrink-0 px-4"
             onClick={dismissDeploymentNotice}
           >
             Dismiss
@@ -236,7 +236,7 @@ export default function RotationSchedule() {
       )}
 
       <div className="max-w-md">
-        <label className="mb-1 block text-xs font-medium text-content-muted">Device</label>
+        <label className="mb-2 block text-xs font-medium text-content-muted">Device</label>
         <Dropdown
           options={deviceOptions}
           value={selectedDeviceId}

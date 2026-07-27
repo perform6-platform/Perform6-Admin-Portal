@@ -638,7 +638,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       <DeploymentStepper currentStep={step} totalSteps={TOTAL_STEPS} />
 
       {step === 1 && (
-        <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-5')}>
+        <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-6')}>
           <SectionLabel className="block">Step 1 — Configuration</SectionLabel>
 
           <div>
@@ -654,7 +654,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
           {isDefault ? (
             <>
-              <div className="space-y-2 rounded-lg border border-surface-border p-3">
+              <div className="space-y-2 rounded-lg border border-surface-border p-4">
                 <div>
                   <p className="text-body-sm font-medium text-content-primary">
                     Content categories for this deployment
@@ -671,7 +671,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                       <label
                         key={category.id}
                         className={cn(
-                          'flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-body-sm',
+                          'flex cursor-pointer items-center gap-2 rounded-md border px-4 py-2 text-body-sm',
                           checked
                             ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
                             : 'border-surface-border bg-surface-muted/20 text-content-secondary',
@@ -694,7 +694,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               </div>
             </>
           ) : (
-            <div className="rounded-lg border border-surface-border bg-surface-muted/20 p-3 text-body-sm text-content-secondary">
+            <div className="rounded-lg border border-surface-border bg-surface-muted/20 p-4 text-body-sm text-content-secondary">
               Touchscreen deployments use the fixed system categories (Default, Start Here, Phase
               1, Phase 2, Full Program). Choose Field and Variant below so Fitness/Golf playlists
               resolve to the correct videos.
@@ -749,7 +749,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       )}
 
       {step === 2 && (
-        <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-5')}>
+        <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-6')}>
           <SectionLabel className="block">Step 2 — Device</SectionLabel>
           <p className="text-body-sm text-content-secondary">
             Assign claimed (not yet deployed) devices and map each output to a category from Step
@@ -772,7 +772,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               </div>
 
               {deviceKind === 'XC' && (
-                <div className="space-y-3 rounded-lg border border-surface-border p-3">
+                <div className="space-y-4 rounded-lg border border-surface-border p-4">
                   <div>
                     <p className="mb-1 text-xs font-medium text-content-muted">XC4055 device</p>
                     <Dropdown
@@ -828,7 +828,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               )}
 
               {deviceKind === 'HD' && (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {hdRows.map((row, index) => {
                     const usedPairingIds = new Set(
                       hdRows
@@ -845,7 +845,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                     return (
                       <div
                         key={row.id}
-                        className="space-y-2 rounded-lg border border-surface-border p-3"
+                        className="space-y-2 rounded-lg border border-surface-border p-4"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-body-sm font-medium text-content-primary">
@@ -922,7 +922,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               )}
             </>
           ) : (
-            <div className="space-y-3 rounded-lg border border-surface-border p-3">
+            <div className="space-y-4 rounded-lg border border-surface-border p-4">
               <p className="text-body-sm text-content-secondary">
                 Touchscreen deployments use a single claimed XT2145 device.
               </p>
@@ -946,7 +946,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       )}
 
       {step === 3 && (
-        <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-5')}>
+        <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-6')}>
           <SectionLabel className="block">Step 3 — Preview</SectionLabel>
           <p className="text-body-sm text-content-secondary">
             Videos and rotation for the categories assigned to your selected device screens.
@@ -985,7 +985,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                     return (
                       <li
                         key={`${slot.key}-${item.mediaVersionId || item.day}-${index}`}
-                        className="flex items-start gap-3 rounded-lg border border-surface-border bg-surface-muted/30 px-3 py-2"
+                        className="flex items-start gap-4 rounded-lg border border-surface-border bg-surface-muted/30 px-4 py-2"
                       >
                         <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-md border border-surface-border bg-surface-muted">
                           {thumbnailUrl ? (
@@ -1000,7 +1000,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                             </div>
                           )}
                           {slot.isRotating && (
-                            <span className="absolute bottom-0 left-0 right-0 bg-brand-600/90 px-1 py-0.5 text-center text-[10px] font-semibold text-white">
+                            <span className="absolute bottom-0 left-0 right-0 bg-brand-600/90 px-2 py-0.5 text-center text-[10px] font-semibold text-white">
                               Day {item.day}
                             </span>
                           )}
@@ -1025,7 +1025,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       )}
 
       {step === 4 && (
-        <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-5')}>
+        <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-6')}>
           <SectionLabel className="block">Step 4 — Finalize deployment</SectionLabel>
 
           <div>
@@ -1063,7 +1063,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             </>
           )}
 
-          <div className="space-y-3 border-t border-surface-border pt-4">
+          <div className="space-y-4 border-t border-surface-border pt-4">
             <p className="text-xs font-medium text-content-muted">
               Site owner (offline alerts)
             </p>
@@ -1100,7 +1100,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             />
           </div>
 
-          <div className="space-y-2 rounded-lg border border-surface-border bg-surface-muted/20 p-3 text-body-sm text-content-secondary">
+          <div className="space-y-2 rounded-lg border border-surface-border bg-surface-muted/20 p-4 text-body-sm text-content-secondary">
             <p>
               <span className="font-medium text-content-primary">Type:</span> {deploymentType}
             </p>

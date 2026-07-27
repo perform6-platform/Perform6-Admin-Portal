@@ -108,8 +108,8 @@ export default function Dashboard() {
           </Card>
 
           <section>
-            <SectionLabel className="mb-3 block">Quick Actions</SectionLabel>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <SectionLabel className="mb-4 block">Quick Actions</SectionLabel>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {quickActions.map(({ label, icon: Icon }) => (
                 <QuickActionButton
                   key={label}
@@ -135,7 +135,7 @@ export default function Dashboard() {
                   <li
                     key={`${item.device}-${item.time}`}
                     className={cn(
-                      'flex items-center gap-3 py-3',
+                      'flex items-center gap-4 py-4',
                       index < recentActivity.length - 1 && 'border-b border-surface-border',
                     )}
                   >

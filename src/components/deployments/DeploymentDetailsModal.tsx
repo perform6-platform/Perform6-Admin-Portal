@@ -68,8 +68,8 @@ export function DeploymentDetailsModal({
           <p className="text-body-sm text-content-muted">Failed to load deployment details.</p>
         ) : (
           <>
-            <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-5')}>
-              <SectionLabel className="mb-3 block">Overview</SectionLabel>
+            <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
+              <SectionLabel className="mb-4 block">Overview</SectionLabel>
               <dl className="divide-y divide-surface-border rounded-lg border border-surface-border">
                 <DetailRow label="Name" value={deployment.name || '—'} />
                 <DetailRow label="Type" value={formatEnumLabel(deployment.deploymentType)} />
@@ -97,8 +97,8 @@ export function DeploymentDetailsModal({
               </dl>
             </section>
 
-            <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-5')}>
-              <SectionLabel className="mb-3 block">Screen → category</SectionLabel>
+            <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
+              <SectionLabel className="mb-4 block">Screen → category</SectionLabel>
               {screens.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-surface-border px-4 py-6 text-center text-body-sm text-content-muted">
                   No screen assignments on this deployment.
@@ -110,7 +110,7 @@ export function DeploymentDetailsModal({
                     return (
                       <li
                         key={screen.screenKey}
-                        className="flex items-center justify-between gap-3 px-4 py-3"
+                        className="flex items-center justify-between gap-4 px-4 py-4"
                       >
                         <div>
                           <p className="text-body-sm font-medium text-content-primary">
@@ -133,11 +133,11 @@ export function DeploymentDetailsModal({
             </section>
 
             {deployment.devices && deployment.devices.length > 0 && (
-              <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-5')}>
-                <SectionLabel className="mb-3 block">Linked devices</SectionLabel>
+              <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
+                <SectionLabel className="mb-4 block">Linked devices</SectionLabel>
                 <ul className="divide-y divide-surface-border rounded-lg border border-surface-border">
                   {deployment.devices.map((device) => (
-                    <li key={device.id} className="px-4 py-3 text-body-sm text-content-primary">
+                    <li key={device.id} className="px-4 py-4 text-body-sm text-content-primary">
                       <span className="font-medium">{device.id.slice(0, 8)}…</span>
                       {device.rotationStartDate ? (
                         <span className="ml-2 text-content-secondary">
@@ -151,9 +151,9 @@ export function DeploymentDetailsModal({
             )}
 
             {(logoUrl || branding?.brandName) && (
-              <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-5')}>
-                <SectionLabel className="mb-3 block">Branding</SectionLabel>
-                <div className="flex items-center gap-3">
+              <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
+                <SectionLabel className="mb-4 block">Branding</SectionLabel>
+                <div className="flex items-center gap-4">
                   {logoUrl && (
                     <img
                       src={logoUrl}
@@ -176,7 +176,7 @@ export function DeploymentDetailsModal({
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3">
+    <div className="flex items-center justify-between gap-4 px-4 py-4">
       <dt className="text-body-sm text-content-secondary">{label}</dt>
       <dd className="max-w-[60%] text-right text-body-sm font-medium text-content-primary">
         {value}

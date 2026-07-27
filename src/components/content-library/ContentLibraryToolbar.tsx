@@ -17,8 +17,8 @@ export function ContentLibraryToolbar({
   onCategoryFilterChange,
 }: ContentLibraryToolbarProps) {
   return (
-    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 hide-scrollbar sm:flex-wrap sm:overflow-visible sm:pb-0">
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <div className="-mx-2 flex gap-2 overflow-x-auto px-2 pb-2 hide-scrollbar sm:flex-wrap sm:overflow-visible sm:pb-0">
         {contentTypeTabs.map((tab) => {
           const isActive = tab.value === activeTab;
           return (
@@ -27,7 +27,7 @@ export function ContentLibraryToolbar({
               type="button"
               onClick={() => onTabChange(tab.value)}
               className={cn(
-                'shrink-0 rounded-md px-3.5 py-1.5 text-body-sm font-medium transition-colors',
+                'shrink-0 rounded-md px-4 py-2 text-body-sm font-medium transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
                 isActive
                   ? 'ui-button-primary shadow-sm'

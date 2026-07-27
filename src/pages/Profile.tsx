@@ -15,13 +15,13 @@ function ProfileField({
   value: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-surface-border bg-surface-muted/40 p-4">
+    <div className="flex items-start gap-4 rounded-lg border border-surface-border bg-surface-muted/40 p-4">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-400">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-caption font-medium text-content-muted">{label}</p>
-        <p className="mt-0.5 break-all text-body-sm font-medium text-content-primary">{value}</p>
+        <p className="text-caption text-content-muted">{label}</p>
+        <p className="mt-0.5 break-all text-body-sm text-content-primary">{value}</p>
       </div>
     </div>
   );
@@ -73,7 +73,7 @@ export default function Profile() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-100 text-lg font-semibold text-brand-600 dark:bg-brand-600/20 dark:text-brand-400">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-100 text-lg font-medium text-brand-600 dark:bg-brand-600/20 dark:text-brand-400">
               {initials}
             </div>
             <div className="min-w-0">
@@ -84,7 +84,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <ProfileField icon={<User className="h-4 w-4" />} label="Full Name" value={user.name} />
             <ProfileField icon={<Mail className="h-4 w-4" />} label="Email Address" value={user.email} />
             <ProfileField

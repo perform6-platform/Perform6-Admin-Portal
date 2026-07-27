@@ -45,7 +45,7 @@ export function VideoThumbnailWithBranding({
       {showBranding && (
         <div
           className={cn(
-            'absolute left-1 top-1 flex max-w-[calc(100%-0.5rem)] items-center gap-1 rounded bg-white/95 px-1 py-0.5 shadow-sm',
+            'absolute left-1 top-1 flex max-w-[calc(100%-0.5rem)] items-center gap-1 rounded bg-white/95 px-2 py-0.5 shadow-sm',
             overlayClassName,
           )}
         >
@@ -59,7 +59,7 @@ export function VideoThumbnailWithBranding({
           {companyName?.trim() && (
             <span
               className={cn(
-                'truncate text-[9px] font-semibold leading-none text-p6-gray-950 sm:text-[10px]',
+                'truncate text-[9px] font-medium leading-none text-p6-gray-950 sm:text-[10px]',
                 nameClassName,
               )}
             >

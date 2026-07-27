@@ -100,10 +100,10 @@ export function DeviceMonitoringPanel({
   const registeredDeviceId = device.deviceId ?? (device.inventoryState === 'registered' ? device.id : null);
 
   return (
-    <div className={cn(CARD_SURFACE_CLASS, 'p-5 sm:p-6', className)}>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+    <div className={cn(CARD_SURFACE_CLASS, 'p-6 sm:p-6', className)}>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-content-primary">{device.name}</h2>
+          <h2 className="text-2xl font-semibold text-content-primary">{device.name}</h2>
           <p className="mt-1 text-body-sm text-content-secondary">{device.location}</p>
         </div>
         <Badge variant={device.status === 'online' ? 'success' : 'danger'} className="shrink-0">
@@ -113,11 +113,11 @@ export function DeviceMonitoringPanel({
 
       <div className="mb-6 flex flex-col items-center">
         <BrightSignDeviceImage />
-        <p className="mt-2 text-body-sm font-semibold text-content-primary">{device.model}</p>
+        <p className="mt-2 text-body-sm text-content-primary">{device.model}</p>
       </div>
 
-      <section className="rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-5">
-        <div className="mb-4 flex items-start gap-3">
+      <section className="rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
+        <div className="mb-4 flex items-start gap-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-400">
             <Monitor className="h-5 w-5" />
           </div>
@@ -163,7 +163,7 @@ export function DeviceMonitoringPanel({
                       thumbnail: entry.thumbnail,
                     })
                   }
-                  className="flex w-full items-center gap-3 rounded-lg border border-surface-border bg-surface-card px-3 py-2.5 text-left transition-colors hover:border-brand-500/40 hover:bg-brand-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35"
+                  className="flex w-full items-center gap-4 rounded-lg border border-surface-border bg-surface-card px-4 py-2 text-left transition-colors hover:border-brand-500/40 hover:bg-brand-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35"
                 >
                   {entry.thumbnail ? (
                     <img

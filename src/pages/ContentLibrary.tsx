@@ -335,7 +335,7 @@ export default function ContentLibrary() {
   return (
     <>
       <div className="space-y-4 sm:space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <PageTitle>Content Library</PageTitle>
           <Button
             size="sm"
@@ -355,7 +355,7 @@ export default function ContentLibrary() {
         </div>
 
         <Card padding="none" className="overflow-hidden">
-          <div className="p-4 sm:p-5">
+          <div className="p-4 sm:p-6">
             <ContentLibraryToolbar
               activeTab={activeTab}
               onTabChange={setActiveTab}
@@ -364,7 +364,7 @@ export default function ContentLibrary() {
             />
           </div>
 
-          <div className="flex flex-col gap-5 border-t border-surface-border p-4 sm:p-5 lg:flex-row lg:gap-8">
+          <div className="flex flex-col gap-6 border-t border-surface-border p-4 sm:p-6 lg:flex-row lg:gap-8">
             <div className="shrink-0 lg:border-r lg:border-surface-border lg:pr-6">
               <CategorySidebar
                 groups={categoryGroups}

@@ -42,8 +42,8 @@ function StartupFileCard({
   error: string | null;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+    <Card className="flex h-full flex-col">
+      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
         <div className="min-w-0">
           <CardTitle className="flex items-center gap-2">
             <Package className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-400" />
@@ -55,17 +55,17 @@ function StartupFileCard({
           {file.available ? 'Ready' : 'Missing'}
         </Badge>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-1 flex-col gap-4">
         <dl className="grid grid-cols-1 gap-2 text-body-sm sm:grid-cols-2">
           <div>
             <dt className="text-content-muted">Package</dt>
-            <dd className="mt-0.5 break-all font-medium text-content-primary">
+            <dd className="mt-0.5 break-all text-content-primary">
               {file.fileName ?? 'Not built yet'}
             </dd>
           </div>
           <div>
             <dt className="text-content-muted">Type</dt>
-            <dd className="mt-0.5 font-medium text-content-primary">
+            <dd className="mt-0.5 text-content-primary">
               {file.packageKind === 'folder'
                 ? 'Folder'
                 : file.packageKind === 'zip'
@@ -75,19 +75,19 @@ function StartupFileCard({
           </div>
           <div>
             <dt className="text-content-muted">Size</dt>
-            <dd className="mt-0.5 font-medium text-content-primary">
+            <dd className="mt-0.5 text-content-primary">
               {formatBytes(file.sizeBytes)}
             </dd>
           </div>
           <div>
             <dt className="text-content-muted">Source</dt>
-            <dd className="mt-0.5 font-medium text-content-primary">
+            <dd className="mt-0.5 text-content-primary">
               {file.source === 'r2' ? 'Cloudflare R2' : 'Local disk'}
             </dd>
           </div>
           <div>
             <dt className="text-content-muted">Updated</dt>
-            <dd className="mt-0.5 font-medium text-content-primary">
+            <dd className="mt-0.5 text-content-primary">
               {formatDate(file.updatedAt)}
             </dd>
           </div>
@@ -99,7 +99,7 @@ function StartupFileCard({
           type="button"
           disabled={!file.available || downloading}
           onClick={() => onDownload(file.profile)}
-          className="w-full sm:w-auto"
+          className="mt-auto w-full sm:w-auto"
         >
           <Download className="h-4 w-4" />
           {downloading ? 'Saving folder…' : 'Download folder'}
@@ -148,10 +148,10 @@ export default function StartupFiles() {
   if (isLoading && !data) {
     return (
       <PageShell title="Startup Files">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3">
           {[0, 1, 2].map((key) => (
             <Card key={key}>
-              <CardContent className="space-y-3 p-6">
+              <CardContent className="space-y-4 p-6">
                 <div className="h-6 w-24 animate-pulse rounded bg-surface-muted" />
                 <div className="h-4 w-full animate-pulse rounded bg-surface-muted" />
                 <div className="h-10 w-32 animate-pulse rounded bg-surface-muted" />
@@ -194,7 +194,7 @@ export default function StartupFiles() {
         <EmptyState message="No packages on R2/local. From device/perform6-touchscreen run npm run release:zip:all (builds + uploads to R2), then refresh." />
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3">
         {files.map((file) => (
           <StartupFileCard
             key={file.profile}

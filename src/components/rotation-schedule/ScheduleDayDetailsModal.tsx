@@ -55,9 +55,9 @@ export function ScheduleDayDetailsModal({
         {!row ? (
           <p className="text-body-sm text-content-muted">No schedule day selected.</p>
         ) : (
-          <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-5')}>
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
+          <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-400">
                   <Monitor className="h-5 w-5" />
                 </div>
@@ -82,7 +82,7 @@ export function ScheduleDayDetailsModal({
               {device && (
                 <span
                   className={cn(
-                    'rounded-full px-2.5 py-1 text-caption font-medium',
+                    'rounded-full px-2 py-1 text-caption font-medium',
                     device.status === 'online'
                       ? 'bg-status-success/10 text-status-success'
                       : 'bg-status-warning/10 text-status-warning',
@@ -99,9 +99,9 @@ export function ScheduleDayDetailsModal({
                 return (
                   <li
                     key={`${entry.group}-${entry.variantLabel ?? ''}-${entry.label ?? ''}-${entry.video}`}
-                    className="rounded-lg border border-surface-border bg-surface-muted/30 px-3 py-2.5"
+                    className="rounded-lg border border-surface-border bg-surface-muted/30 px-4 py-2"
                   >
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex items-start gap-2">
                       <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-md border border-surface-border bg-gradient-to-br from-p6-gray-300 to-p6-gray-400 dark:from-p6-gray-700 dark:to-p6-gray-900">
                         {entry.assigned && thumbnailUrl ? (
                           <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" />
@@ -112,7 +112,7 @@ export function ScheduleDayDetailsModal({
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="text-caption font-medium text-content-muted">
                             {entry.label ? `${entry.group} · ${entry.label}` : entry.group}
                           </p>

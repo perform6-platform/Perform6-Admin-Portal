@@ -27,20 +27,20 @@ export function DeviceMonitoringList({
                 type="button"
                 onClick={() => onSelect(device.id)}
                 className={cn(
-                  'flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors',
+                  'flex w-full items-center justify-between gap-4 px-4 py-4.5 text-left transition-colors',
                   isSelected
                     ? 'bg-brand-600/10'
                     : 'hover:bg-surface-muted/40',
                 )}
               >
                 <div className="min-w-0">
-                  <p className="truncate text-body-sm font-semibold text-content-primary">{device.name}</p>
+                  <p className="truncate text-body-sm font-medium text-content-primary">{device.name}</p>
                   <p className="truncate text-caption text-content-secondary">{device.location}</p>
                 </div>
                 <Badge
                   variant={device.status === 'online' ? 'success' : 'danger'}
                   className={cn(
-                    'shrink-0 rounded-full px-2.5 py-0.5',
+                    'shrink-0 rounded-full px-2 py-0.5',
                     device.status === 'online'
                       ? 'border border-status-success/30'
                       : 'border border-status-danger/30',

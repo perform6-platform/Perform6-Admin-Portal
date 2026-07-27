@@ -45,9 +45,9 @@ export function UploadProgressPanel({ state, className }: UploadProgressPanelPro
       aria-valuemax={100}
       aria-valuenow={percent}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-body-sm font-medium text-content-primary">{title}</p>
+          <p className="text-body-sm text-content-primary">{title}</p>
           <p className="mt-0.5 text-caption text-content-secondary">
             {isBusy
               ? percent < 55
@@ -64,7 +64,7 @@ export function UploadProgressPanel({ state, className }: UploadProgressPanelPro
           )}
           <span
             className={cn(
-              'min-w-[3rem] text-right tabular-nums text-body-sm font-semibold',
+              'min-w-[3rem] text-right tabular-nums text-body-sm font-medium',
               isError
                 ? 'text-status-danger'
                 : isDone
@@ -77,7 +77,7 @@ export function UploadProgressPanel({ state, className }: UploadProgressPanelPro
         </div>
       </div>
 
-      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-surface-border/80">
+      <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-surface-border/80">
         <div
           className={cn(
             'h-full rounded-full transition-[width] duration-150 ease-linear',

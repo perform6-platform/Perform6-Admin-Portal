@@ -144,9 +144,9 @@ export default function Devices() {
       header: 'Device Name',
       render: (row) => (
         <div className="min-w-0">
-          <span className="block truncate font-medium">{row.name}</span>
+          <span className="block truncate">{row.name}</span>
           {row.pairingCode ? (
-            <span className="mt-0.5 block text-caption text-content-secondary">
+            <span className="mt-0 block text-caption text-content-secondary">
               Code {row.pairingCode}
             </span>
           ) : null}
@@ -193,7 +193,7 @@ export default function Devices() {
   return (
     <PageShell title="Devices">
       {counts && (
-        <div className="flex flex-wrap gap-2 text-caption text-content-secondary">
+        <div className="!mt-0 flex flex-wrap gap-2 text-caption text-content-secondary">
           <span>Pending: {counts.pending}</span>
           <span>·</span>
           <span>Claimed: {counts.claimed}</span>
@@ -202,8 +202,8 @@ export default function Devices() {
         </div>
       )}
 
-      <div className="relative z-20 flex flex-col gap-3 xl:flex-row xl:items-center">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:shrink-0 xl:gap-3">
+      <div className="relative z-20 flex flex-col gap-4 xl:flex-row xl:items-center">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:flex xl:shrink-0 xl:gap-4">
           <Dropdown
             options={[...fleetFilterOptions]}
             value={fleetFilter}
@@ -267,7 +267,7 @@ export default function Devices() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-4">
           {isError && (
-            <div className="rounded-card border border-status-danger/25 bg-[rgba(234,84,85,0.1)] px-4 py-3 text-body-sm text-status-danger">
+            <div className="rounded-card border border-status-danger/25 bg-[rgba(234,84,85,0.1)] px-4 py-4 text-body-sm text-status-danger">
               {getApiErrorMessage(error, 'Failed to load devices')}
             </div>
           )}
