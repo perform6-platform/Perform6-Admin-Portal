@@ -209,6 +209,7 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
             />
           </div>
         </div>
+        <DetailRow label="Mac Address" value={device.macAddress?.trim() || '—'} />
       </div>
 
       <div className="mt-4 space-y-2">

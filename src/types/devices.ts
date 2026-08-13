@@ -98,6 +98,9 @@ export interface DeviceInventoryItem {
   registeredAt: string | null;
   pairingCode: string | null;
   firmwareVersion?: string | null;
+  macAddress?: string | null;
+  /** Full BrightSign / player JSON from POST /devices/pair (when present). */
+  hardwareInfo?: Record<string, unknown> | null;
   hardwareProfile?: HardwareProfileCode | null;
   isOnline?: boolean;
   rotationStartDate?: string | null;

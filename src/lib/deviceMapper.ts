@@ -28,6 +28,116 @@ function formatDuration(seconds: number | null | undefined): string | undefined 
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function readString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
+    if (trimmed) return trimmed;
+  }
+  return null;
+}
+
+const PROFILE_CODES = new Set(['XT2145', 'XC4055', 'HD226']);
+
+/** Top-level serial is sometimes the model/profile when BS unique id was missing. */
+function isPlaceholderSerial(serial: string | null, model: string | null): boolean {
+  if (!serial) return true;
+  const upper = serial.toUpperCase();
+  if (PROFILE_CODES.has(upper)) return true;
+  if (model && serial.toLowerCase() === model.trim().toLowerCase()) return true;
+  return false;
+}
+
+function isPlaceholderFirmware(firmware: string | null): boolean {
+  if (!firmware) return true;
+  const lower = firmware.toLowerCase();
+  return lower === 'unknown' || lower === 'n/a' || lower === 'na' || lower === '—';
+}
+
+function isMacLike(value: string): boolean {
+  return /^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(value);
+}
+
+/**
+ * Prefer top-level fleet fields; when they are placeholders, fall back to
+ * hardwareInfo from POST /devices/pair (device + BrightSign raw snapshot).
+ */
+function resolveSerialAndFirmware(item: {
+  serialNumber?: string | null;
+  model?: string | null;
+  firmwareVersion?: string | null;
+  macAddress?: string | null;
+  hardwareInfo?: Record<string, unknown> | null;
+}): { serialNumber: string; firmware: string } {
+  const hw = asRecord(item.hardwareInfo) ?? {};
+  const device = asRecord(hw.device) ?? {};
+
+  const topSerial = readString(item.serialNumber);
+  const model = readString(item.model, device.model, hw.model);
+
+  const serialCandidates = [
+    device.serialNumber,
+    hw.uniqueId,
+    hw.serialNumber,
+    device.uniqueId,
+    item.macAddress,
+    device.macAddress,
+    hw.macAddress,
+  ]
+    .map((v) => readString(v))
+    .filter((v): v is string => Boolean(v))
+    // Prefer BrightSign unique id / serial over ethernet-style MAC.
+    .sort((a, b) => Number(isMacLike(a)) - Number(isMacLike(b)));
+
+  const serialFromHw =
+    serialCandidates.find((s) => !isPlaceholderSerial(s, model)) ??
+    serialCandidates[0] ??
+    null;
+
+  const serialNumber =
+    (!isPlaceholderSerial(topSerial, model) ? topSerial : null) ||
+    serialFromHw ||
+    topSerial ||
+    '—';
+
+  const topFirmware = readString(item.firmwareVersion);
+  const firmwareFromHw = readString(
+    device.firmwareVersion,
+    hw.osVersion,
+    hw.bootVersion,
+    hw.firmwareVersion,
+    device.osVersion,
+    device.bootVersion,
+  );
+
+  const firmware =
+    (!isPlaceholderFirmware(topFirmware) ? topFirmware : null) ||
+    (!isPlaceholderFirmware(firmwareFromHw) ? firmwareFromHw : null) ||
+    topFirmware ||
+    firmwareFromHw ||
+    '—';
+
+  return { serialNumber, firmware };
+}
+
+function resolveMacAddress(item: {
+  macAddress?: string | null;
+  hardwareInfo?: Record<string, unknown> | null;
+}): string {
+  const hw = asRecord(item.hardwareInfo) ?? {};
+  const device = asRecord(hw.device) ?? {};
+  const mac = readString(item.macAddress, device.macAddress, hw.macAddress);
+  if (!mac || mac === '00:00:00:00:00:00') return '—';
+  return mac;
+}
+
 /** Map inventory row (GET /devices) into the UI Device shape. */
 export function mapInventoryItem(item: DeviceInventoryItem): Device {
   const online = Boolean(item.isOnline);
@@ -36,17 +146,20 @@ export function mapInventoryItem(item: DeviceInventoryItem): Device {
     ? getRotationDayFromConnectionStart(item.rotationStartDate)
     : null;
 
+  const { serialNumber, firmware } = resolveSerialAndFirmware(item);
+
   return {
-    id: item.deviceId ?? item.pairingId ?? item.serialNumber ?? 'unknown',
-    name: item.deviceName?.trim() || item.serialNumber || 'Unnamed device',
+    id: item.deviceId ?? item.pairingId ?? serialNumber ?? 'unknown',
+    name: item.deviceName?.trim() || serialNumber || 'Unnamed device',
     location: item.location?.trim() || '—',
     status: online ? 'online' : 'offline',
     currentDay: rotationDay ? `Day ${rotationDay}` : '—',
     brightSignStatus: online ? 'connected' : 'disconnected',
     lastSync: relativeTime(item.lastSeenAt),
     model: item.model?.trim() || '—',
-    serialNumber: item.serialNumber?.trim() || '—',
-    firmware: item.firmwareVersion?.trim() || '—',
+    serialNumber,
+    firmware,
+    macAddress: resolveMacAddress(item),
     uptime: '—',
     storageUsed: 0,
     deviceId: item.deviceId,
