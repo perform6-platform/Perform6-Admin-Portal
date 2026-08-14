@@ -762,8 +762,8 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                 <p className="mb-1 text-xs font-medium text-content-muted">Device type</p>
                 <Dropdown
                   options={[
-                    { value: 'XC', label: 'XC4055 (3 screens)' },
-                    { value: 'HD', label: 'HD226 (1 player per screen)' },
+                    { value: 'XC', label: 'XC4055 (1 player · 3 LEDs)' },
+                    { value: 'HD', label: 'HD226 (1 player per LED)' },
                   ]}
                   value={deviceKind}
                   onChange={(value) => setDeviceKind(value as DeviceHardwareKind)}
@@ -774,7 +774,9 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               {deviceKind === 'XC' && (
                 <div className="space-y-4 rounded-lg border border-surface-border p-4">
                   <div>
-                    <p className="mb-1 text-xs font-medium text-content-muted">XC4055 device</p>
+                    <p className="mb-1 text-xs font-medium text-content-muted">
+                      XC4055 device (single player drives HDMI-1/2/3)
+                    </p>
                     <Dropdown
                       options={[
                         { value: '', label: 'Select claimed XC device…' },
