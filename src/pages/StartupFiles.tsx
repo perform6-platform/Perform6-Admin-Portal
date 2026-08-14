@@ -186,8 +186,10 @@ export default function StartupFiles() {
         Download BrightSign startup folders (XT2145, XC4055, HD226). Packages are served from
         Cloudflare R2 when the API uses <span className="font-mono">STORAGE_DRIVER=r2</span>. Pick
         a parent folder once — a ready package like{' '}
-        <span className="font-mono text-content-primary">perform6-xt2145-0.1.0</span> is saved.
-        Copy that folder&apos;s contents to the SD card root.
+        <span className="font-mono text-content-primary">perform6-xt2145-1.0.22</span> is saved.
+        Copy that folder&apos;s contents to the SD card root (include{' '}
+        <span className="font-mono">perform6-profile.txt</span>). XT enables HDMI-1+2; XC enables
+        HDMI-1/2/3 for three LEDs on one player; HD stays single-output.
       </p>
 
       {!anyAvailable ? (

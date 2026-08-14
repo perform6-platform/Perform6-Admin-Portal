@@ -87,24 +87,23 @@ function resolveSerialAndFirmware(item: {
     hw.uniqueId,
     hw.serialNumber,
     device.uniqueId,
-    item.macAddress,
-    device.macAddress,
-    hw.macAddress,
+    hw.autorunSerial,
   ]
     .map((v) => readString(v))
     .filter((v): v is string => Boolean(v))
-    // Prefer BrightSign unique id / serial over ethernet-style MAC.
-    .sort((a, b) => Number(isMacLike(a)) - Number(isMacLike(b)));
+    .filter((s) => !isPlaceholderSerial(s, model))
+    .filter((s) => s !== '00:00:00:00:00:00')
+    // Never promote ethernet MAC into the Serial Number field.
+    .filter((s) => !isMacLike(s));
 
-  const serialFromHw =
-    serialCandidates.find((s) => !isPlaceholderSerial(s, model)) ??
-    serialCandidates[0] ??
-    null;
+  const serialFromHw = serialCandidates[0] ?? null;
 
   const serialNumber =
-    (!isPlaceholderSerial(topSerial, model) ? topSerial : null) ||
+    (!isPlaceholderSerial(topSerial, model) && !isMacLike(topSerial) && topSerial !== '00:00:00:00:00:00'
+      ? topSerial
+      : null) ||
     serialFromHw ||
-    topSerial ||
+    (!isMacLike(topSerial || '') && topSerial !== '00:00:00:00:00:00' ? topSerial : null) ||
     '—';
 
   const topFirmware = readString(item.firmwareVersion);
@@ -113,6 +112,7 @@ function resolveSerialAndFirmware(item: {
     hw.osVersion,
     hw.bootVersion,
     hw.firmwareVersion,
+    hw.autorunFw,
     device.osVersion,
     device.bootVersion,
   );
@@ -133,8 +133,13 @@ function resolveMacAddress(item: {
 }): string {
   const hw = asRecord(item.hardwareInfo) ?? {};
   const device = asRecord(hw.device) ?? {};
-  const mac = readString(item.macAddress, device.macAddress, hw.macAddress);
-  if (!mac || mac === '00:00:00:00:00:00') return '—';
+  const mac = readString(
+    item.macAddress,
+    device.macAddress,
+    hw.macAddress,
+    hw.autorunMac,
+  );
+  if (!mac || mac === '00:00:00:00:00:00' || !isMacLike(mac)) return '—';
   return mac;
 }
 
