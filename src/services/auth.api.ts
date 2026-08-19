@@ -20,3 +20,17 @@ export async function getCurrentUserRequest(): Promise<AuthUser> {
   const { data } = await apiClient.get<ApiResponse<AuthUser>>('/auth/me');
   return data.data;
 }
+
+export interface MessageResult {
+  message: string;
+}
+
+export async function forgotPasswordRequest(email: string): Promise<MessageResult> {
+  const { data } = await apiClient.post<ApiResponse<{ success: boolean }>>('/auth/forgot-password', { email });
+  return { message: data.message };
+}
+
+export async function resetPasswordRequest(token: string, password: string): Promise<MessageResult> {
+  const { data } = await apiClient.post<ApiResponse<{ success: boolean }>>('/auth/reset-password', { token, password });
+  return { message: data.message };
+}
