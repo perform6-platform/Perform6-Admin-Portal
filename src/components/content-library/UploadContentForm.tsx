@@ -12,8 +12,8 @@ const defaultThumbnail = defaultContentThumbnail;
 const acceptedVideoTypes = 'video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm';
 const acceptedThumbnailTypes = 'image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp';
 const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
-/** Must match backend MEDIA_UPLOAD_MAX_BYTES (1.5 GB). */
-const MAX_VIDEO_BYTES = Math.floor(1.5 * 1024 * 1024 * 1024);
+/** Must match backend MEDIA_UPLOAD_MAX_BYTES (5 GB). */
+const MAX_VIDEO_BYTES = Math.floor(5 * 1024 * 1024 * 1024);
 
 export interface UploadContentPayload {
   title: string;
@@ -167,7 +167,7 @@ export function UploadContentForm({
     if (selected && selected.size > MAX_VIDEO_BYTES) {
       setFile(null);
       onReadyChange?.(false);
-      setFileError('Video must be 1.5 GB or smaller');
+      setFileError('Video must be 5 GB or smaller');
       event.target.value = '';
       return;
     }
@@ -287,7 +287,7 @@ export function UploadContentForm({
           <span className="text-body-sm font-medium text-content-primary">
             {file ? file.name : 'Choose a video file'}
           </span>
-          <span className="text-caption text-content-muted">MP4, MOV, or WebM · max 1.5 GB</span>
+          <span className="text-caption text-content-muted">MP4, MOV, or WebM · max 5 GB</span>
         </label>
         {fileError && (
           <p className="mt-2 text-caption text-red-600 dark:text-red-400">{fileError}</p>
