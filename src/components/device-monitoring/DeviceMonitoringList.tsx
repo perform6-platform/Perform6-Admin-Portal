@@ -16,8 +16,14 @@ export function DeviceMonitoringList({
   className,
 }: DeviceMonitoringListProps) {
   return (
-    <div className={cn(CARD_SURFACE_CLASS, 'flex max-h-[720px] flex-col overflow-hidden', className)}>
-      <ul className="hide-scrollbar divide-y divide-surface-border overflow-y-auto">
+    <div
+      className={cn(
+        CARD_SURFACE_CLASS,
+        'flex max-h-[720px] flex-col overflow-hidden p-3',
+        className,
+      )}
+    >
+      <ul className="hide-scrollbar divide-y divide-surface-border overflow-y-auto rounded-lg">
         {devices.map((device) => {
           const isSelected = device.id === selectedDeviceId;
 
@@ -27,7 +33,7 @@ export function DeviceMonitoringList({
                 type="button"
                 onClick={() => onSelect(device.id)}
                 className={cn(
-                  'flex w-full items-center justify-between gap-4 px-4 py-4.5 text-left transition-colors',
+                  'flex w-full items-center justify-between gap-4 px-3 py-3.5 text-left transition-colors',
                   isSelected
                     ? 'bg-brand-600/10'
                     : 'hover:bg-surface-muted/40',

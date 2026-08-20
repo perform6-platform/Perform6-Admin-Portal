@@ -31,9 +31,11 @@ interface DetailRowProps {
 
 function DetailRow({ label, value }: DetailRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2">
-      <span className="text-body-sm text-content-secondary">{label}</span>
-      <span className="text-right text-body-sm text-content-primary">{value}</span>
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
+      <span className="shrink-0 text-body-sm text-content-secondary">{label}</span>
+      <span className="min-w-0 max-w-full break-words text-right text-body-sm text-content-primary">
+        {value}
+      </span>
     </div>
   );
 }
