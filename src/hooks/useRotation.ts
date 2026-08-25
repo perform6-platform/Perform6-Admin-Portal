@@ -7,11 +7,13 @@ import {
   getDeviceCurrentRotation,
   getDevicePlayback,
   getGlobalRotation,
+  getGlobalRotationSettings,
   getRotationDay,
   getRotationPrograms,
   patchRotationBulk,
   patchRotationProgram,
   setDeviceRotationStartDate,
+  updateGlobalRotationSettings,
   updateRotationSession,
 } from '../services/rotation.api';
 import { normalizeRotationPrograms } from '../lib/rotationMapper';
@@ -21,12 +23,35 @@ import type {
   RotationBulkPayload,
   RotationBulkSection,
   SetRotationStartDatePayload,
+  UpdateGlobalRotationSettingsPayload,
   UpdateRotationSessionPayload,
 } from '../types/rotation';
 
 /** GET /rotation */
 export function useRotationPrograms() {
   return useQuery({ queryKey: queryKeys.rotation.all, queryFn: getRotationPrograms });
+}
+
+/** GET /rotation/settings/global */
+export function useGlobalRotationSettings() {
+  return useQuery({
+    queryKey: queryKeys.rotation.globalSettings,
+    queryFn: getGlobalRotationSettings,
+  });
+}
+
+/** PUT /rotation/settings/global */
+export function useUpdateGlobalRotationSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpdateGlobalRotationSettingsPayload) =>
+      updateGlobalRotationSettings(payload),
+    onSuccess: (settings) => {
+      queryClient.setQueryData(queryKeys.rotation.globalSettings, settings);
+      queryClient.invalidateQueries({ queryKey: queryKeys.rotation.globalSettings });
+      queryClient.invalidateQueries({ queryKey: queryKeys.devices.fleet });
+    },
+  });
 }
 
 /** GET /rotation/current */

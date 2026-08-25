@@ -89,12 +89,23 @@ export default function RotationSchedule() {
   }, [selectedDevice, deviceDeployment]);
 
   const rotationStartDate = useMemo(() => {
-    const apiDate = parseIsoDate(registeredDevice?.rotationStartDate);
+    const effective =
+      registeredDevice?.effectiveRotationStartDate ??
+      registeredDevice?.rotationStartDate ??
+      selectedInventoryItem?.effectiveRotationStartDate ??
+      selectedInventoryItem?.rotationStartDate;
+    const apiDate = parseIsoDate(effective);
     if (apiDate) return apiDate;
     const localDate = parseIsoDate(deviceDeployment?.connectionStartDate);
     if (localDate) return localDate;
     return new Date();
-  }, [registeredDevice?.rotationStartDate, deviceDeployment?.connectionStartDate]);
+  }, [
+    registeredDevice?.effectiveRotationStartDate,
+    registeredDevice?.rotationStartDate,
+    selectedInventoryItem?.effectiveRotationStartDate,
+    selectedInventoryItem?.rotationStartDate,
+    deviceDeployment?.connectionStartDate,
+  ]);
 
   const scheduleQuery = useMemo(() => {
     if (!isValid(rotationStartDate)) return null;
@@ -275,7 +286,9 @@ export default function RotationSchedule() {
         columns={tableColumns}
         device={selectedDevice}
         connectionStartDate={
-          registeredDevice?.rotationStartDate ?? deviceDeployment?.connectionStartDate
+          registeredDevice?.effectiveRotationStartDate ??
+          registeredDevice?.rotationStartDate ??
+          deviceDeployment?.connectionStartDate
         }
         isCurrentDay={viewRow?.rotationDay === deviceRotationDay}
       />

@@ -11,6 +11,8 @@ export type VariantOption = IdSelectOption;
 
 export type BrandingMode = 'NONE' | 'PLATFORM_DEFAULT' | 'CUSTOM';
 
+export type RotationMode = 'DEVICE' | 'GLOBAL';
+
 export interface PreviewSlot {
   key: string;
   label: string;
@@ -57,7 +59,9 @@ export interface DeploymentPreviewQuery {
   deploymentType: string;
   fieldCategory?: string;
   exerciseVariant?: string;
+  rotationMode?: RotationMode;
   rotationStartDate?: string;
+  rotationMode?: RotationMode;
   /** Optional single-day filter — omit in wizard to load the full rotation list. */
   day?: number;
   /** DEFAULT_DEPLOYMENT: selected parent categories per screen. */
@@ -92,6 +96,7 @@ export interface RegisterSinglePayload {
   deploymentType: string;
   fieldCategory?: string;
   exerciseVariant?: string;
+  rotationMode?: RotationMode;
   rotationStartDate?: string;
   deviceName?: string;
   hardwareProfile?: HardwareProfileCode;
@@ -114,6 +119,7 @@ export interface RegisterClusterPayload {
   deploymentType: string;
   fieldCategory?: string;
   exerciseVariant?: string;
+  rotationMode?: RotationMode;
   rotationStartDate?: string;
   brandingMode: BrandingMode;
   brandingId?: string;
@@ -139,6 +145,7 @@ export interface RegisterDeploymentResult {
   deploymentType: string;
   fieldCategory?: string;
   exerciseVariant?: string;
+  rotationMode?: RotationMode;
   rotationStartDate: string | null;
   playbackManifest?: PlaybackManifest;
   [key: string]: unknown;
@@ -288,7 +295,9 @@ export interface DeploymentEntity {
   config?: Record<string, unknown>;
   devices?: Array<{
     id: string;
+    rotationMode?: RotationMode;
     rotationStartDate?: string | null;
+    effectiveRotationStartDate?: string | null;
     [key: string]: unknown;
   }>;
   branding?: Array<{

@@ -29,6 +29,7 @@ export interface Device {
   inventoryState?: 'pending' | 'claimed' | 'registered';
   pairingCode?: string | null;
   timezone?: string | null;
+  rotationMode?: 'DEVICE' | 'GLOBAL';
   rotationDay?: number | null;
   screens?: Array<{
     screenKey: string;

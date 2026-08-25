@@ -147,9 +147,14 @@ function resolveMacAddress(item: {
 export function mapInventoryItem(item: DeviceInventoryItem): Device {
   const online = Boolean(item.isOnline);
 
-  const rotationDay = item.rotationStartDate
-    ? getRotationDayFromConnectionStart(item.rotationStartDate)
-    : null;
+  const effectiveStart =
+    item.effectiveRotationStartDate ?? item.rotationStartDate ?? null;
+  const rotationDay =
+    typeof item.rotationDay === 'number'
+      ? item.rotationDay
+      : effectiveStart
+        ? getRotationDayFromConnectionStart(effectiveStart)
+        : null;
 
   const { serialNumber, firmware } = resolveSerialAndFirmware(item);
 
@@ -181,6 +186,7 @@ export function mapInventoryItem(item: DeviceInventoryItem): Device {
     pairingCode: item.pairingCode ?? null,
     timezone: item.timezone ?? null,
     rotationDay,
+    rotationMode: item.rotationMode,
   };
 }
 
@@ -194,8 +200,10 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
             Date.now() - new Date(device.lastSeenAt).getTime() < 5 * 60 * 1000 &&
             device.activationStatus !== 'DISABLED',
         );
-  const rotationDay = device.rotationStartDate
-    ? getRotationDayFromConnectionStart(device.rotationStartDate)
+  const effectiveStart =
+    device.effectiveRotationStartDate ?? device.rotationStartDate ?? null;
+  const computedDay = effectiveStart
+    ? getRotationDayFromConnectionStart(effectiveStart)
     : null;
 
   const deploymentName =
@@ -209,7 +217,7 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
       : '';
 
   const apiRotationDay =
-    typeof device.rotationDay === 'number' ? device.rotationDay : rotationDay;
+    typeof device.rotationDay === 'number' ? device.rotationDay : computedDay;
 
   return {
     id: device.id,
@@ -236,6 +244,7 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
     activationStatus: device.activationStatus,
     inventoryState: 'registered',
     rotationDay: apiRotationDay,
+    rotationMode: device.rotationMode,
     screens: device.screens ?? [],
   };
 }

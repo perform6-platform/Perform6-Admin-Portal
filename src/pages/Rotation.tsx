@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarDays, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RotationPhasePanel } from '../components/rotation/RotationPhasePanel';
+import { GlobalRotationSettingsPanel } from '../components/rotation/GlobalRotationSettingsPanel';
 import { Button, PageTitle } from '../components/ui';
 import type { ContentCategoryId } from '../constants/contentPlayback';
 import { useContent } from '../context/ContentContext';
@@ -191,6 +192,8 @@ export default function Rotation() {
           </Button>
         </div>
       </div>
+
+      <GlobalRotationSettingsPanel />
 
       <div className="-mx-2 flex gap-2 overflow-x-auto px-2 pb-2 hide-scrollbar sm:flex-wrap sm:overflow-visible sm:pb-0">
         {categoryGroups.map((group) => (

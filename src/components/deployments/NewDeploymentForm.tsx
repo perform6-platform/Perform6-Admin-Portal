@@ -21,6 +21,7 @@ import {
   useDeploymentTypes,
   useRegisterDeployment,
 } from '../../hooks/useDeployments';
+import { useGlobalRotationSettings } from '../../hooks/useRotation';
 import { useDevices as useInventoryDevices } from '../../hooks/useDevices';
 import { resolveStorageUrl } from '../../lib/libraryType';
 import {
@@ -53,6 +54,7 @@ import type {
   BrandingMode,
   RegisterClusterPayload,
   RegisterSinglePayload,
+  RotationMode,
 } from '../../types/deployments';
 
 const TOTAL_STEPS = 4;
@@ -102,6 +104,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   const [paletteIds, setPaletteIds] = useState<string[]>([]);
   const [fieldCategory, setFieldCategory] = useState('');
   const [exerciseVariant, setExerciseVariant] = useState('');
+  const [rotationMode, setRotationMode] = useState<RotationMode>('DEVICE');
   const [rotationStartDate, setRotationStartDate] = useState<Date | undefined>(new Date());
 
   const [deviceKind, setDeviceKind] = useState<DeviceHardwareKind>('');
@@ -135,6 +138,15 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   const { data: platformBranding } = usePlatformDefaultBranding();
   const { mutateAsync: createBranding } = useCreateBranding();
   const { mutateAsync: registerDeployment } = useRegisterDeployment();
+  const { data: globalRotationSettings } = useGlobalRotationSettings();
+
+  const isGlobalRotation = rotationMode === 'GLOBAL';
+  const globalRotationStartDate = globalRotationSettings?.globalRotationStartDate ?? null;
+  const effectivePreviewStartDate = isGlobalRotation
+    ? globalRotationStartDate ?? undefined
+    : rotationStartDate
+      ? format(rotationStartDate, 'yyyy-MM-dd')
+      : undefined;
 
   const claimedDevices = claimedInventory?.items ?? [];
   const isDefault = isDefaultDeploymentType(deploymentType);
@@ -249,9 +261,8 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       deploymentType,
       ...(fieldCategory ? { fieldCategory } : {}),
       ...(exerciseVariant ? { exerciseVariant } : {}),
-      rotationStartDate: rotationStartDate
-        ? format(rotationStartDate, 'yyyy-MM-dd')
-        : undefined,
+      rotationMode,
+      rotationStartDate: effectivePreviewStartDate,
       screenCategories: screenCategoryPayload,
     };
   }, [
@@ -259,7 +270,8 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
     deploymentType,
     fieldCategory,
     exerciseVariant,
-    rotationStartDate,
+    rotationMode,
+    effectivePreviewStartDate,
     screenCategoryPayload,
     isDefault,
     needsField,
@@ -455,6 +467,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
     setPaletteIds([]);
     setFieldCategory('');
     setExerciseVariant('');
+    setRotationMode('DEVICE');
     setRotationStartDate(new Date());
     setDeviceKind('XC');
     setXcPairingId('');
@@ -494,7 +507,10 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       return;
     }
 
-    const dateStr = rotationStartDate ? format(rotationStartDate, 'yyyy-MM-dd') : undefined;
+    const dateStr =
+      rotationMode === 'DEVICE' && rotationStartDate
+        ? format(rotationStartDate, 'yyyy-MM-dd')
+        : undefined;
     const brandingMode = toApiBrandingMode(brandingUiMode);
     const siteContact = buildSiteContact();
 
@@ -535,7 +551,8 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
           deploymentType,
           ...(fieldCategory ? { fieldCategory } : {}),
           ...(exerciseVariant ? { exerciseVariant } : {}),
-          rotationStartDate: dateStr,
+          rotationMode,
+          ...(dateStr ? { rotationStartDate: dateStr } : {}),
           brandingMode,
           brandingId,
           screenCategories: screenCategoryPayload,
@@ -563,7 +580,8 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         deploymentType,
         ...(fieldCategory ? { fieldCategory } : {}),
         ...(exerciseVariant ? { exerciseVariant } : {}),
-        rotationStartDate: dateStr,
+        rotationMode,
+        ...(dateStr ? { rotationStartDate: dateStr } : {}),
         deviceName: xcDeviceName.trim()
           ? xcDeviceName.trim()
           : (selectedClaimedDevice?.deviceName ?? undefined),
@@ -736,15 +754,90 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             </div>
           )}
 
-          <div>
-            <p className="mb-1 text-xs font-medium text-content-muted">Rotation start date</p>
-            <DatePicker value={rotationStartDate} onChange={setRotationStartDate} />
-            {rotationStartDate && (
-              <p className="mt-1 text-caption text-content-secondary">
-                {formatDateLabel(rotationStartDate)}
-              </p>
-            )}
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-content-muted">Rotation schedule</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label
+                className={cn(
+                  'flex cursor-pointer flex-col gap-1 rounded-lg border px-4 py-2 text-body-sm',
+                  rotationMode === 'DEVICE'
+                    ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
+                    : 'border-surface-border bg-surface-muted/20 text-content-secondary',
+                )}
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <input
+                    type="radio"
+                    name="rotationMode"
+                    className="accent-brand-600"
+                    checked={rotationMode === 'DEVICE'}
+                    onChange={() => setRotationMode('DEVICE')}
+                  />
+                  Custom rotation schedule
+                </span>
+                <span className="pl-6 text-caption text-content-secondary">
+                  Week-aligned download from this device&apos;s own Day 1.
+                </span>
+              </label>
+              <label
+                className={cn(
+                  'flex cursor-pointer flex-col gap-1 rounded-lg border px-4 py-2 text-body-sm',
+                  rotationMode === 'GLOBAL'
+                    ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
+                    : 'border-surface-border bg-surface-muted/20 text-content-secondary',
+                )}
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <input
+                    type="radio"
+                    name="rotationMode"
+                    className="accent-brand-600"
+                    checked={rotationMode === 'GLOBAL'}
+                    onChange={() => setRotationMode('GLOBAL')}
+                  />
+                  Join global rotation
+                </span>
+                <span className="pl-6 text-caption text-content-secondary">
+                  Rolling 7-day download from the portal global calendar.
+                </span>
+              </label>
+            </div>
           </div>
+
+          {rotationMode === 'DEVICE' ? (
+            <div>
+              <p className="mb-1 text-xs font-medium text-content-muted">Rotation start date</p>
+              <DatePicker value={rotationStartDate} onChange={setRotationStartDate} />
+              {rotationStartDate && (
+                <p className="mt-1 text-caption text-content-secondary">
+                  {formatDateLabel(rotationStartDate)}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-surface-border bg-surface-muted/20 p-4 text-body-sm text-content-secondary">
+              {globalRotationStartDate ? (
+                <>
+                  <p>
+                    Global Day 1:{' '}
+                    <span className="font-medium text-content-primary">
+                      {globalRotationStartDate}
+                    </span>
+                  </p>
+                  {globalRotationSettings?.currentRotationDay != null && (
+                    <p className="mt-1">
+                      Current platform day: Day {globalRotationSettings.currentRotationDay}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-status-warning">
+                  Global rotation is not configured yet. Set the start date on the Rotation page
+                  before content sync begins.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -1121,8 +1214,12 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               </p>
             )}
             <p>
-              <span className="font-medium text-content-primary">Start:</span>{' '}
-              {rotationStartDate ? format(rotationStartDate, 'yyyy-MM-dd') : '—'}
+              <span className="font-medium text-content-primary">Rotation:</span>{' '}
+              {rotationMode === 'GLOBAL'
+                ? `Global${globalRotationStartDate ? ` · Day 1 ${globalRotationStartDate}` : ''}`
+                : rotationStartDate
+                  ? format(rotationStartDate, 'yyyy-MM-dd')
+                  : '—'}
             </p>
             <p>
               <span className="font-medium text-content-primary">Hardware:</span>{' '}

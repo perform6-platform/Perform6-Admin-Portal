@@ -58,6 +58,7 @@ export const queryKeys = {
   rotation: {
     all: ['rotation'] as const,
     current: ['rotation', 'current'] as const,
+    globalSettings: ['rotation', 'settings', 'global'] as const,
     device: (deviceId: string) => ['rotation', 'devices', deviceId] as const,
     deviceCurrent: (deviceId: string) => ['rotation', 'devices', deviceId, 'current'] as const,
     devicePlayback: (deviceId: string) => ['rotation', 'devices', deviceId, 'playback'] as const,
