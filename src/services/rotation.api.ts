@@ -8,13 +8,34 @@ import type {
   DeviceCurrentRotation,
   DeviceRotationStartDate,
   GlobalRotation,
+  GlobalRotationSettings,
   ProgramRotationPatchPayload,
   RotationBulkPayload,
   RotationBulkSection,
   SetRotationStartDatePayload,
+  UpdateGlobalRotationSettingsPayload,
   UpdateRotationSessionPayload,
 } from '../types/rotation';
 import { apiClient } from './axios';
+
+/** GET /rotation/settings/global — portal global rotation start date. */
+export async function getGlobalRotationSettings(): Promise<GlobalRotationSettings> {
+  const { data } = await apiClient.get<ApiResponse<GlobalRotationSettings>>(
+    '/rotation/settings/global',
+  );
+  return data.data;
+}
+
+/** PUT /rotation/settings/global — PLATFORM_ADMIN only. */
+export async function updateGlobalRotationSettings(
+  payload: UpdateGlobalRotationSettingsPayload,
+): Promise<GlobalRotationSettings> {
+  const { data } = await apiClient.put<ApiResponse<GlobalRotationSettings>>(
+    '/rotation/settings/global',
+    payload,
+  );
+  return data.data;
+}
 
 /** GET /rotation — all rotation programs with day order. */
 export async function getRotationPrograms(): Promise<Program[]> {

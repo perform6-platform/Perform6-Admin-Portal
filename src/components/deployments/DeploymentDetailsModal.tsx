@@ -136,16 +136,36 @@ export function DeploymentDetailsModal({
               <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
                 <SectionLabel className="mb-4 block">Linked devices</SectionLabel>
                 <ul className="divide-y divide-surface-border rounded-lg border border-surface-border">
-                  {deployment.devices.map((device) => (
-                    <li key={device.id} className="px-4 py-4 text-body-sm text-content-primary">
-                      <span className="font-medium">{device.id.slice(0, 8)}…</span>
-                      {device.rotationStartDate ? (
-                        <span className="ml-2 text-content-secondary">
-                          Rotation start {String(device.rotationStartDate)}
-                        </span>
-                      ) : null}
-                    </li>
-                  ))}
+                  {deployment.devices.map((device) => {
+                    const mode =
+                      typeof device.rotationMode === 'string'
+                        ? device.rotationMode
+                        : 'DEVICE';
+                    const start =
+                      (typeof device.effectiveRotationStartDate === 'string'
+                        ? device.effectiveRotationStartDate
+                        : null) ??
+                      (typeof device.rotationStartDate === 'string'
+                        ? device.rotationStartDate
+                        : null);
+                    return (
+                      <li key={device.id} className="px-4 py-4 text-body-sm text-content-primary">
+                        <span className="font-medium">{device.id.slice(0, 8)}…</span>
+                        <Badge variant={mode === 'GLOBAL' ? 'brand' : 'neutral'} className="ml-2">
+                          {mode === 'GLOBAL' ? 'Global rotation' : 'Custom rotation'}
+                        </Badge>
+                        {start ? (
+                          <span className="ml-2 text-content-secondary">
+                            Day 1 {start}
+                          </span>
+                        ) : mode === 'GLOBAL' ? (
+                          <span className="ml-2 text-content-secondary">
+                            Awaiting global calendar
+                          </span>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             )}

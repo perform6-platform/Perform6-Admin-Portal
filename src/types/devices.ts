@@ -1,4 +1,5 @@
 import type { MediaVersion } from './media';
+import type { RotationMode } from './rotation';
 
 // ---------------------------------------------------------------------------
 // Device pairing (device boot + admin claim)
@@ -103,7 +104,10 @@ export interface DeviceInventoryItem {
   hardwareInfo?: Record<string, unknown> | null;
   hardwareProfile?: HardwareProfileCode | null;
   isOnline?: boolean;
+  rotationMode?: RotationMode;
   rotationStartDate?: string | null;
+  effectiveRotationStartDate?: string | null;
+  rotationDay?: number | null;
   /** Site owner contact (offline prefetch emails). */
   ownerName?: string | null;
   ownerEmail?: string | null;
@@ -176,7 +180,9 @@ export interface RegisteredDevice {
   activationStatus: DeviceActivationStatus;
   lastSeenAt: string | null;
   storageUsed: string;
+  rotationMode?: RotationMode;
   rotationStartDate: string | null;
+  effectiveRotationStartDate?: string | null;
   /** Presence from lastSeenAt (5 min window) — set by GET /monitoring/fleet/status */
   isOnline?: boolean;
   registrationStatus?: PairingRegistrationStatus;

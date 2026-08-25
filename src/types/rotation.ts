@@ -1,6 +1,8 @@
 import type { Program, ProgramSession } from './content';
 import type { PlaybackManifest } from './deployments';
 
+export type RotationMode = 'DEVICE' | 'GLOBAL';
+
 export type RotationBulkSection =
   | 'default'
   | 'start-here'
@@ -59,20 +61,33 @@ export interface SetRotationStartDatePayload {
 
 export interface DeviceRotationStartDate {
   deviceId: string;
-  rotationStartDate: string;
+  rotationMode: RotationMode;
+  rotationStartDate: string | null;
   rotationDay: number;
 }
 
 /** GET /rotation/devices/:deviceId/current */
 export interface DeviceCurrentRotation {
   deviceId: string;
-  rotationStartDate: string;
+  rotationMode: RotationMode;
+  rotationStartDate: string | null;
+  effectiveRotationStartDate: string | null;
   rotationDay: number;
   deployment: {
     deploymentType: string;
     fieldCategory: string;
     exerciseVariant: string;
   };
+}
+
+/** GET /rotation/settings/global */
+export interface GlobalRotationSettings {
+  globalRotationStartDate: string | null;
+  currentRotationDay: number | null;
+}
+
+export interface UpdateGlobalRotationSettingsPayload {
+  globalRotationStartDate: string;
 }
 
 /** GET /rotation/current — legacy global. */
