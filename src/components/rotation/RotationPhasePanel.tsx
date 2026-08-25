@@ -57,7 +57,7 @@ export function RotationPhasePanel({
         <p className="mt-2 text-caption text-content-muted">
           {usesRotation
             ? `Select which videos play on each day of the ${rule.usesRotation ? '36' : ''}-day rotation.`
-            : 'Choose one video — it will play on all days in the schedule.'}
+            : 'Choose one video — or leave none selected to remove it from the schedule. Selected video plays on all days.'}
         </p>
       </section>
 

@@ -92,10 +92,15 @@ export function RotationVideoCard({
         ) : (
           <label className="flex cursor-pointer items-center gap-2 text-body-sm text-content-secondary">
             <input
-              type="radio"
+              type="checkbox"
               checked={assignment.included}
-              onChange={() => onChange({ included: true, day: 1 })}
-              className="h-4 w-4 border-surface-border text-brand-600 focus:ring-brand-500"
+              onChange={(event) =>
+                onChange({
+                  included: event.target.checked,
+                  day: 1,
+                })
+              }
+              className="h-4 w-4 rounded border-surface-border text-brand-600 focus:ring-brand-500"
             />
             Use this video
           </label>
