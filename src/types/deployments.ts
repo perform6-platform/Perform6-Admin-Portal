@@ -82,7 +82,7 @@ export interface Hd226ClusterMember {
   deviceName?: string;
 }
 
-/** Gym/site owner contact stored on the device for offline prefetch emails. */
+/** Gym/site owner contact stored on the device for scheduled offline prefetch emails. */
 export interface DeviceSiteContact {
   ownerName: string;
   ownerEmail: string;

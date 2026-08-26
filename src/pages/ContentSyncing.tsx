@@ -211,7 +211,7 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
 
       <div>
         <h3 className="mb-2 text-sm font-semibold text-content-primary">
-          Required media (weekly + prefetch)
+          Required media (SD perform6-cache + weekly prefetch)
         </h3>
         <Table
           columns={mediaColumns}
