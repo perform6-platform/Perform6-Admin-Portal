@@ -1163,8 +1163,9 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               Site owner (offline alerts)
             </p>
             <p className="text-body-sm text-content-secondary">
-              Stored on the device record — not a login. Used when the screen goes
-              offline during its content prefetch window.
+              Stored on the device record — not a login. Used for scheduled offline
+              reminders before next week&apos;s content download opens (1 day, 6 hours,
+              and 45 minutes before midnight UTC) — not on every offline event.
             </p>
             <Input
               label="Owner name"

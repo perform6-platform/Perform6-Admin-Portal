@@ -108,7 +108,7 @@ export interface DeviceInventoryItem {
   rotationStartDate?: string | null;
   effectiveRotationStartDate?: string | null;
   rotationDay?: number | null;
-  /** Site owner contact (offline prefetch emails). */
+  /** Site owner contact (scheduled offline prefetch emails). */
   ownerName?: string | null;
   ownerEmail?: string | null;
   siteAddress?: string | null;
