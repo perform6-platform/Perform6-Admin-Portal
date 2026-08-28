@@ -1,5 +1,8 @@
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Loader2, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import { CARD_SURFACE_CLASS } from '../ui/cardStyles';
 import type { UploadProgressState } from './UploadProgressPanel';
 import { UploadProgressPanel } from './UploadProgressPanel';
 
@@ -20,7 +23,19 @@ export function FloatingUploadProgress({
   onCancel,
   canCancel = false,
 }: FloatingUploadProgressProps) {
-  if (!open || state.phase === 'idle') return null;
+  const visible = open && state.phase !== 'idle';
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [visible]);
+
+  if (!visible) return null;
 
   const isBusy = state.phase === 'uploading' || state.phase === 'processing';
   const displayTitle =
@@ -33,24 +48,24 @@ export function FloatingUploadProgress({
           ? 'Upload complete'
           : 'Upload failed');
 
-  return (
-    <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center p-4 sm:p-6"
-      role="presentation"
-    >
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="ui-modal-overlay absolute inset-0" aria-hidden />
+
       <div
-        className={cn(
-          'pointer-events-auto w-full max-w-lg rounded-2xl border border-surface-border bg-surface shadow-2xl',
-        )}
+        role="dialog"
+        aria-modal="true"
+        aria-live="polite"
+        className={cn(CARD_SURFACE_CLASS, 'ui-modal-panel relative z-10 w-full max-w-lg rounded-xl')}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-surface-border px-4 py-3">
+        <div className="flex items-start justify-between gap-3 border-b border-surface-border px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               {isBusy && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-brand-600" />}
-              <p className="truncate text-sm font-semibold text-content-primary">{displayTitle}</p>
+              <p className="truncate text-lg font-semibold text-content-primary">{displayTitle}</p>
             </div>
             {subtitle && (
-              <p className="mt-0.5 truncate text-caption text-content-muted">{subtitle}</p>
+              <p className="mt-1 truncate text-body-sm text-content-secondary">{subtitle}</p>
             )}
           </div>
           {canCancel && onCancel && isBusy && (
@@ -64,10 +79,17 @@ export function FloatingUploadProgress({
             </button>
           )}
         </div>
-        <div className="p-4">
-          <UploadProgressPanel state={state} className="border-0 bg-transparent p-0" />
+
+        <div className="space-y-4 px-4 py-4 sm:px-6">
+          <UploadProgressPanel state={state} />
+          {isBusy && (
+            <p className="text-center text-caption text-content-muted">
+              Please keep this window open until the bar reaches 100%.
+            </p>
+          )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
