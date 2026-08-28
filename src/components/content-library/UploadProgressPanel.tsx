@@ -50,8 +50,8 @@ export function UploadProgressPanel({ state, className }: UploadProgressPanelPro
           <p className="text-body-sm text-content-primary">{title}</p>
           <p className="mt-0.5 text-caption text-content-secondary">
             {isBusy
-              ? percent < 55
-                ? 'Transferring file to the server…'
+              ? percent < 70
+                ? 'Transferring file to cloud storage…'
                 : 'Optimizing and preparing for BrightSign…'
               : isDone
                 ? 'Video uploaded successfully.'

@@ -91,24 +91,24 @@ export function useSmoothUploadProgress() {
     setState({ phase: 'uploading', percent: 1, label: 'Uploading video' });
   }, []);
 
-  /** HTTP transfer percent 0–100 → display target capped at 55%. */
+  /** HTTP transfer percent 0–100 → display target capped at 70%. */
   const setHttpUploadPercent = useCallback((httpPercent: number) => {
     const clamped = Math.max(0, Math.min(100, httpPercent));
-    const mapped = Math.max(1, Math.round((clamped / 100) * 55));
+    const mapped = Math.max(1, Math.round((clamped / 100) * 70));
     targetRef.current = Math.max(targetRef.current, mapped);
     phaseRef.current = 'uploading';
   }, []);
 
-  /** Mark file received by API; keep bar under 60 until processing reports. */
+  /** Mark file received by API; keep bar under 75 until processing reports. */
   const markUploadReceived = useCallback(() => {
     phaseRef.current = 'processing';
-    targetRef.current = Math.max(targetRef.current, 58);
+    targetRef.current = Math.max(targetRef.current, 72);
   }, []);
 
-  /** BullMQ job progress 0–100 → display target 55–99%. */
+  /** BullMQ job progress 0–100 → display target 70–99%. */
   const setProcessingJobPercent = useCallback((jobPercent: number) => {
     const clamped = Math.max(0, Math.min(100, jobPercent));
-    const mapped = 55 + Math.round((clamped / 100) * 44);
+    const mapped = 70 + Math.round((clamped / 100) * 29);
     targetRef.current = Math.max(targetRef.current, Math.min(99, mapped));
     phaseRef.current = 'processing';
   }, []);

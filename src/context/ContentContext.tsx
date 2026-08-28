@@ -4,6 +4,7 @@ import type { PlaybackCategoryId } from '../constants/contentPlayback';
 import { useMediaAssets } from '../hooks/useMedia';
 import { mapMediaAssetToContentItem } from '../lib/deviceMapper';
 import { getManageableCategoryIds } from '../lib/programHelpers';
+import { isInterruptedUploadAsset } from '../lib/uploadFileCache';
 
 interface ContentContextValue {
   items: ContentItem[];
@@ -34,9 +35,12 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     refetchInterval: (query) => {
       if (query.state.error) return false;
       const items = query.state.data?.items ?? [];
-      const processing = items.some((asset) => asset.status === 'PROCESSING');
-      // Avoid hammering GET /media while uploads process (was 3s → easy 429).
-      return processing ? 5_000 : false;
+      // Only poll while backend is actively processing — not for interrupted uploads awaiting resume.
+      const activelyProcessing = items.some(
+        (asset) =>
+          asset.status === 'PROCESSING' && !isInterruptedUploadAsset(asset.id, asset.status),
+      );
+      return activelyProcessing ? 5_000 : false;
     },
     retry: (failureCount, error) => {
       const status = (error as { response?: { status?: number } })?.response?.status;

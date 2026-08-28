@@ -9,7 +9,21 @@ import type {
   UpdateMediaPayload,
   UploadMediaPayload,
 } from '../types/media';
-import { MULTIPART_HEADERS, toFormData } from '../lib/formData';
+import {
+  buildPartPlan,
+  putBlobWithRetry,
+  putPresignedFileWithProgress,
+  retryApiCall,
+  UPLOAD_PARALLEL_PARTS,
+  UPLOAD_PART_BYTES,
+} from '../lib/mediaUploadCore';
+import {
+  clearStoredUploadSession,
+  loadStoredUploadSession,
+  saveStoredUploadSession,
+  type StoredUploadPart,
+  type StoredUploadSession,
+} from '../lib/uploadSessionStorage';
 import { apiClient } from './axios';
 
 type PresignedPutTarget = {
@@ -26,6 +40,33 @@ type InitDirectUploadResult = {
   programId?: string | null;
   upload: PresignedPutTarget;
   thumbnailUpload?: PresignedPutTarget;
+};
+
+type InitMultipartUploadResult = {
+  sessionId: string;
+  asset: MediaAsset;
+  version: { id: string };
+  libraryType?: string | null;
+  programId?: string | null;
+  objectKey: string;
+  uploadId: string;
+  partSize: number;
+  totalParts: number;
+  expiresInSeconds: number;
+  thumbnailUpload?: PresignedPutTarget;
+};
+
+type UploadSessionResponse = {
+  id: string;
+  assetId: string;
+  versionId: string;
+  objectKey: string;
+  partSize: number;
+  totalParts: number;
+  completedParts: StoredUploadPart[];
+  status: string;
+  originalFilename: string;
+  thumbnailObjectKey?: string | null;
 };
 
 function getErrorMessage(error: unknown): string {
@@ -45,135 +86,372 @@ function getErrorStatus(error: unknown): number | undefined {
   return (error as { response?: { status?: number } }).response?.status;
 }
 
-/** PUT file to a presigned R2 URL with upload progress (0–100). */
-function putPresignedFile(
-  target: PresignedPutTarget,
-  file: Blob,
-  onUploadProgress?: (percent: number) => void,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', target.uploadUrl, true);
-    const contentType = target.headers['Content-Type'] || target.headers['content-type'];
-    if (contentType) {
-      xhr.setRequestHeader('Content-Type', contentType);
-    }
-    xhr.upload.onprogress = (event) => {
-      if (!onUploadProgress || !event.lengthComputable) return;
-      const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
-      onUploadProgress(percent);
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        onUploadProgress?.(100);
-        resolve();
-        return;
-      }
-      reject(new Error(`R2 upload failed (${xhr.status})`));
-    };
-    xhr.onerror = () => reject(new Error('R2 upload network error'));
-    xhr.onabort = () => reject(new Error('R2 upload aborted'));
-    xhr.send(file);
-  });
+
+async function fetchPartUrls(
+  sessionId: string,
+  partNumbers: number[],
+): Promise<Record<number, string>> {
+  const { data } = await apiClient.post<
+    ApiResponse<{
+      parts: { partNumber: number; uploadUrl: string }[];
+    }>
+  >('/media/upload/multipart/parts', { sessionId, partNumbers });
+  const map: Record<number, string> = {};
+  for (const part of data.data.parts) {
+    map[part.partNumber] = part.uploadUrl;
+  }
+  return map;
 }
 
-async function uploadMediaMultipart(
+async function recordParts(sessionId: string, parts: StoredUploadPart[]): Promise<void> {
+  if (parts.length === 0) return;
+  await apiClient.post('/media/upload/multipart/parts/record', { sessionId, parts });
+}
+
+async function uploadThumbnailIfNeeded(
   payload: UploadMediaPayload,
-): Promise<MediaUploadResult> {
-  const form = toFormData({
-    file: payload.file,
-    title: payload.title,
-    libraryType: payload.libraryType,
-    programId: payload.programId,
-    thumbnail: payload.thumbnail,
-    mediaType: payload.mediaType,
-    durationSeconds: payload.durationSeconds,
-    resolution: payload.resolution,
-    codec: payload.codec,
-  });
-  const { data } = await apiClient.post<ApiResponse<MediaUploadResult>>('/media/upload', form, {
-    headers: MULTIPART_HEADERS,
-    onUploadProgress: (event) => {
-      if (!payload.onUploadProgress) return;
-      const total = event.total ?? payload.file.size;
-      if (!total) {
-        payload.onUploadProgress(0);
-        return;
-      }
-      const percent = Math.min(100, Math.round((event.loaded / total) * 100));
-      payload.onUploadProgress(percent);
-    },
-  });
+  thumbnailUpload: PresignedPutTarget | undefined,
+  onProgress?: (percent: number) => void,
+): Promise<string | undefined> {
+  if (!payload.thumbnail || !thumbnailUpload) return undefined;
+  const contentType =
+    thumbnailUpload.headers['Content-Type'] ||
+    thumbnailUpload.headers['content-type'] ||
+    payload.thumbnail.type;
+  await putPresignedFileWithProgress(
+    thumbnailUpload.uploadUrl,
+    payload.thumbnail,
+    contentType,
+    onProgress,
+  );
+  return thumbnailUpload.key;
+}
+
+async function completeDirectWithRetry(body: {
+  assetId: string;
+  versionId: string;
+  objectKey: string;
+  thumbnailObjectKey?: string;
+  originalFilename: string;
+}): Promise<MediaUploadResult> {
+  const { data } = await retryApiCall(() =>
+    apiClient.post<ApiResponse<MediaUploadResult>>('/media/upload/complete', body),
+  );
   return data.data;
 }
 
-/**
- * Prefer direct-to-R2 (presigned) for speed/scalability.
- * Falls back to multipart only when init is unsupported (local storage / old API).
- */
-export async function uploadMedia(payload: UploadMediaPayload): Promise<MediaUploadResult> {
-  const contentType = payload.file.type || 'application/octet-stream';
+async function completeMultipartWithRetry(body: {
+  sessionId: string;
+  parts: StoredUploadPart[];
+  thumbnailObjectKey?: string;
+  originalFilename: string;
+}): Promise<MediaUploadResult> {
+  const { data } = await retryApiCall(() =>
+    apiClient.post<ApiResponse<MediaUploadResult>>('/media/upload/multipart/complete', body),
+  );
+  return data.data;
+}
 
-  let init: InitDirectUploadResult;
-  try {
-    const { data: initWrap } = await apiClient.post<ApiResponse<InitDirectUploadResult>>(
-      '/media/upload/init',
-      {
-        title: payload.title,
-        libraryType: payload.libraryType,
-        programId: payload.programId,
-        mediaType: payload.mediaType,
-        durationSeconds: payload.durationSeconds,
-        resolution: payload.resolution,
-        codec: payload.codec,
-        filename: payload.file.name,
-        contentType,
-        fileSize: payload.file.size,
-        hasThumbnail: Boolean(payload.thumbnail),
-        thumbnailContentType: payload.thumbnail?.type || undefined,
-      },
-    );
-    init = initWrap.data;
-  } catch (error) {
-    const status = getErrorStatus(error);
-    const message = getErrorMessage(error);
-    const unsupported =
-      status === 404 ||
-      /STORAGE_DRIVER=r2|multipart POST \/media\/upload|Direct-to-R2/i.test(message);
-    if (unsupported) {
-      return uploadMediaMultipart(payload);
-    }
-    throw error;
+async function uploadFileParts(params: {
+  session: StoredUploadSession;
+  file: File;
+  initialCompleted?: StoredUploadPart[];
+  onUploadProgress?: (percent: number) => void;
+}): Promise<StoredUploadPart[]> {
+  const plan = buildPartPlan(params.file.size, params.session.partSize);
+  const completedMap = new Map<number, string>();
+  for (const part of params.initialCompleted ?? []) {
+    completedMap.set(part.partNumber, part.etag);
   }
 
-  const fileWeight = payload.thumbnail ? 0.9 : 1;
-  const thumbWeight = payload.thumbnail ? 0.1 : 0;
+  const pending = plan.filter((part) => !completedMap.has(part.partNumber));
+  let uploadedBytes = plan
+    .filter((part) => completedMap.has(part.partNumber))
+    .reduce((sum, part) => sum + (part.end - part.start), 0);
 
-  await putPresignedFile(init.upload, payload.file, (percent) => {
-    payload.onUploadProgress?.(Math.round(percent * fileWeight));
-  });
+  params.onUploadProgress?.(
+    Math.min(100, Math.round((uploadedBytes / params.file.size) * 100)),
+  );
 
-  if (payload.thumbnail && init.thumbnailUpload) {
-    await putPresignedFile(init.thumbnailUpload, payload.thumbnail, (percent) => {
-      const combined = Math.round(100 * fileWeight + percent * thumbWeight);
-      payload.onUploadProgress?.(Math.min(100, combined));
+  let cursor = 0;
+  while (cursor < pending.length) {
+    const batch = pending.slice(cursor, cursor + UPLOAD_PARALLEL_PARTS);
+    cursor += UPLOAD_PARALLEL_PARTS;
+
+    const partNumbers = batch.map((part) => part.partNumber);
+    const urlMap = await fetchPartUrls(params.session.sessionId, partNumbers);
+
+    await Promise.all(
+      batch.map(async (part) => {
+        const uploadUrl = urlMap[part.partNumber];
+        if (!uploadUrl) {
+          throw new Error(`Missing presigned URL for part ${part.partNumber}`);
+        }
+        const chunk = params.file.slice(part.start, part.end);
+        const etag = await putBlobWithRetry(uploadUrl, chunk);
+        completedMap.set(part.partNumber, etag);
+        uploadedBytes += part.end - part.start;
+        params.onUploadProgress?.(
+          Math.min(100, Math.round((uploadedBytes / params.file.size) * 100)),
+        );
+      }),
+    );
+
+    const completedParts = [...completedMap.entries()]
+      .map(([partNumber, etag]) => ({ partNumber, etag }))
+      .sort((a, b) => a.partNumber - b.partNumber);
+
+    await recordParts(params.session.sessionId, completedParts);
+
+    saveStoredUploadSession({
+      ...params.session,
+      completedParts,
     });
   }
 
-  payload.onUploadProgress?.(100);
+  return [...completedMap.entries()]
+    .map(([partNumber, etag]) => ({ partNumber, etag }))
+    .sort((a, b) => a.partNumber - b.partNumber);
+}
 
-  const { data: completeWrap } = await apiClient.post<ApiResponse<MediaUploadResult>>(
-    '/media/upload/complete',
+async function uploadViaR2Multipart(payload: UploadMediaPayload): Promise<MediaUploadResult> {
+  const contentType = payload.file.type || 'application/octet-stream';
+
+  const { data: initWrap } = await apiClient.post<ApiResponse<InitMultipartUploadResult>>(
+    '/media/upload/multipart/init',
     {
-      assetId: init.asset.id,
-      versionId: init.version.id,
-      objectKey: init.upload.key,
-      thumbnailObjectKey: init.thumbnailUpload?.key,
-      originalFilename: payload.file.name,
+      title: payload.title,
+      libraryType: payload.libraryType,
+      programId: payload.programId,
+      mediaType: payload.mediaType,
+      durationSeconds: payload.durationSeconds,
+      resolution: payload.resolution,
+      codec: payload.codec,
+      filename: payload.file.name,
+      contentType,
+      fileSize: payload.file.size,
+      hasThumbnail: Boolean(payload.thumbnail),
+      thumbnailContentType: payload.thumbnail?.type || undefined,
+    },
+  );
+  const init = initWrap.data;
+
+  const storedSession: StoredUploadSession = {
+    sessionId: init.sessionId,
+    assetId: init.asset.id,
+    versionId: init.version.id,
+    objectKey: init.objectKey,
+    fileName: payload.file.name,
+    fileSize: payload.file.size,
+    fileLastModified: payload.file.lastModified,
+    partSize: init.partSize,
+    totalParts: init.totalParts,
+    completedParts: [],
+    title: payload.title,
+    updatedAt: Date.now(),
+  };
+  saveStoredUploadSession(storedSession);
+
+  const thumbWeight = payload.thumbnail ? 0.08 : 0;
+  const fileWeight = 1 - thumbWeight;
+
+  const completedParts = await uploadFileParts({
+    session: storedSession,
+    file: payload.file,
+    onUploadProgress: (percent) => {
+      payload.onUploadProgress?.(Math.round(percent * fileWeight));
+    },
+  });
+
+  const thumbnailObjectKey = await uploadThumbnailIfNeeded(
+    payload,
+    init.thumbnailUpload,
+    (percent) => {
+      const combined = Math.round(100 * fileWeight + percent * thumbWeight);
+      payload.onUploadProgress?.(Math.min(100, combined));
     },
   );
 
-  return completeWrap.data;
+  payload.onUploadProgress?.(100);
+
+  const result = await completeMultipartWithRetry({
+    sessionId: init.sessionId,
+    parts: completedParts,
+    thumbnailObjectKey,
+    originalFilename: payload.file.name,
+  });
+
+  clearStoredUploadSession();
+  return result;
+}
+
+async function uploadViaR2SinglePut(payload: UploadMediaPayload): Promise<MediaUploadResult> {
+  const contentType = payload.file.type || 'application/octet-stream';
+
+  const { data: initWrap } = await apiClient.post<ApiResponse<InitDirectUploadResult>>(
+    '/media/upload/init',
+    {
+      title: payload.title,
+      libraryType: payload.libraryType,
+      programId: payload.programId,
+      mediaType: payload.mediaType,
+      durationSeconds: payload.durationSeconds,
+      resolution: payload.resolution,
+      codec: payload.codec,
+      filename: payload.file.name,
+      contentType,
+      fileSize: payload.file.size,
+      hasThumbnail: Boolean(payload.thumbnail),
+      thumbnailContentType: payload.thumbnail?.type || undefined,
+    },
+  );
+  const init = initWrap.data;
+
+  const fileWeight = payload.thumbnail ? 0.92 : 1;
+  const thumbWeight = payload.thumbnail ? 0.08 : 0;
+
+  const uploadContentType =
+    init.upload.headers['Content-Type'] ||
+    init.upload.headers['content-type'] ||
+    contentType;
+
+  await putPresignedFileWithProgress(
+    init.upload.uploadUrl,
+    payload.file,
+    uploadContentType,
+    (percent) => {
+      payload.onUploadProgress?.(Math.round(percent * fileWeight));
+    },
+  );
+
+  const thumbnailObjectKey = await uploadThumbnailIfNeeded(
+    payload,
+    init.thumbnailUpload,
+    (percent) => {
+      const combined = Math.round(100 * fileWeight + percent * thumbWeight);
+      payload.onUploadProgress?.(Math.min(100, combined));
+    },
+  );
+
+  payload.onUploadProgress?.(100);
+
+  return completeDirectWithRetry({
+    assetId: init.asset.id,
+    versionId: init.version.id,
+    objectKey: init.upload.key,
+    thumbnailObjectKey,
+    originalFilename: payload.file.name,
+  });
+}
+
+/** Resume an in-progress multipart upload (same file identity required). */
+export async function resumeStoredUpload(
+  file: File,
+  onUploadProgress?: (percent: number) => void,
+): Promise<MediaUploadResult> {
+  const stored = loadStoredUploadSession();
+  if (!stored) {
+    throw new Error('No upload session to resume');
+  }
+
+  const { data: sessionWrap } = await apiClient.get<ApiResponse<UploadSessionResponse>>(
+    `/media/upload/session/${stored.sessionId}`,
+  );
+  const session = sessionWrap.data;
+
+  if (session.status === 'UPLOADED' || session.status === 'ABORTED') {
+    clearStoredUploadSession();
+    throw new Error('Upload session is no longer active');
+  }
+
+  const mergedCompleted = session.completedParts ?? stored.completedParts ?? [];
+  const activeSession: StoredUploadSession = {
+    ...stored,
+    assetId: session.assetId,
+    versionId: session.versionId,
+    objectKey: session.objectKey,
+    partSize: session.partSize,
+    totalParts: session.totalParts,
+    completedParts: mergedCompleted,
+  };
+  saveStoredUploadSession(activeSession);
+
+  const completedParts = await uploadFileParts({
+    session: activeSession,
+    file,
+    initialCompleted: mergedCompleted,
+    onUploadProgress,
+  });
+
+  onUploadProgress?.(100);
+
+  const result = await completeMultipartWithRetry({
+    sessionId: stored.sessionId,
+    parts: completedParts,
+    thumbnailObjectKey: session.thumbnailObjectKey ?? undefined,
+    originalFilename: session.originalFilename ?? file.name,
+  });
+
+  clearStoredUploadSession();
+  return result;
+}
+
+/** Retry BrightSign processing when upload succeeded but processing failed. */
+export async function retryMediaProcessing(assetId: string): Promise<MediaUploadResult> {
+  const { data } = await apiClient.post<ApiResponse<MediaUploadResult>>(
+    `/media/${encodeURIComponent(assetId)}/retry-processing`,
+  );
+  return data.data;
+}
+
+/** Retry complete for assets where R2 upload succeeded but complete failed. */
+export async function retryUploadComplete(params: {
+  assetId: string;
+  versionId: string;
+  objectKey: string;
+  originalFilename: string;
+  thumbnailObjectKey?: string;
+}): Promise<MediaUploadResult> {
+  return completeDirectWithRetry(params);
+}
+
+export function getPendingUploadSession(): StoredUploadSession | null {
+  return loadStoredUploadSession();
+}
+
+export function clearPendingUploadSession(): void {
+  clearStoredUploadSession();
+}
+
+function formatDirectUploadError(error: unknown): Error {
+  const status = getErrorStatus(error);
+  const message = getErrorMessage(error);
+  if (status === 404) {
+    return new Error(
+      'Direct-to-R2 upload is unavailable. The API may need a restart — contact support if this persists.',
+    );
+  }
+  if (/STORAGE_DRIVER=r2|Direct-to-R2|multipart/i.test(message)) {
+    return new Error(message);
+  }
+  return error instanceof Error ? error : new Error(message || 'Upload failed');
+}
+
+/** Direct-to-R2 upload (single PUT for small files, multipart for large). */
+export async function uploadMedia(payload: UploadMediaPayload): Promise<MediaUploadResult> {
+  try {
+    if (payload.file.size > UPLOAD_PART_BYTES) {
+      return await uploadViaR2Multipart(payload);
+    }
+    return await uploadViaR2SinglePut(payload);
+  } catch (error) {
+    throw formatDirectUploadError(error);
+  }
+}
+
+export function assetHasPendingUpload(assetId: string): boolean {
+  const session = loadStoredUploadSession();
+  return session?.assetId === assetId;
 }
 
 /** GET /media/processing/:jobId — BullMQ progress 0–100. */
@@ -186,10 +464,6 @@ export async function getMediaProcessingProgress(
   return data.data;
 }
 
-/**
- * GET /media — returns { items, meta }.
- * Normalizes a bare array as well, and uppercases sortOrder (ASC|DESC).
- */
 export async function getMediaAssets(query: MediaListQuery = {}): Promise<MediaListResult> {
   const params: Record<string, string | number | undefined> = {
     libraryType: query.libraryType,
@@ -213,19 +487,16 @@ export async function getMediaAssets(query: MediaListQuery = {}): Promise<MediaL
   return { items: [], meta: undefined };
 }
 
-/** GET /media/library-summary */
 export async function getLibrarySummary(): Promise<LibrarySummary> {
   const { data } = await apiClient.get<ApiResponse<LibrarySummary>>('/media/library-summary');
   return data.data;
 }
 
-/** GET /media/:id */
 export async function getMediaAsset(id: string): Promise<MediaAsset> {
   const { data } = await apiClient.get<ApiResponse<MediaAsset>>(`/media/${id}`);
   return data.data;
 }
 
-/** PATCH /media/:id */
 export async function updateMediaAsset(
   id: string,
   payload: UpdateMediaPayload,
@@ -234,7 +505,6 @@ export async function updateMediaAsset(
   return data.data;
 }
 
-/** DELETE /media/:id — archives asset and removes files from storage. */
 export async function deleteMediaAsset(id: string): Promise<DeleteMediaResult> {
   const { data } = await apiClient.delete<ApiResponse<DeleteMediaResult> | DeleteMediaResult>(
     `/media/${id}`,

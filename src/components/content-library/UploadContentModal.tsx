@@ -80,8 +80,13 @@ export function UploadContentModal({
       <ModalBody>
         {open && (
           <div className="space-y-4">
-            {progress.phase !== 'idle' && <UploadProgressPanel state={progress} />}
-            {!busy && progress.phase !== 'done' && (
+            {progress.phase !== 'idle' && progress.phase !== 'error' && (
+              <UploadProgressPanel state={progress} />
+            )}
+            {progress.phase === 'error' && (
+              <UploadProgressPanel state={progress} />
+            )}
+            {!busy && progress.phase !== 'done' && progress.phase !== 'error' && (
               <UploadContentForm
                 key={defaultCategoryId}
                 categoryId={defaultCategoryId}
