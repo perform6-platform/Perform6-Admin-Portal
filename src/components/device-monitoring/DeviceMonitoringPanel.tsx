@@ -1,13 +1,22 @@
-import { useState } from 'react';
-import { Monitor } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Monitor, Smartphone } from 'lucide-react';
 import type { Device } from '../../constants/devices';
 import { useDevicePlayback } from '../../hooks/useRotation';
+import { useDeviceLivePlayback } from '../../hooks/useMonitoring';
 import { cn } from '../../lib/cn';
+import {
+  formatTouchPlaybackState,
+  formatTouchSlotLabel,
+  isTouchscreenDeployment,
+  resolveScreenOutputLabel,
+} from '../../lib/screenOutputLabels';
 import { resolveStorageUrl } from '../../lib/libraryType';
 import type { ManifestSlot } from '../../types/deployments';
+import type { TouchUiSnapshot } from '../../types/monitoring';
 import { BrightSignDeviceImage } from '../devices/BrightSignDeviceImage';
 import { Badge, CARD_SURFACE_CLASS, SectionLabel } from '../ui';
 import { LiveSyncPreviewModal } from './LiveSyncPreviewModal';
+import { TouchRemoteControls } from './TouchRemoteControls';
 
 export interface DeviceMonitoringPanelProps {
   device: Device | null;
@@ -53,11 +62,54 @@ function slotEntries(content: Record<string, ManifestSlot> | undefined): Playing
 function screenEntries(device: Device): PlayingEntry[] {
   return (device.screens ?? []).map((screen) => ({
     key: screen.screenKey,
-    group: screen.screenKey,
+    group: resolveScreenOutputLabel(screen.screenKey, device.model),
     label: screen.categoryName || screen.screenKey,
     video: screen.title || 'No video assigned',
     thumbnail: resolveStorageUrl(screen.thumbnail) ?? undefined,
   }));
+}
+
+function formatSessionElapsed(sessionStartedAt?: number | null): string | null {
+  if (!sessionStartedAt) return null;
+  const elapsedSec = Math.max(0, Math.floor((Date.now() - sessionStartedAt) / 1000));
+  const minutes = Math.floor(elapsedSec / 60);
+  const seconds = elapsedSec % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function TouchUiStatus({ touchUi }: { touchUi: TouchUiSnapshot | null | undefined }) {
+  if (!touchUi?.currentContent) {
+    return (
+      <p className="text-body-sm text-content-muted">
+        No live Bluefin telemetry yet. Device must be online and on the Home screen.
+      </p>
+    );
+  }
+
+  const slotLabel = formatTouchSlotLabel(touchUi.currentContent.slot);
+  const stateLabel = formatTouchPlaybackState(touchUi.playbackState);
+  const elapsed = formatSessionElapsed(touchUi.currentContent.sessionStartedAt);
+
+  return (
+    <div className="space-y-1">
+      <p className="text-body-sm font-medium text-content-primary">
+        {stateLabel} · {slotLabel}
+      </p>
+      {touchUi.currentContent.title ? (
+        <p className="truncate text-body-sm text-content-secondary">
+          {touchUi.currentContent.title}
+        </p>
+      ) : null}
+      {elapsed ? (
+        <p className="text-caption text-content-muted">Session elapsed {elapsed}</p>
+      ) : null}
+      {touchUi.updatedAt ? (
+        <p className="text-caption text-content-muted">
+          Updated {new Date(touchUi.updatedAt).toLocaleTimeString()}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 export function DeviceMonitoringPanel({
@@ -70,13 +122,29 @@ export function DeviceMonitoringPanel({
     title: string;
     thumbnail?: string;
   } | null>(null);
+
   const hasFleetScreens = Boolean(device?.screens && device.screens.length > 0);
+  const isTouchDevice = isTouchscreenDeployment(device?.deploymentType, device?.model);
+  const registeredDeviceId = device?.deviceId ?? (device?.inventoryState === 'registered' ? device.id : null);
+
   const { data: playback, isLoading, isError } = useDevicePlayback(
     hasFleetScreens ? null : (device?.id ?? null),
     {
       refetchInterval: autoRefresh ? 30_000 : false,
     },
   );
+
+  const { data: livePlayback } = useDeviceLivePlayback(registeredDeviceId, {
+    enabled: Boolean(registeredDeviceId && isTouchDevice),
+    refetchInterval: 8_000,
+  });
+
+  const touchUi = livePlayback?.touchUi ?? device?.touchUi ?? null;
+
+  const currentVideos = useMemo(() => {
+    if (!device) return [];
+    return hasFleetScreens ? screenEntries(device) : slotEntries(playback?.content);
+  }, [device, hasFleetScreens, playback?.content]);
 
   if (!device) {
     return (
@@ -87,17 +155,12 @@ export function DeviceMonitoringPanel({
   }
 
   const rotationDay = device.rotationDay ?? playback?.rotationDay;
-  const currentVideos = hasFleetScreens
-    ? screenEntries(device)
-    : slotEntries(playback?.content);
   const dayLabel =
     rotationDay != null
       ? `Day ${rotationDay}`
       : device.currentDay !== '—'
         ? device.currentDay
         : null;
-
-  const registeredDeviceId = device.deviceId ?? (device.inventoryState === 'registered' ? device.id : null);
 
   return (
     <div className={cn(CARD_SURFACE_CLASS, 'p-6 sm:p-6', className)}>
@@ -115,6 +178,28 @@ export function DeviceMonitoringPanel({
         <BrightSignDeviceImage />
         <p className="mt-2 text-body-sm text-content-primary">{device.model}</p>
       </div>
+
+      {isTouchDevice ? (
+        <section className="mb-6 rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
+          <div className="mb-4 flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-400">
+              <Smartphone className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <SectionLabel className="mb-1 block">Bluefin touch (HDMI-1)</SectionLabel>
+              <TouchUiStatus touchUi={touchUi} />
+            </div>
+          </div>
+
+          <div className="border-t border-surface-border pt-4">
+            <SectionLabel className="mb-3 block">Remote control</SectionLabel>
+            <TouchRemoteControls
+              deviceId={registeredDeviceId}
+              disabled={device.status !== 'online'}
+            />
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
         <div className="mb-4 flex items-start gap-4">
@@ -157,7 +242,6 @@ export function DeviceMonitoringPanel({
                   type="button"
                   onClick={() =>
                     setPreview({
-                      // Fleet rows use real SCREEN_* keys; slot fallback maps to HDMI SCREEN_1.
                       screenKey: hasFleetScreens ? entry.key : 'SCREEN_1',
                       title: entry.video,
                       thumbnail: entry.thumbnail,
@@ -183,7 +267,7 @@ export function DeviceMonitoringPanel({
                     <p className="truncate text-caption text-content-secondary">{entry.label}</p>
                   </div>
                   <Badge variant="neutral" className="shrink-0">
-                    {entry.group.replace(/_/g, ' ')}
+                    {entry.group}
                   </Badge>
                 </button>
               </li>

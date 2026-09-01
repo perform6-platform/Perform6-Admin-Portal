@@ -40,6 +40,17 @@ export interface Device {
     title: string | null;
     thumbnail: string | null;
   }>;
+  touchUi?: {
+    playbackState: string | null;
+    currentContent: {
+      slot?: string;
+      title?: string | null;
+      mediaVersionId?: string | null;
+      screenKey?: string | null;
+      sessionStartedAt?: number | null;
+    } | null;
+    updatedAt: string | null;
+  } | null;
 }
 
 export const locationOptions = [

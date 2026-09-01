@@ -11,6 +11,7 @@ import type {
   RegisteredDevice,
   StrictPairingLookup,
 } from '../types/devices';
+import type { QueueDeviceRemoteCommandPayload } from '../types/monitoring';
 import { apiClient } from './axios';
 
 // ---------------------------------------------------------------------------
@@ -115,6 +116,17 @@ export interface DeviceLifecycleResult {
   cluster?: boolean;
   activationStatus?: string;
   rePairAllowed?: boolean;
+}
+
+/** POST /devices/:id/remote-command — queue Bluefin remote control. */
+export async function queueDeviceRemoteCommand(
+  deviceId: string,
+  payload: QueueDeviceRemoteCommandPayload,
+): Promise<{ id: string; action: string; slot?: string; createdAt: string }> {
+  const { data } = await apiClient.post<
+    ApiResponse<{ id: string; action: string; slot?: string; createdAt: string }>
+  >(`/devices/${deviceId}/remote-command`, payload);
+  return data.data;
 }
 
 /** POST /devices/:id/disconnect */

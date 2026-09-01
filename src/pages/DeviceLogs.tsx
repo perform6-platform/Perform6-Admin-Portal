@@ -29,7 +29,7 @@ export default function DeviceLogs() {
   const [source, setSource] = useState('');
   const [search, setSearch] = useState('');
 
-  const { data: devicesData } = useDevices({ state: 'registered', page: 1, limit: 200 });
+  const { data: devicesData } = useDevices({ state: 'registered', page: 1, limit: 100 });
   const deviceOptions = useMemo(() => {
     const items = devicesData?.items ?? [];
     return [

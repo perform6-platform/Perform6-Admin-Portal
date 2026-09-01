@@ -57,6 +57,7 @@ export const queryKeys = {
   },
   rotation: {
     all: ['rotation'] as const,
+    globalSettings: ['rotation', 'settings', 'global'] as const,
     current: ['rotation', 'current'] as const,
     device: (deviceId: string) => ['rotation', 'devices', deviceId] as const,
     deviceCurrent: (deviceId: string) => ['rotation', 'devices', deviceId, 'current'] as const,
@@ -68,6 +69,8 @@ export const queryKeys = {
   monitoring: {
     fleetStatus: ['monitoring', 'fleet', 'status'] as const,
     fleetHealth: ['monitoring', 'fleet', 'health'] as const,
+    livePlayback: (deviceId: string) =>
+      ['monitoring', 'devices', deviceId, 'live-playback'] as const,
     analytics: (query: unknown) => ['monitoring', 'analytics', query] as const,
   },
   sync: {

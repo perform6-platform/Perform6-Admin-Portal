@@ -12,12 +12,14 @@ import {
   getPairingHistory,
   getPendingPairings,
   pairDeviceRequest,
+  queueDeviceRemoteCommand,
 } from '../services/devices.api';
 import type {
   ClaimPairingPayload,
   DeviceInventoryQuery,
   PairDevicePayload,
 } from '../types/devices';
+import type { QueueDeviceRemoteCommandPayload } from '../types/monitoring';
 
 function invalidateDeviceQueries(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: ['devices'] });
@@ -130,5 +132,12 @@ export function useAttachDevice() {
     mutationFn: (vars: { deviceId: string; deploymentId: string }) =>
       attachDevice(vars.deviceId, vars.deploymentId),
     onSuccess: () => invalidateDeviceQueries(queryClient),
+  });
+}
+
+export function useQueueDeviceRemoteCommand() {
+  return useMutation({
+    mutationFn: (vars: { deviceId: string; payload: QueueDeviceRemoteCommandPayload }) =>
+      queueDeviceRemoteCommand(vars.deviceId, vars.payload),
   });
 }

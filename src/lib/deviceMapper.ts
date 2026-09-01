@@ -246,6 +246,7 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
     rotationDay: apiRotationDay,
     rotationMode: device.rotationMode,
     screens: device.screens ?? [],
+    touchUi: device.touchUi ?? null,
   };
 }
 

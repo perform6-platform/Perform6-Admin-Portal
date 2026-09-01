@@ -72,4 +72,36 @@ export interface LivePlaybackStatus {
   isStale: boolean;
   isLive: boolean;
   screens: LivePlaybackScreen[];
+  touchUi?: TouchUiSnapshot | null;
+}
+
+export interface TouchUiSnapshot {
+  playbackState: string | null;
+  currentContent: {
+    slot?: string;
+    title?: string | null;
+    mediaVersionId?: string | null;
+    screenKey?: string | null;
+    sessionStartedAt?: number | null;
+  } | null;
+  updatedAt: string | null;
+}
+
+export type DeviceRemoteCommandAction =
+  | 'PAUSE'
+  | 'PLAY'
+  | 'TOGGLE_PAUSE'
+  | 'RETURN_TO_MENU'
+  | 'SELECT_TOUCH_SLOT';
+
+export type TouchRemoteSlot =
+  | 'touch-default'
+  | 'start-here'
+  | 'phase1'
+  | 'phase2'
+  | 'full-program';
+
+export interface QueueDeviceRemoteCommandPayload {
+  action: DeviceRemoteCommandAction;
+  slot?: TouchRemoteSlot;
 }
