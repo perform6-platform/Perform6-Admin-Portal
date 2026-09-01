@@ -58,7 +58,6 @@ export const queryKeys = {
   rotation: {
     all: ['rotation'] as const,
     current: ['rotation', 'current'] as const,
-    globalSettings: ['rotation', 'settings', 'global'] as const,
     device: (deviceId: string) => ['rotation', 'devices', deviceId] as const,
     deviceCurrent: (deviceId: string) => ['rotation', 'devices', deviceId, 'current'] as const,
     devicePlayback: (deviceId: string) => ['rotation', 'devices', deviceId, 'playback'] as const,
@@ -69,15 +68,18 @@ export const queryKeys = {
   monitoring: {
     fleetStatus: ['monitoring', 'fleet', 'status'] as const,
     fleetHealth: ['monitoring', 'fleet', 'health'] as const,
-    livePlayback: (deviceId: string) => ['monitoring', 'live-playback', deviceId] as const,
     analytics: (query: unknown) => ['monitoring', 'analytics', query] as const,
   },
   sync: {
     fleet: ['sync', 'fleet'] as const,
     deviceDetail: (id: string) => ['sync', 'devices', id] as const,
   },
+  deviceLogs: {
+    list: (query: unknown) => ['device-logs', 'list', query] as const,
+  },
   releases: {
     all: ['releases'] as const,
+    otaFleet: ['releases', 'ota-fleet'] as const,
   },
   startupFiles: {
     all: ['startup-files'] as const,
