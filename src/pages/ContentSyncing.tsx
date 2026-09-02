@@ -229,15 +229,27 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
             refreshes automatically while items are Missing or Failed.
           </p>
           <ul className="space-y-2 text-sm text-content-secondary">
-            {failedDownloads.slice(0, 5).map((item) => (
-              <li
-                key={`${item.syncJobId}-${item.mediaVersionId}-${item.createdAt}`}
-                className="rounded-lg bg-surface-muted p-2"
-              >
-                <span className="font-mono text-xs">{item.mediaVersionId?.slice(0, 8)}…</span>
-                {item.errorMessage ? ` — ${item.errorMessage}` : ''}
-              </li>
-            ))}
+            {failedDownloads.slice(0, 5).map((item) => {
+              const title =
+                requiredMedia.find((row) => row.mediaVersionId === item.mediaVersionId)?.title ??
+                null;
+              return (
+                <li
+                  key={`${item.syncJobId}-${item.mediaVersionId}-${item.createdAt}`}
+                  className="rounded-lg border border-danger/20 bg-danger/5 p-2"
+                >
+                  <div className="font-medium text-content-primary">
+                    {title ?? 'Unknown title'}
+                  </div>
+                  <div className="mt-0.5 font-mono text-xs text-content-muted">
+                    {item.mediaVersionId?.slice(0, 8)}…
+                  </div>
+                  {item.errorMessage ? (
+                    <div className="mt-1 text-caption text-danger">{item.errorMessage}</div>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

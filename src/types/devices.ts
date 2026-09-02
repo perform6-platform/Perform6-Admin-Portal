@@ -9,7 +9,7 @@ export type PairingStatus = 'ONLINE' | 'ADMIN_CLAIMED' | 'REGISTERED' | 'EXPIRED
 export type PairingRegistrationStatus = 'PENDING' | 'CLAIMED' | 'REGISTERED';
 
 /** Device inventory filter — GET /devices?state= */
-export type DeviceInventoryState = 'all' | 'pending' | 'claimed' | 'registered';
+export type DeviceInventoryState = 'all' | 'pending' | 'claimed' | 'registered' | 'disabled';
 
 export type HardwareProfileCode = 'XC4055' | 'XT2145' | 'HD226' | string;
 
@@ -123,6 +123,7 @@ export interface DeviceInventoryMeta {
     pending: number;
     claimed: number;
     registered: number;
+    disabled?: number;
   };
 }
 

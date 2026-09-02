@@ -108,7 +108,7 @@ export async function getDeviceById(id: string): Promise<RegisteredDevice> {
 }
 
 export interface DeviceLifecycleResult {
-  action: 'disconnect' | 'disable' | 'attach';
+  action: 'disconnect' | 'disable' | 'attach' | 'restore';
   deviceId?: string;
   deviceIds?: string[];
   deploymentId?: string | null;
@@ -141,6 +141,14 @@ export async function disconnectDevice(deviceId: string): Promise<DeviceLifecycl
 export async function disableDevice(deviceId: string): Promise<DeviceLifecycleResult> {
   const { data } = await apiClient.post<ApiResponse<DeviceLifecycleResult>>(
     `/devices/${deviceId}/disable`,
+  );
+  return data.data;
+}
+
+/** POST /devices/:id/restore — re-open a disabled device for re-pair and attach. */
+export async function restoreDevice(deviceId: string): Promise<DeviceLifecycleResult> {
+  const { data } = await apiClient.post<ApiResponse<DeviceLifecycleResult>>(
+    `/devices/${deviceId}/restore`,
   );
   return data.data;
 }

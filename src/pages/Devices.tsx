@@ -25,11 +25,12 @@ const PAGE_SIZE = 20;
 const fleetFilterOptions = [
   { value: 'all', label: 'All Devices' },
   { value: 'registered', label: 'Registered' },
+  { value: 'disabled', label: 'Disabled' },
   { value: 'claimed', label: 'Claimed' },
   { value: 'pending', label: 'Pending pairing' },
 ] as const;
 
-const validFleetStates = new Set(['all', 'registered', 'claimed', 'pending']);
+const validFleetStates = new Set(['all', 'registered', 'disabled', 'claimed', 'pending']);
 const validStatusFilters = new Set(['all', 'online', 'offline']);
 
 function parseFleetState(value: string | null): DeviceInventoryState {
@@ -165,6 +166,9 @@ export default function Devices() {
       key: 'inventoryState',
       header: 'State',
       render: (row) => {
+        if (row.activationStatus === 'DISABLED') {
+          return <Badge variant="warning">Disabled</Badge>;
+        }
         const state = row.inventoryState ?? 'pending';
         const label =
           state === 'registered' ? 'Registered' : state === 'claimed' ? 'Claimed' : 'Pending';
@@ -177,9 +181,14 @@ export default function Devices() {
       key: 'status',
       header: 'Status',
       render: (row) => (
-        <Badge variant={row.status === 'online' ? 'success' : 'danger'}>
-          {row.status === 'online' ? 'Online' : 'Offline'}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant={row.status === 'online' ? 'success' : 'danger'}>
+            {row.status === 'online' ? 'Online' : 'Offline'}
+          </Badge>
+          {row.activationStatus === 'DISABLED' ? (
+            <Badge variant="warning">Disabled</Badge>
+          ) : null}
+        </div>
       ),
     },
     {
@@ -199,6 +208,12 @@ export default function Devices() {
           <span>Claimed: {counts.claimed}</span>
           <span>·</span>
           <span>Registered: {counts.registered}</span>
+          {typeof counts.disabled === 'number' ? (
+            <>
+              <span>·</span>
+              <span>Disabled: {counts.disabled}</span>
+            </>
+          ) : null}
         </div>
       )}
 

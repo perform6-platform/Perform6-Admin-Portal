@@ -13,6 +13,7 @@ import {
   getPendingPairings,
   pairDeviceRequest,
   queueDeviceRemoteCommand,
+  restoreDevice,
 } from '../services/devices.api';
 import type {
   ClaimPairingPayload,
@@ -122,6 +123,14 @@ export function useDisableDevice() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (deviceId: string) => disableDevice(deviceId),
+    onSuccess: () => invalidateDeviceQueries(queryClient),
+  });
+}
+
+export function useRestoreDevice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (deviceId: string) => restoreDevice(deviceId),
     onSuccess: () => invalidateDeviceQueries(queryClient),
   });
 }

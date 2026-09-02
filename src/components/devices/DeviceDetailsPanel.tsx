@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Link2, Link2Off, Ban } from 'lucide-react';
+import { Download, Link2, Link2Off, Ban, RotateCcw } from 'lucide-react';
 import type { Device } from '../../constants/devices';
 import { useRotationSchedule } from '../../context/RotationScheduleContext';
 import { useToast } from '../../context/ToastContext';
@@ -7,6 +7,7 @@ import {
   useAttachDevice,
   useDisableDevice,
   useDisconnectDevice,
+  useRestoreDevice,
 } from '../../hooks/useDevices';
 import { cn } from '../../lib/cn';
 import { formatDeviceContentAxes } from '../../lib/deploymentDisplay';
@@ -47,9 +48,11 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const { mutateAsync: disconnect, isPending: isDisconnecting } = useDisconnectDevice();
   const { mutateAsync: disable, isPending: isDisabling } = useDisableDevice();
   const { mutateAsync: attach, isPending: isAttaching } = useAttachDevice();
+  const { mutateAsync: restore, isPending: isRestoring } = useRestoreDevice();
 
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
 
   if (!device) {
@@ -98,12 +101,30 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
       await disable(registeredDeviceId);
       showToast({
         title: 'Device disabled',
-        message: 'Auth revoked. Restart the simulator to pair and register again.',
+        message: 'Auth revoked. Device will reboot; use Restore to re-pair and connect again.',
         variant: 'success',
       });
     } catch (error) {
       showToast({
         title: getApiErrorMessage(error, 'Failed to disable device'),
+        variant: 'error',
+      });
+    }
+  }
+
+  async function handleRestore() {
+    if (!registeredDeviceId) return;
+    try {
+      await restore(registeredDeviceId);
+      showToast({
+        title: 'Device restored for re-pair',
+        message:
+          'Player will show a new pairing code after reboot. Then claim → register → attach to deployment.',
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Failed to restore device'),
         variant: 'error',
       });
     }
@@ -225,6 +246,26 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         </div>
       ) : null}
 
+      {isDisabled && registeredDeviceId ? (
+        <div className="mt-4 rounded-lg border border-status-warning/30 bg-status-warning/5 p-4">
+          <p className="text-body-sm font-medium text-content-primary">Device disabled</p>
+          <p className="mt-1 text-caption text-content-secondary">
+            Auth was revoked and the player should reboot. Click Restore when the unit is on-site —
+            it will get a new pairing code, then you can claim, register, and attach to a deployment.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="mt-3 h-9 gap-2"
+            disabled={isRestoring}
+            onClick={() => setRestoreOpen(true)}
+          >
+            <RotateCcw className="h-4 w-4" />
+            {isRestoring ? 'Restoring…' : 'Restore for re-pair'}
+          </Button>
+        </div>
+      ) : null}
+
       <div className="mt-4 space-y-2">
         {canDisconnect && (
           <Button
@@ -306,6 +347,17 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         description="Revokes the API token and frees the serial for re-pairing. Restart the simulator afterward to pair again."
         confirmLabel="Disable"
         tone="danger"
+      />
+
+      <ConfirmModal
+        open={restoreOpen}
+        onClose={() => setRestoreOpen(false)}
+        onConfirm={() => {
+          void handleRestore();
+        }}
+        title="Restore disabled device?"
+        description="Marks the device active again and clears the old pairing row. After the player reboots, it will show a new code in Pending — claim, register, then attach to your deployment."
+        confirmLabel="Restore"
       />
 
       <AttachDeviceModal
