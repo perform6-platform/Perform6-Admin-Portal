@@ -166,6 +166,9 @@ export default function Devices() {
       key: 'inventoryState',
       header: 'State',
       render: (row) => {
+        if (row.pairingStatus === 'EXPIRED') {
+          return <Badge variant="danger">Needs repair</Badge>;
+        }
         if (row.activationStatus === 'DISABLED') {
           return <Badge variant="warning">Disabled</Badge>;
         }

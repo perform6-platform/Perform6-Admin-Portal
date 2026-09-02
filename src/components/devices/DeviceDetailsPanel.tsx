@@ -66,10 +66,12 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const registeredDeviceId = device.deviceId ?? null;
   const isRegistered = device.inventoryState === 'registered' && Boolean(registeredDeviceId);
   const isDisabled = device.activationStatus === 'DISABLED';
+  const needsRepair = device.pairingStatus === 'EXPIRED' && Boolean(registeredDeviceId);
   const isAttached = Boolean(device.deploymentId);
-  const canDisconnect = isRegistered && isAttached && !isDisabled;
-  const canDisable = isRegistered && !isAttached && !isDisabled;
-  const canAttach = isRegistered && !isAttached && !isDisabled;
+  const canDisconnect = isRegistered && isAttached && !isDisabled && !needsRepair;
+  const canDisable = isRegistered && !isAttached && !isDisabled && !needsRepair;
+  const canAttach = isRegistered && !isAttached && !isDisabled && !needsRepair;
+  const canRestore = Boolean(registeredDeviceId) && (isDisabled || needsRepair);
   const axes = formatDeviceContentAxes(device);
 
   function handleExportSchedule() {
@@ -246,12 +248,15 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         </div>
       ) : null}
 
-      {isDisabled && registeredDeviceId ? (
+      {canRestore && registeredDeviceId ? (
         <div className="mt-4 rounded-lg border border-status-warning/30 bg-status-warning/5 p-4">
-          <p className="text-body-sm font-medium text-content-primary">Device disabled</p>
+          <p className="text-body-sm font-medium text-content-primary">
+            {needsRepair ? 'Device needs repair' : 'Device disabled'}
+          </p>
           <p className="mt-1 text-caption text-content-secondary">
-            Auth was revoked and the player should reboot. Click Restore when the unit is on-site —
-            it will get a new pairing code, then you can claim, register, and attach to a deployment.
+            {needsRepair
+              ? 'A previous Restore left this unit in a broken state. Click Repair to fix the fleet row, revoke auth, and queue a reboot for re-pair.'
+              : 'Auth was revoked and the player should reboot. Click Restore when the unit is on-site — it will get a new pairing code, then you can claim, register, and attach to a deployment.'}
           </p>
           <Button
             type="button"
@@ -261,7 +266,11 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
             onClick={() => setRestoreOpen(true)}
           >
             <RotateCcw className="h-4 w-4" />
-            {isRestoring ? 'Restoring…' : 'Restore for re-pair'}
+            {isRestoring
+              ? 'Restoring…'
+              : needsRepair
+                ? 'Repair for re-pair'
+                : 'Restore for re-pair'}
           </Button>
         </div>
       ) : null}
@@ -355,9 +364,13 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         onConfirm={() => {
           void handleRestore();
         }}
-        title="Restore disabled device?"
-        description="Marks the device active again and clears the old pairing row. After the player reboots, it will show a new code in Pending — claim, register, then attach to your deployment."
-        confirmLabel="Restore"
+        title={needsRepair ? 'Repair device for re-pair?' : 'Restore disabled device?'}
+        description={
+          needsRepair
+            ? 'Fixes the broken fleet row, keeps the device visible, revokes auth, and queues a reboot. After reboot the player shows a new pairing code — claim, register, then attach.'
+            : 'Revokes auth and queues a reboot. The device stays visible as Disabled. After reboot the player shows a new pairing code — claim, register, then attach to your deployment.'
+        }
+        confirmLabel={needsRepair ? 'Repair' : 'Restore'}
       />
 
       <AttachDeviceModal
