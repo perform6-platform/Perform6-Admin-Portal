@@ -17,6 +17,7 @@ import {
 import { getApiErrorMessage } from '../../services/axios';
 import { AttachDeviceModal } from './AttachDeviceModal';
 import { BrightSignDeviceImage } from './BrightSignDeviceImage';
+import { DeviceRemoteOps } from '../device-monitoring/DeviceRemoteOps';
 import { Badge, Button, Card, CardTitle, ConfirmModal } from '../ui';
 
 interface DeviceDetailsPanelProps {
@@ -213,6 +214,16 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         </div>
         <DetailRow label="Mac Address" value={device.macAddress?.trim() || '—'} />
       </div>
+
+      {isRegistered && registeredDeviceId && !isDisabled ? (
+        <div className="mt-4 rounded-lg border border-surface-border bg-surface-muted/30 p-4">
+          <p className="mb-3 text-body-sm font-medium text-content-primary">Remote operations</p>
+          <DeviceRemoteOps
+            deviceId={registeredDeviceId}
+            disabled={device.status !== 'online'}
+          />
+        </div>
+      ) : null}
 
       <div className="mt-4 space-y-2">
         {canDisconnect && (

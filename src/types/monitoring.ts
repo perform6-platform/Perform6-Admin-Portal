@@ -92,7 +92,10 @@ export type DeviceRemoteCommandAction =
   | 'PLAY'
   | 'TOGGLE_PAUSE'
   | 'RETURN_TO_MENU'
-  | 'SELECT_TOUCH_SLOT';
+  | 'SELECT_TOUCH_SLOT'
+  | 'REBOOT'
+  | 'SYNC_NOW'
+  | 'CLEAR_SD_CACHE';
 
 export type TouchRemoteSlot =
   | 'touch-default'
