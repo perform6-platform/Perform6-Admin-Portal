@@ -60,6 +60,8 @@ export interface OtaFleetDeviceRow {
   otaDoneCount: number | null;
   otaTotalCount: number | null;
   otaCurrentPath: string | null;
+  otaBytesDownloaded: number | null;
+  otaBytesTotal: number | null;
   otaError: string | null;
   otaUpdatedAt: string | null;
   lastSeenAt: string | null;

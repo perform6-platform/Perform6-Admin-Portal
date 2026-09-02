@@ -42,6 +42,16 @@ function formatDate(iso: string): string {
   }
 }
 
+function formatOtaDetail(row: OtaFleetDeviceRow): string {
+  const parts: string[] = [];
+  if (row.otaCurrentPath) parts.push(row.otaCurrentPath);
+  if (row.otaBytesDownloaded != null && row.otaBytesTotal != null && row.otaBytesTotal > 0) {
+    parts.push(`${formatBytes(row.otaBytesDownloaded)} / ${formatBytes(row.otaBytesTotal)}`);
+  }
+  if (row.otaError) parts.push(row.otaError);
+  return parts.length > 0 ? parts.join(' · ') : '—';
+}
+
 function otaStatusLabel(row: OtaFleetDeviceRow): string {
   switch (row.otaStatus) {
     case 'UP_TO_DATE':
@@ -333,7 +343,7 @@ export default function OtaReleases() {
                             </Badge>
                           </td>
                           <td className="max-w-xs px-4 py-3 text-xs text-content-muted">
-                            {row.otaCurrentPath ? row.otaCurrentPath : row.otaError ?? '—'}
+                            {formatOtaDetail(row)}
                           </td>
                         </tr>
                       ))

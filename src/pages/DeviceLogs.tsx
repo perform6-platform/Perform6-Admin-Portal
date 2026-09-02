@@ -60,7 +60,9 @@ export default function DeviceLogs() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <PageTitle>Device Logs</PageTitle>
         <p className="text-sm text-slate-500">
-          Remote player logs (`[Perform6]` console + `perform6-led.log` tail). Refreshes every 15s.
+          Remote player logs (`[Perform6]` JS console + `perform6-led.log` autorun tail). OTA lines
+          include file path and byte progress — search <code className="rounded bg-slate-100 px-1">OTA</code>.
+          Refreshes every 15s.
           {isFetching && !isLoading ? ' Updating…' : ''}
         </p>
       </div>
@@ -73,7 +75,7 @@ export default function DeviceLogs() {
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search message text"
+          placeholder="Search e.g. OTA, manifest, prefetch"
           className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
         />
       </div>
