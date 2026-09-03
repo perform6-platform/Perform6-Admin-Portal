@@ -171,9 +171,17 @@ export function DeviceMonitoringPanel({
           <h2 className="text-2xl font-semibold text-content-primary">{device.name}</h2>
           <p className="mt-1 text-body-sm text-content-secondary">{device.location}</p>
         </div>
-        <Badge variant={device.status === 'online' ? 'success' : 'danger'} className="shrink-0">
-          {device.status === 'online' ? 'Online' : 'Offline'}
-        </Badge>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Badge variant={device.status === 'online' ? 'success' : 'danger'} className="shrink-0">
+            {device.status === 'online' ? 'Online' : 'Offline'}
+          </Badge>
+          {device.sdPresent === true && (
+            <Badge variant="success">SD card: Present</Badge>
+          )}
+          {device.sdPresent === false && (
+            <Badge variant="warning">SD card: Missing</Badge>
+          )}
+        </div>
       </div>
 
       <div className="mb-6 flex flex-col items-center">

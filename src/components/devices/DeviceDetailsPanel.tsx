@@ -168,6 +168,12 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
           <Badge variant={device.status === 'online' ? 'success' : 'neutral'}>
             {device.status === 'online' ? 'Online' : 'Offline'}
           </Badge>
+          {device.sdPresent === true && (
+            <Badge variant="success">SD card: Present</Badge>
+          )}
+          {device.sdPresent === false && (
+            <Badge variant="warning">SD card: Missing</Badge>
+          )}
           {isDisabled && <Badge variant="warning">Disabled</Badge>}
           {isRegistered && !isDisabled && !isAttached && (
             <Badge variant="neutral">Disconnected</Badge>
@@ -177,6 +183,7 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
       {device.status === 'offline' && isRegistered ? (
         <p className="mb-4 text-caption text-content-muted">
           Offline means no heartbeat/sync in the last 5 minutes — fleet state can still be Registered.
+          SD card status is the last report before the player went quiet.
         </p>
       ) : null}
 
@@ -212,6 +219,22 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         <DetailRow label="Timezone" value={device.timezone?.trim() || '—'} />
         <DetailRow label="Last Seen" value={device.lastSync} />
         <DetailRow label="Last Boot" value={device.lastBoot?.trim() || '—'} />
+        <DetailRow
+          label="SD card"
+          value={
+            device.sdPresent === true
+              ? 'Present'
+              : device.sdPresent === false
+                ? 'Missing'
+                : 'Unknown'
+          }
+        />
+        {device.sdEventAt ? (
+          <DetailRow
+            label="SD last event"
+            value={new Date(device.sdEventAt).toLocaleString()}
+          />
+        ) : null}
         <DetailRow label="Current Day" value={device.currentDay} />
         <DetailRow
           label="Deployment"

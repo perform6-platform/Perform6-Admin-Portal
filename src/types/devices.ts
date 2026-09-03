@@ -97,6 +97,10 @@ export interface DeviceInventoryItem {
   lastSeenAt: string | null;
   /** ISO timestamp from device heartbeat metadata.lastBootAt */
   lastBootAt?: string | null;
+  /** Last heartbeat: SD card present on player (null = unknown). */
+  sdPresent?: boolean | null;
+  sdEvent?: string | null;
+  sdEventAt?: string | null;
   claimedAt: string | null;
   registeredAt: string | null;
   pairingCode: string | null;

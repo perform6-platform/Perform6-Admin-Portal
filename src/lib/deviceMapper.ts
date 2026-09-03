@@ -167,6 +167,8 @@ export function mapInventoryItem(item: DeviceInventoryItem): Device {
     brightSignStatus: online ? 'connected' : 'disconnected',
     lastSync: relativeTime(item.lastSeenAt),
     lastBoot: relativeTime(item.lastBootAt),
+    sdPresent: typeof item.sdPresent === 'boolean' ? item.sdPresent : null,
+    sdEventAt: item.sdEventAt ?? null,
     model: item.model?.trim() || '—',
     serialNumber,
     firmware,
@@ -233,6 +235,14 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
         ? device.health.metadata.lastBootAt
         : null,
     ),
+    sdPresent:
+      typeof device.health?.metadata?.sdPresent === 'boolean'
+        ? device.health.metadata.sdPresent
+        : null,
+    sdEventAt:
+      typeof device.health?.metadata?.sdEventAt === 'string'
+        ? device.health.metadata.sdEventAt
+        : null,
     model: device.model || hardwareProfile || '—',
     serialNumber: device.serialNumber || '—',
     firmware: device.firmwareVersion || device.health?.firmwareVersion || '—',

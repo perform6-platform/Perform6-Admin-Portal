@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HardDriveDownload, Power, RefreshCw } from 'lucide-react';
+import { FileText, HardDriveDownload, Power, RefreshCw } from 'lucide-react';
 import { useQueueDeviceRemoteCommand } from '../../hooks/useDevices';
 import { Button, ConfirmModal } from '../ui';
 
@@ -14,7 +14,10 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
   const [rebootOpen, setRebootOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
 
-  const queue = (label: string, action: 'REBOOT' | 'SYNC_NOW' | 'CLEAR_SD_CACHE') => {
+  const queue = (
+    label: string,
+    action: 'REBOOT' | 'SYNC_NOW' | 'CLEAR_SD_CACHE' | 'UPLOAD_LOGS',
+  ) => {
     if (!deviceId || disabled) return;
     mutate(
       { deviceId, payload: { action } },
@@ -52,6 +55,16 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
           variant="outline"
           size="sm"
           disabled={!deviceId || disabled || isPending}
+          onClick={() => queue('Upload logs', 'UPLOAD_LOGS')}
+        >
+          <FileText className="h-4 w-4" />
+          Upload logs
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!deviceId || disabled || isPending}
           onClick={() => setClearOpen(true)}
         >
           <HardDriveDownload className="h-4 w-4" />
@@ -63,6 +76,8 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
         Delivered on the device&apos;s next heartbeat (~60s). Keep the player online.
         After an OTA/download fail, use <span className="font-medium">Sync now</span> to
         clear the fail lock and retry — or Retry on the OTA Releases page.
+        <span className="font-medium"> Upload logs</span> pulls JS + autorun
+        (SD:/perform6-led.log) into the cloud log viewer.
         {lastQueued ? ` Last queued: ${lastQueued}.` : ''}
       </p>
 

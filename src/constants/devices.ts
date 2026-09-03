@@ -11,6 +11,9 @@ export interface Device {
   lastSync: string;
   /** Relative time of last autorun/UI boot heartbeat (when known). */
   lastBoot?: string;
+  /** Last known SD card presence from heartbeat (null = never reported). */
+  sdPresent?: boolean | null;
+  sdEventAt?: string | null;
   model: string;
   serialNumber: string;
   firmware: string;

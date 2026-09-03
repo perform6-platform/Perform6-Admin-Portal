@@ -96,6 +96,7 @@ export type DeviceRemoteCommandAction =
   | 'REBOOT'
   | 'SYNC_NOW'
   | 'CLEAR_SD_CACHE'
+  | 'UPLOAD_LOGS'
   | 'SD_LIST'
   | 'SD_READ'
   | 'SD_WRITE'
