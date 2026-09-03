@@ -114,6 +114,8 @@ export interface QueueDeviceRemoteCommandPayload {
   path?: string;
   content?: string;
   encoding?: 'utf8' | 'base64' | string;
+  forceOta?: boolean;
+  skipOta?: boolean;
 }
 
 export interface SdFsEntry {

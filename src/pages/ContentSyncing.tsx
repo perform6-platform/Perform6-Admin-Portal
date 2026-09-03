@@ -225,8 +225,9 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
         <div>
           <h3 className="mb-2 text-sm font-semibold text-content-primary">Recent failures</h3>
           <p className="mb-2 text-caption text-content-secondary">
-            Run <span className="font-medium">Sync Now</span> on the device to retry. Status
-            refreshes automatically while items are Missing or Failed.
+            Final failures after automatic retries. Run{' '}
+            <span className="font-medium">Sync Now</span> to try again. Status refreshes while items
+            are Missing or Failed.
           </p>
           <ul className="space-y-2 text-sm text-content-secondary">
             {failedDownloads.slice(0, 5).map((item) => {
