@@ -6,7 +6,8 @@ export type DeviceLogSource = 'JS' | 'AUTORUN';
 
 export interface DeviceLogRow {
   id: string;
-  deviceId: string;
+  deviceId: string | null;
+  pairingId?: string | null;
   deviceName: string | null;
   serialNumber: string | null;
   level: DeviceLogLevel;

@@ -133,6 +133,15 @@ export function DeviceSdBrowser({ deviceId, disabled }: DeviceSdBrowserProps) {
     void queryClient.invalidateQueries({ queryKey: queryKeys.devices.sdFs(deviceId) });
   }
 
+  // Auto-list SD:/ once when panel opens (device online).
+  useEffect(() => {
+    if (!deviceId || disabled) return;
+    if (entries.length > 0 || awaitingCommandId) return;
+    if (sdFs?.latest?.action === 'SD_LIST' && sdFs.latest.ok) return;
+    void queueFs('SD_LIST', { path: 'SD:/' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot on open
+  }, [deviceId, disabled]);
+
   async function refreshList(targetPath = path) {
     await queueFs('SD_LIST', { path: targetPath });
   }
@@ -221,7 +230,9 @@ export function DeviceSdBrowser({ deviceId, disabled }: DeviceSdBrowserProps) {
       <div className="max-h-56 overflow-auto rounded-md border border-surface-border bg-surface-base">
         {sortedEntries.length === 0 ? (
           <p className="p-3 text-caption text-content-muted">
-            No listing yet — click List (device must be online).
+            {awaitingCommandId || sdFs?.pending
+              ? 'Waiting for device heartbeat to return SD listing…'
+              : 'No listing yet — opening this panel queues List SD:/ (device must be online).'}
           </p>
         ) : (
           <ul className="divide-y divide-surface-border">

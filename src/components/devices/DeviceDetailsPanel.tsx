@@ -104,7 +104,8 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
       await disable(registeredDeviceId);
       showToast({
         title: 'Device disabled',
-        message: 'Auth revoked. Device will reboot; use Restore to re-pair and connect again.',
+        message:
+          'Auth revoked. Online players reboot within ~60s and show a new pairing code. If offline, power-cycle the unit, then Restore → claim → register → attach.',
         variant: 'success',
       });
     } catch (error) {
@@ -122,7 +123,7 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
       showToast({
         title: 'Device restored for re-pair',
         message:
-          'Player will show a new pairing code after reboot. Then claim → register → attach to deployment.',
+          'Player will reboot within ~60s if online (clears local token). Then claim the new code → register → attach. If it stays stuck, power-cycle the player.',
         variant: 'success',
       });
     } catch (error) {
@@ -196,6 +197,14 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         <DetailRow label="Serial Number" value={device.serialNumber} />
         <DetailRow label="Model" value={device.model} />
         <DetailRow label="Firmware" value={device.firmware} />
+        <DetailRow
+          label="LAN IP"
+          value={device.ipAddress?.trim() || '—'}
+        />
+        <DetailRow
+          label="MAC"
+          value={device.macAddress?.trim() || '—'}
+        />
         <DetailRow label="Location" value={device.location} />
         <DetailRow
           label={axes.isAxisFree ? 'Content' : 'Field'}

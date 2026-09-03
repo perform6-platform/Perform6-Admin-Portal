@@ -106,6 +106,8 @@ export interface DeviceInventoryItem {
   pairingCode: string | null;
   firmwareVersion?: string | null;
   macAddress?: string | null;
+  ipAddress?: string | null;
+  lanIpAddress?: string | null;
   /** Full BrightSign / player JSON from POST /devices/pair (when present). */
   hardwareInfo?: Record<string, unknown> | null;
   hardwareProfile?: HardwareProfileCode | null;
@@ -182,6 +184,9 @@ export interface RegisteredDevice {
   deviceName?: string;
   model?: string;
   firmwareVersion?: string;
+  ipAddress?: string | null;
+  lanIpAddress?: string | null;
+  macAddress?: string | null;
   screenCount: number;
   runtimeVersion?: string | null;
   activationStatus: DeviceActivationStatus;

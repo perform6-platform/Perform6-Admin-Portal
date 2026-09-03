@@ -173,6 +173,7 @@ export function mapInventoryItem(item: DeviceInventoryItem): Device {
     serialNumber,
     firmware,
     macAddress: resolveMacAddress(item),
+    ipAddress: item.ipAddress ?? item.lanIpAddress ?? null,
     uptime: '—',
     storageUsed: 0,
     deviceId: item.deviceId,
@@ -246,6 +247,16 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
     model: device.model || hardwareProfile || '—',
     serialNumber: device.serialNumber || '—',
     firmware: device.firmwareVersion || device.health?.firmwareVersion || '—',
+    ipAddress:
+      device.ipAddress?.trim() ||
+      device.lanIpAddress?.trim() ||
+      (typeof device.health?.metadata?.ipAddress === 'string'
+        ? device.health.metadata.ipAddress
+        : null) ||
+      (typeof device.health?.metadata?.lanIpAddress === 'string'
+        ? device.health.metadata.lanIpAddress
+        : null),
+    macAddress: device.macAddress?.trim() || undefined,
     uptime: '—',
     storageUsed: storagePercent(
       device.health?.storageUsedBytes,

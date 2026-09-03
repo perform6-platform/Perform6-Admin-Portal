@@ -19,6 +19,8 @@ export interface Device {
   firmware: string;
   /** BrightSign / player MAC when reported by GET /devices. */
   macAddress?: string;
+  /** LAN IP from pairing / heartbeat metadata. */
+  ipAddress?: string | null;
   uptime: string;
   storageUsed: number;
   /** Registered device UUID — null while pending/claimed only. */

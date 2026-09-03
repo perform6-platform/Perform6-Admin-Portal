@@ -102,7 +102,8 @@ export default function DeviceLogs() {
               ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                    No logs yet. Logs appear after the player syncs or sends a heartbeat.
+                    No logs yet. Pairing-stage logs appear once the player is ONLINE; registered
+                    devices also upload on heartbeat/sync.
                   </td>
                 </tr>
               ) : (
@@ -113,10 +114,16 @@ export default function DeviceLogs() {
                     </td>
                     <td className="px-4 py-3 text-xs">
                       <div className="font-medium text-slate-800">
-                        {row.deviceName || row.serialNumber || row.deviceId}
+                        {row.deviceName ||
+                          row.serialNumber ||
+                          row.deviceId ||
+                          (row.pairingId ? `Pairing ${row.pairingId.slice(0, 8)}…` : '—')}
                       </div>
                       {row.serialNumber && row.deviceName ? (
                         <div className="text-slate-500">{row.serialNumber}</div>
+                      ) : null}
+                      {!row.deviceId && row.pairingId ? (
+                        <div className="text-slate-400">pre-register</div>
                       ) : null}
                     </td>
                     <td className={`px-4 py-3 text-xs font-medium ${levelClass(row.level)}`}>
