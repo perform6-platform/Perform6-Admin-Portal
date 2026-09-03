@@ -95,6 +95,8 @@ export interface DeviceInventoryItem {
   activationStatus?: string | null;
   pairingStatus?: string | null;
   lastSeenAt: string | null;
+  /** ISO timestamp from device heartbeat metadata.lastBootAt */
+  lastBootAt?: string | null;
   claimedAt: string | null;
   registeredAt: string | null;
   pairingCode: string | null;

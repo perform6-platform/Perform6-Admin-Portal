@@ -9,6 +9,8 @@ export interface Device {
   currentDay: string;
   brightSignStatus: BrightSignStatus;
   lastSync: string;
+  /** Relative time of last autorun/UI boot heartbeat (when known). */
+  lastBoot?: string;
   model: string;
   serialNumber: string;
   firmware: string;

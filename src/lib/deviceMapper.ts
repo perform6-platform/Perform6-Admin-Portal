@@ -166,6 +166,7 @@ export function mapInventoryItem(item: DeviceInventoryItem): Device {
     currentDay: rotationDay ? `Day ${rotationDay}` : '—',
     brightSignStatus: online ? 'connected' : 'disconnected',
     lastSync: relativeTime(item.lastSeenAt),
+    lastBoot: relativeTime(item.lastBootAt),
     model: item.model?.trim() || '—',
     serialNumber,
     firmware,
@@ -227,6 +228,11 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
     currentDay: apiRotationDay ? `Day ${apiRotationDay}` : '—',
     brightSignStatus: online ? 'connected' : 'disconnected',
     lastSync: relativeTime(device.lastSeenAt ?? device.health?.lastSyncAt ?? null),
+    lastBoot: relativeTime(
+      typeof device.health?.metadata?.lastBootAt === 'string'
+        ? device.health.metadata.lastBootAt
+        : null,
+    ),
     model: device.model || hardwareProfile || '—',
     serialNumber: device.serialNumber || '—',
     firmware: device.firmwareVersion || device.health?.firmwareVersion || '—',

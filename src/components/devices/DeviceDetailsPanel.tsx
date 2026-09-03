@@ -210,6 +210,7 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         {device.pairingCode ? <DetailRow label="Pairing Code" value={device.pairingCode} /> : null}
         <DetailRow label="Timezone" value={device.timezone?.trim() || '—'} />
         <DetailRow label="Last Seen" value={device.lastSync} />
+        <DetailRow label="Last Boot" value={device.lastBoot?.trim() || '—'} />
         <DetailRow label="Current Day" value={device.currentDay} />
         <DetailRow
           label="Deployment"
