@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { CloudUpload, Radio, Rocket } from 'lucide-react';
+import { CloudUpload, Radio, RefreshCw, Rocket } from 'lucide-react';
 import { useDeployRelease, useOtaFleet, usePublishRelease, useReleases } from '../hooks/useReleases';
+import { useRetryDeviceOta } from '../hooks/useDevices';
 import { useStartupFiles } from '../hooks/useStartupFiles';
 import { getApiErrorMessage } from '../services/axios';
 import type { AppRelease, OtaFleetDeviceRow } from '../types/releases';
@@ -142,6 +143,7 @@ export default function OtaReleases() {
   const { data: startupFiles, refetch: refetchStartupFiles } = useStartupFiles();
   const deployMutation = useDeployRelease();
   const publishMutation = usePublishRelease();
+  const retryOtaMutation = useRetryDeviceOta();
 
   const [version, setVersion] = useState('');
   const [profile, setProfile] = useState<StartupProfileId>('xt2145');
@@ -306,12 +308,13 @@ export default function OtaReleases() {
                       <th className="px-4 py-3">Target</th>
                       <th className="px-4 py-3">OTA status</th>
                       <th className="px-4 py-3">Detail</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {otaFleet.devices.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-6 text-content-muted">
+                        <td colSpan={7} className="px-4 py-6 text-content-muted">
                           No active devices registered yet.
                         </td>
                       </tr>
@@ -344,6 +347,52 @@ export default function OtaReleases() {
                           </td>
                           <td className="max-w-xs px-4 py-3 text-xs text-content-muted">
                             {formatOtaDetail(row)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {(row.otaStatus === 'FAILED' ||
+                              row.otaStatus === 'UPDATE_PENDING' ||
+                              row.updateAvailable) && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={
+                                  !row.isOnline ||
+                                  retryOtaMutation.isPending
+                                }
+                                title={
+                                  row.isOnline
+                                    ? 'Clear OTA fail state and queue Sync now'
+                                    : 'Device must be online'
+                                }
+                                onClick={() => {
+                                  retryOtaMutation.mutate(
+                                    { deviceId: row.deviceId, reboot: false },
+                                    {
+                                      onSuccess: () =>
+                                        showToast({
+                                          title: 'OTA retry queued',
+                                          description:
+                                            'Sync will run on next heartbeat (~60s).',
+                                          variant: 'success',
+                                        }),
+                                      onError: (err) =>
+                                        showToast({
+                                          title: 'Retry failed',
+                                          description: getApiErrorMessage(
+                                            err,
+                                            'Could not queue OTA retry',
+                                          ),
+                                          variant: 'error',
+                                        }),
+                                    },
+                                  );
+                                }}
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                                Retry
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       ))

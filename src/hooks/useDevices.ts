@@ -7,6 +7,7 @@ import {
   disconnectDevice,
   getClaimedPairings,
   getDeviceById,
+  getDeviceSdFs,
   getDevices,
   getPairingById,
   getPairingHistory,
@@ -14,6 +15,7 @@ import {
   pairDeviceRequest,
   queueDeviceRemoteCommand,
   restoreDevice,
+  retryDeviceOta,
 } from '../services/devices.api';
 import type {
   ClaimPairingPayload,
@@ -148,5 +150,26 @@ export function useQueueDeviceRemoteCommand() {
   return useMutation({
     mutationFn: (vars: { deviceId: string; payload: QueueDeviceRemoteCommandPayload }) =>
       queueDeviceRemoteCommand(vars.deviceId, vars.payload),
+  });
+}
+
+export function useRetryDeviceOta() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { deviceId: string; reboot?: boolean }) =>
+      retryDeviceOta(vars.deviceId, { reboot: vars.reboot }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.releases.otaFleet });
+      invalidateDeviceQueries(queryClient);
+    },
+  });
+}
+
+export function useDeviceSdFs(deviceId: string | null, options?: { enabled?: boolean; refetchInterval?: number | false }) {
+  return useQuery({
+    queryKey: queryKeys.devices.sdFs(deviceId ?? 'none'),
+    queryFn: () => getDeviceSdFs(deviceId!),
+    enabled: Boolean(deviceId) && (options?.enabled ?? true),
+    refetchInterval: options?.refetchInterval ?? false,
   });
 }

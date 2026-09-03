@@ -95,7 +95,11 @@ export type DeviceRemoteCommandAction =
   | 'SELECT_TOUCH_SLOT'
   | 'REBOOT'
   | 'SYNC_NOW'
-  | 'CLEAR_SD_CACHE';
+  | 'CLEAR_SD_CACHE'
+  | 'SD_LIST'
+  | 'SD_READ'
+  | 'SD_WRITE'
+  | 'SD_DELETE';
 
 export type TouchRemoteSlot =
   | 'touch-default'
@@ -107,4 +111,38 @@ export type TouchRemoteSlot =
 export interface QueueDeviceRemoteCommandPayload {
   action: DeviceRemoteCommandAction;
   slot?: TouchRemoteSlot;
+  path?: string;
+  content?: string;
+  encoding?: 'utf8' | 'base64' | string;
+}
+
+export interface SdFsEntry {
+  name: string;
+  size: number;
+  kind: 'file' | 'dir' | string;
+}
+
+export interface SdFsLatestResult {
+  commandId: string;
+  action: string;
+  ok: boolean;
+  path: string;
+  entries?: SdFsEntry[];
+  content?: string;
+  encoding?: string;
+  error?: string | null;
+  sizeBytes?: number | null;
+  reportedAt?: string;
+}
+
+export interface SdFsPendingInfo {
+  commandId: string;
+  action: string;
+  path?: string;
+  queuedAt?: string;
+}
+
+export interface DeviceSdFsResponse {
+  pending: SdFsPendingInfo | null;
+  latest: SdFsLatestResult | null;
 }

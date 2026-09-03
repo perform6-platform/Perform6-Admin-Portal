@@ -19,6 +19,7 @@ import { getApiErrorMessage } from '../../services/axios';
 import { AttachDeviceModal } from './AttachDeviceModal';
 import { BrightSignDeviceImage } from './BrightSignDeviceImage';
 import { DeviceRemoteOps } from '../device-monitoring/DeviceRemoteOps';
+import { DeviceSdBrowser } from '../device-monitoring/DeviceSdBrowser';
 import { Badge, Button, Card, CardTitle, ConfirmModal } from '../ui';
 
 interface DeviceDetailsPanelProps {
@@ -243,6 +244,16 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         <div className="mt-4 rounded-lg border border-surface-border bg-surface-muted/30 p-4">
           <p className="mb-3 text-body-sm font-medium text-content-primary">Remote operations</p>
           <DeviceRemoteOps
+            deviceId={registeredDeviceId}
+            disabled={device.status !== 'online'}
+          />
+        </div>
+      ) : null}
+
+      {isRegistered && registeredDeviceId && !isDisabled ? (
+        <div className="mt-4 rounded-lg border border-surface-border bg-surface-muted/30 p-4">
+          <p className="mb-3 text-body-sm font-medium text-content-primary">SD card (mini-DWS)</p>
+          <DeviceSdBrowser
             deviceId={registeredDeviceId}
             disabled={device.status !== 'online'}
           />

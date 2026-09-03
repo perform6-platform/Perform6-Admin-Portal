@@ -18,6 +18,7 @@ import { Badge, CARD_SURFACE_CLASS, SectionLabel } from '../ui';
 import { LiveSyncPreviewModal } from './LiveSyncPreviewModal';
 import { TouchRemoteControls } from './TouchRemoteControls';
 import { DeviceRemoteOps } from './DeviceRemoteOps';
+import { DeviceSdBrowser } from './DeviceSdBrowser';
 
 export interface DeviceMonitoringPanelProps {
   device: Device | null;
@@ -207,6 +208,14 @@ export function DeviceMonitoringPanel({
               disabled={device.status !== 'online'}
             />
           </div>
+
+          <div className="mt-4 border-t border-surface-border pt-4">
+            <SectionLabel className="mb-3 block">SD card (mini-DWS)</SectionLabel>
+            <DeviceSdBrowser
+              deviceId={registeredDeviceId}
+              disabled={device.status !== 'online'}
+            />
+          </div>
         </section>
       ) : (
         <section className="mb-6 rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
@@ -215,6 +224,13 @@ export function DeviceMonitoringPanel({
             deviceId={registeredDeviceId}
             disabled={device.status !== 'online'}
           />
+          <div className="mt-6 border-t border-surface-border pt-4">
+            <SectionLabel className="mb-3 block">SD card (mini-DWS)</SectionLabel>
+            <DeviceSdBrowser
+              deviceId={registeredDeviceId}
+              disabled={device.status !== 'online'}
+            />
+          </div>
         </section>
       )}
 

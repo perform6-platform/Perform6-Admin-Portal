@@ -61,6 +61,8 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
 
       <p className="text-caption text-content-muted">
         Delivered on the device&apos;s next heartbeat (~60s). Keep the player online.
+        After an OTA/download fail, use <span className="font-medium">Sync now</span> to
+        clear the fail lock and retry — or Retry on the OTA Releases page.
         {lastQueued ? ` Last queued: ${lastQueued}.` : ''}
       </p>
 

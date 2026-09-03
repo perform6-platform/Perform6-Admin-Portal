@@ -11,7 +11,10 @@ import type {
   RegisteredDevice,
   StrictPairingLookup,
 } from '../types/devices';
-import type { QueueDeviceRemoteCommandPayload } from '../types/monitoring';
+import type {
+  DeviceSdFsResponse,
+  QueueDeviceRemoteCommandPayload,
+} from '../types/monitoring';
 import { apiClient } from './axios';
 
 // ---------------------------------------------------------------------------
@@ -126,6 +129,26 @@ export async function queueDeviceRemoteCommand(
   const { data } = await apiClient.post<
     ApiResponse<{ id: string; action: string; slot?: string; createdAt: string }>
   >(`/devices/${deviceId}/remote-command`, payload);
+  return data.data;
+}
+
+/** POST /devices/:id/ota-retry — clear staged OTA fail state and queue SYNC_NOW. */
+export async function retryDeviceOta(
+  deviceId: string,
+  options?: { reboot?: boolean },
+): Promise<{ ok: boolean; cleared: boolean }> {
+  const q = options?.reboot ? '?reboot=1' : '';
+  const { data } = await apiClient.post<
+    ApiResponse<{ ok: boolean; cleared: boolean }>
+  >(`/devices/${deviceId}/ota-retry${q}`);
+  return data.data;
+}
+
+/** GET /devices/:id/sd-fs — pending + latest mini-DWS SD result. */
+export async function getDeviceSdFs(deviceId: string): Promise<DeviceSdFsResponse> {
+  const { data } = await apiClient.get<ApiResponse<DeviceSdFsResponse>>(
+    `/devices/${deviceId}/sd-fs`,
+  );
   return data.data;
 }
 

@@ -16,6 +16,7 @@ export const queryKeys = {
     pairing: (id: string) => ['devices', 'pairings', id] as const,
     pairingByCode: (code: string, strict: boolean) =>
       ['devices', 'pairing', code, strict] as const,
+    sdFs: (id: string) => ['devices', id, 'sd-fs'] as const,
   },
   deployments: {
     all: ['deployments'] as const,
