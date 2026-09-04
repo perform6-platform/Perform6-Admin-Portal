@@ -97,6 +97,8 @@ export type DeviceRemoteCommandAction =
   | 'SYNC_NOW'
   | 'CLEAR_SD_CACHE'
   | 'UPLOAD_LOGS'
+  | 'BRIDGE_RECYCLE'
+  | 'FORCE_BRIDGE_HEAL'
   | 'SD_LIST'
   | 'SD_READ'
   | 'SD_WRITE'

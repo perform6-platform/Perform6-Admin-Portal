@@ -6,6 +6,6 @@ export function useDeviceLogs(query: DeviceLogsQuery) {
   return useQuery({
     queryKey: queryKeys.deviceLogs.list(query),
     queryFn: () => getDeviceLogs(query),
-    refetchInterval: 15_000,
+    refetchInterval: 3_000,
   });
 }

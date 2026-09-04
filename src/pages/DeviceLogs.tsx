@@ -62,7 +62,7 @@ export default function DeviceLogs() {
         <p className="text-sm text-slate-500">
           Remote player logs (`[Perform6]` JS console + `perform6-led.log` autorun tail). OTA lines
           include file path and byte progress — search <code className="rounded bg-slate-100 px-1">OTA</code>.
-          Refreshes every 15s.
+          Refreshes every 3s.
           {isFetching && !isLoading ? ' Updating…' : ''}
         </p>
       </div>

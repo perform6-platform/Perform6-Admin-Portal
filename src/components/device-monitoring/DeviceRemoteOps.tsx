@@ -1,6 +1,15 @@
 import { useState } from 'react';
-import { Download, FileText, HardDriveDownload, Power, RefreshCw } from 'lucide-react';
+import {
+  Download,
+  FileText,
+  HardDriveDownload,
+  Power,
+  RefreshCw,
+  RotateCcw,
+  ShieldAlert,
+} from 'lucide-react';
 import { useQueueDeviceRemoteCommand, useRetryDeviceOta } from '../../hooks/useDevices';
+import type { DeviceRemoteCommandAction } from '../../types/monitoring';
 import { Button, ConfirmModal } from '../ui';
 
 export interface DeviceRemoteOpsProps {
@@ -15,10 +24,11 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
   const [rebootOpen, setRebootOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
   const [otaOpen, setOtaOpen] = useState(false);
+  const [forceHealOpen, setForceHealOpen] = useState(false);
 
   const queue = (
     label: string,
-    action: 'REBOOT' | 'SYNC_NOW' | 'CLEAR_SD_CACHE' | 'UPLOAD_LOGS',
+    action: DeviceRemoteCommandAction,
     extra?: { skipOta?: boolean; forceOta?: boolean },
   ) => {
     if (!deviceId || disabled) return;
@@ -38,9 +48,7 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
       },
       {
         onSuccess: () =>
-          setLastQueued(
-            `${label} queued — runs on next player heartbeat (~60s). Works even if the autorun bridge is down (Node path).`,
-          ),
+          setLastQueued(`${label} queued — runs on next player heartbeat (~60s).`),
         onError: () => setLastQueued(`Failed to queue ${label}.`),
       },
     );
@@ -111,6 +119,26 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
           variant="outline"
           size="sm"
           disabled={!deviceId || disabled || busy}
+          onClick={() => queue('Bridge recycle', 'BRIDGE_RECYCLE')}
+        >
+          <RotateCcw className="h-4 w-4" />
+          Bridge recycle
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!deviceId || disabled || busy}
+          onClick={() => setForceHealOpen(true)}
+        >
+          <ShieldAlert className="h-4 w-4" />
+          Force bridge heal
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!deviceId || disabled || busy}
           onClick={() => setClearOpen(true)}
         >
           <HardDriveDownload className="h-4 w-4" />
@@ -124,9 +152,10 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
         </p>
       ) : (
         <p className="text-caption text-content-muted">
-          Commands are not instant: they run on the next heartbeat (~60s).{' '}
-          <span className="font-medium">Sync now</span> = media only.{' '}
-          <span className="font-medium">Install OTA</span> = software update only.
+          Commands run on the next heartbeat (~60s).{' '}
+          <span className="font-medium">Bridge recycle</span> = soft HtmlWidget reload.{' '}
+          <span className="font-medium">Force bridge heal</span> = reboot even if heal
+          cooldown active.
           {lastQueued ? (
             <>
               <br />
@@ -150,6 +179,19 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
       />
 
       <ConfirmModal
+        open={forceHealOpen}
+        onClose={() => setForceHealOpen(false)}
+        onConfirm={() => {
+          queue('Force bridge heal', 'FORCE_BRIDGE_HEAL');
+          setForceHealOpen(false);
+        }}
+        title="Force bridge heal reboot?"
+        description="Bypasses the heal cooldown marker and reboots the player to recover a dead JS↔autorun bridge."
+        confirmLabel="Force heal"
+        tone="danger"
+      />
+
+      <ConfirmModal
         open={otaOpen}
         onClose={() => setOtaOpen(false)}
         onConfirm={() => {
@@ -159,7 +201,6 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
         title="Install OTA update?"
         description="Downloads the published player package only (media sync is not mixed). Starts after the next heartbeat."
         confirmLabel="Install OTA"
-        tone="default"
       />
 
       <ConfirmModal
@@ -169,8 +210,8 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
           queue('Clear SD cache', 'CLEAR_SD_CACHE');
           setClearOpen(false);
         }}
-        title="Clear SD cache?"
-        description="Wipes media cache + media pool, then media-only sync. OTA pool is not deleted. Runs after next heartbeat."
+        title="Clear SD media cache?"
+        description="Wipes cached media on the player SD, then runs a media-only sync."
         confirmLabel="Clear cache"
         tone="danger"
       />
