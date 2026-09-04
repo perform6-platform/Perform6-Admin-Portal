@@ -94,7 +94,7 @@ export function DeviceStoragePanel({
     try {
       const cmd = await queue({
         deviceId,
-        payload: { action: 'SD_LIST', path: 'SD:/' },
+        payload: { action: 'SD_LIST', path: '/storage/sd' },
       });
       setAwaitingCommandId(cmd.id);
       void queryClient.invalidateQueries({ queryKey: queryKeys.devices.sdFs(deviceId) });
@@ -174,8 +174,8 @@ export function DeviceStoragePanel({
           </>
         ) : (
           <p className="text-caption text-content-muted">
-            Waiting for player heartbeat to report free/total space (needs updated runtime +
-            autorun). Folders below still work via remote SD list.
+            Waiting for player storage heartbeat (runtime 1.0.83+ reports via
+            /storage/sd). Folders below still work via remote SD list.
           </p>
         )}
       </div>
