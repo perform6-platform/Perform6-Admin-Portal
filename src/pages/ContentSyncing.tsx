@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { RefreshCw } from 'lucide-react';
 import {
   Badge,
+  Button,
   Dropdown,
   PageTitle,
   Table,
   type TableColumn,
 } from '../components/ui';
+import { useRetryDeviceMedia } from '../hooks/useDevices';
 import { useSyncDeviceDetail, useSyncFleet } from '../hooks/useSyncFleet';
 import type { RequiredMediaRow, SyncFleetDeviceRow, SyncFleetStatus } from '../types/sync';
 
@@ -32,12 +35,24 @@ function formatBytes(value: string | null | undefined): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function downloadPercent(
+  bytesDownloaded: string | null | undefined,
+  fileSize: string | null | undefined,
+): number | null {
+  const done = Number(bytesDownloaded);
+  const total = Number(fileSize);
+  if (!Number.isFinite(done) || !Number.isFinite(total) || total <= 0) return null;
+  return Math.min(100, Math.max(0, Math.round((done / total) * 100)));
+}
+
 function deploymentLabel(device: SyncFleetDeviceRow): string {
   const dep = device.deployment;
   if (!dep) return '—';
-  return [dep.deploymentType, dep.fieldCategory, dep.exerciseVariant]
-    .filter(Boolean)
-    .join(' · ') || '—';
+  return (
+    [dep.deploymentType, dep.fieldCategory, dep.exerciseVariant]
+      .filter(Boolean)
+      .join(' · ') || '—'
+  );
 }
 
 function windowLabel(device: SyncFleetDeviceRow): string {
@@ -64,7 +79,9 @@ function prefetchLabel(device: SyncFleetDeviceRow): string {
   return `Current ${ps.currentWeek.cached}/${ps.currentWeek.expected}`;
 }
 
-function statusBadgeVariant(status: SyncFleetStatus): 'success' | 'danger' | 'warning' | 'neutral' | 'brand' {
+function statusBadgeVariant(
+  status: SyncFleetStatus,
+): 'success' | 'danger' | 'warning' | 'neutral' | 'brand' {
   switch (status) {
     case 'COMPLETE':
       return 'success';
@@ -91,8 +108,28 @@ function mediaStatusVariant(status: RequiredMediaRow['downloadStatus']) {
   }
 }
 
+function ProgressBar({ percent, label }: { percent: number; label?: string }) {
+  return (
+    <div className="min-w-[7rem]">
+      <div className="h-2 overflow-hidden rounded-full bg-surface-muted">
+        <div
+          className="h-full rounded-full bg-brand-500 transition-[width]"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      {label ? (
+        <p className="mt-1 text-caption text-content-secondary">{label}</p>
+      ) : (
+        <p className="mt-1 text-caption text-content-secondary">{percent}%</p>
+      )}
+    </div>
+  );
+}
+
 function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
-  const { data, isLoading, isError } = useSyncDeviceDetail(deviceId);
+  const { data, isLoading, isError, refetch } = useSyncDeviceDetail(deviceId);
+  const retryMedia = useRetryDeviceMedia();
+  const [retryNote, setRetryNote] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -113,6 +150,28 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
   const device = data.device;
   const requiredMedia = data.requiredMedia ?? [];
   const failedDownloads = data.failedDownloads ?? [];
+  const needsRetry = requiredMedia.some(
+    (row) => row.downloadStatus === 'FAILED' || row.downloadStatus === 'MISSING',
+  );
+
+  const queueMediaRetry = () => {
+    retryMedia.mutate(deviceId, {
+      onSuccess: () => {
+        setRetryNote(
+          'Media retry queued — player will re-download on next heartbeat (~60s).',
+        );
+        void refetch();
+      },
+      onError: () => {
+        setRetryNote('Could not queue media retry.');
+      },
+    });
+  };
+
+  const activePct = downloadPercent(
+    device.activeDownload?.bytesDownloaded,
+    device.activeDownload?.totalBytes,
+  );
 
   const mediaColumns: TableColumn<RequiredMediaRow>[] = [
     {
@@ -135,18 +194,59 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
       key: 'downloadStatus',
       header: 'Status',
       render: (row) => (
-        <Badge variant={mediaStatusVariant(row.downloadStatus)}>{row.downloadStatus ?? 'MISSING'}</Badge>
+        <Badge variant={mediaStatusVariant(row.downloadStatus)}>
+          {row.downloadStatus ?? 'MISSING'}
+        </Badge>
       ),
     },
     {
-      key: 'bytesDownloaded',
-      header: 'Downloaded',
-      render: (row) => formatBytes(row.bytesDownloaded),
+      key: 'progress',
+      header: 'Progress',
+      render: (row) => {
+        if (row.downloadStatus === 'CACHED') {
+          return <ProgressBar percent={100} label="100%" />;
+        }
+        const pct = downloadPercent(row.bytesDownloaded, row.fileSize);
+        if (pct == null) {
+          return (
+            <span className="text-caption text-content-muted">
+              {formatBytes(row.bytesDownloaded)}
+            </span>
+          );
+        }
+        return (
+          <ProgressBar
+            percent={pct}
+            label={`${pct}% · ${formatBytes(row.bytesDownloaded)} / ${formatBytes(row.fileSize)}`}
+          />
+        );
+      },
     },
     {
       key: 'errorMessage',
       header: 'Error',
       render: (row) => row.errorMessage ?? '—',
+    },
+    {
+      key: 'retry',
+      header: '',
+      render: (row) => {
+        if (row.downloadStatus !== 'FAILED' && row.downloadStatus !== 'MISSING') {
+          return null;
+        }
+        return (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={retryMedia.isPending || !device.isOnline}
+            onClick={queueMediaRetry}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry
+          </Button>
+        );
+      },
     },
   ];
 
@@ -159,15 +259,35 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
           </h2>
           <p className="text-sm text-content-secondary">{deploymentLabel(device)}</p>
         </div>
-        <Badge variant={statusBadgeVariant(device.status)}>{device.status ?? 'IDLE'}</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={statusBadgeVariant(device.status)}>{device.status ?? 'IDLE'}</Badge>
+          {needsRetry ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={retryMedia.isPending || !device.isOnline}
+              onClick={queueMediaRetry}
+            >
+              <RefreshCw className="h-4 w-4" />
+              {retryMedia.isPending ? 'Queuing…' : 'Retry media download'}
+            </Button>
+          ) : null}
+        </div>
       </div>
+
+      {retryNote ? <p className="text-sm text-content-secondary">{retryNote}</p> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-lg bg-surface-muted p-4">
           <p className="text-caption text-content-secondary">Progress</p>
           <p className="text-lg font-semibold">
-            {device.cachedCount ?? 0}/{device.expectedCount ?? 0} ({device.progressPercent ?? 0}%)
+            {device.cachedCount ?? 0}/{device.expectedCount ?? 0} ({device.progressPercent ?? 0}
+            %)
           </p>
+          <div className="mt-2">
+            <ProgressBar percent={device.progressPercent ?? 0} />
+          </div>
         </div>
         <div className="rounded-lg bg-surface-muted p-4">
           <p className="text-caption text-content-secondary">Rotation</p>
@@ -197,21 +317,29 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
 
       {device.activeDownload?.mediaVersionId && (
         <div className="rounded-lg border border-brand-200 bg-brand-50 p-4 text-sm dark:border-brand-600/30 dark:bg-brand-600/10">
-          Downloading{' '}
-          <span className="font-mono text-xs">
-            {device.activeDownload.mediaVersionId.slice(0, 8)}…
-          </span>
-          {' · '}
-          {formatBytes(device.activeDownload.bytesDownloaded)}
-          {device.activeDownload.totalBytes
-            ? ` / ${formatBytes(device.activeDownload.totalBytes)}`
-            : ''}
+          <p>
+            Downloading{' '}
+            <span className="font-mono text-xs">
+              {device.activeDownload.mediaVersionId.slice(0, 8)}…
+            </span>
+            {' · '}
+            {formatBytes(device.activeDownload.bytesDownloaded)}
+            {device.activeDownload.totalBytes
+              ? ` / ${formatBytes(device.activeDownload.totalBytes)}`
+              : ''}
+            {activePct != null ? ` · ${activePct}%` : ''}
+          </p>
+          {activePct != null ? (
+            <div className="mt-3">
+              <ProgressBar percent={activePct} />
+            </div>
+          ) : null}
         </div>
       )}
 
       <div>
         <h3 className="mb-2 text-sm font-semibold text-content-primary">
-          Required media (SD perform6-cache + weekly prefetch)
+          Required media (SD cache / media pool + weekly prefetch)
         </h3>
         <Table
           columns={mediaColumns}
@@ -225,15 +353,14 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
         <div>
           <h3 className="mb-2 text-sm font-semibold text-content-primary">Recent failures</h3>
           <p className="mb-2 text-caption text-content-secondary">
-            Final failures after automatic retries. Run{' '}
-            <span className="font-medium">Sync Now</span> to try again. Status refreshes while items
-            are Missing or Failed.
+            Use <span className="font-medium">Retry media download</span> to queue a media-only
+            sync (no OTA). Status refreshes while items are Missing or Failed.
           </p>
           <ul className="space-y-2 text-sm text-content-secondary">
             {failedDownloads.slice(0, 5).map((item) => {
               const title =
-                requiredMedia.find((row) => row.mediaVersionId === item.mediaVersionId)?.title ??
-                null;
+                requiredMedia.find((row) => row.mediaVersionId === item.mediaVersionId)
+                  ?.title ?? null;
               return (
                 <li
                   key={`${item.syncJobId}-${item.mediaVersionId}-${item.createdAt}`}
@@ -255,10 +382,10 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
         </div>
       )}
 
-      {requiredMedia.some((row) => row.downloadStatus === 'FAILED' || row.downloadStatus === 'MISSING') && (
+      {needsRetry && (
         <p className="text-caption text-content-muted">
-          Missing/Failed rows clear after the device finishes download and reports success (auto-refresh
-          every few seconds).
+          Missing/Failed rows clear after the device finishes download and reports success
+          (auto-refresh every few seconds).
         </p>
       )}
     </div>
@@ -322,7 +449,12 @@ export default function ContentSyncing() {
     {
       key: 'progressPercent',
       header: 'Progress',
-      render: (row) => `${row.progressPercent}%`,
+      render: (row) => (
+        <ProgressBar
+          percent={row.progressPercent ?? 0}
+          label={`${row.progressPercent ?? 0}%`}
+        />
+      ),
     },
     {
       key: 'lastSyncAt',
@@ -334,7 +466,9 @@ export default function ContentSyncing() {
       header: 'Status',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <Badge variant={row.isOnline ? 'success' : 'neutral'}>{row.isOnline ? 'Online' : 'Offline'}</Badge>
+          <Badge variant={row.isOnline ? 'success' : 'neutral'}>
+            {row.isOnline ? 'Online' : 'Offline'}
+          </Badge>
           <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
         </div>
       ),
@@ -374,7 +508,13 @@ export default function ContentSyncing() {
       <Table
         columns={columns}
         data={filteredDevices}
-        emptyMessage={isLoading ? 'Loading fleet sync status…' : isError ? 'Failed to load sync fleet.' : 'No devices found.'}
+        emptyMessage={
+          isLoading
+            ? 'Loading fleet sync status…'
+            : isError
+              ? 'Failed to load sync fleet.'
+              : 'No devices found.'
+        }
         onRowClick={(row) => setSelectedDeviceId(row.deviceId)}
         selectedRowKey={selectedDevice?.deviceId}
         rowKey={(row) => row.deviceId}

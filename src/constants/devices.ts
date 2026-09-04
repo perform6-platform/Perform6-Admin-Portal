@@ -23,6 +23,9 @@ export interface Device {
   ipAddress?: string | null;
   uptime: string;
   storageUsed: number;
+  /** Raw bytes from last heartbeat (for Admin storage panel). */
+  storageUsedBytes?: string | null;
+  storageCapacityBytes?: string | null;
   /** Registered device UUID — null while pending/claimed only. */
   deviceId?: string | null;
   pairingId?: string | null;

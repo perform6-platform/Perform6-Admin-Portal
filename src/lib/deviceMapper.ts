@@ -262,6 +262,8 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
       device.health?.storageUsedBytes,
       device.health?.storageCapacityBytes,
     ),
+    storageUsedBytes: device.health?.storageUsedBytes ?? device.storageUsed ?? null,
+    storageCapacityBytes: device.health?.storageCapacityBytes ?? null,
     deviceId: device.id,
     deploymentId: device.deploymentId,
     deploymentName: deploymentName ?? null,

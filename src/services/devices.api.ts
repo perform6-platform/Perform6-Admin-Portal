@@ -144,6 +144,16 @@ export async function retryDeviceOta(
   return data.data;
 }
 
+/** POST /devices/:id/media-retry — queue media-only SYNC_NOW (no OTA). */
+export async function retryDeviceMedia(
+  deviceId: string,
+): Promise<{ ok: boolean }> {
+  const { data } = await apiClient.post<ApiResponse<{ ok: boolean }>>(
+    `/devices/${deviceId}/media-retry`,
+  );
+  return data.data;
+}
+
 /** GET /devices/:id/sd-fs — pending + latest mini-DWS SD result. */
 export async function getDeviceSdFs(deviceId: string): Promise<DeviceSdFsResponse> {
   const { data } = await apiClient.get<ApiResponse<DeviceSdFsResponse>>(

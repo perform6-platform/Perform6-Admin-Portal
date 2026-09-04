@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { FileText, HardDriveDownload, Power, RefreshCw } from 'lucide-react';
-import { useQueueDeviceRemoteCommand } from '../../hooks/useDevices';
+import { Download, FileText, HardDriveDownload, Power, RefreshCw } from 'lucide-react';
+import { useQueueDeviceRemoteCommand, useRetryDeviceOta } from '../../hooks/useDevices';
 import { Button, ConfirmModal } from '../ui';
 
 export interface DeviceRemoteOpsProps {
@@ -10,22 +10,58 @@ export interface DeviceRemoteOpsProps {
 
 export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
   const { mutate, isPending } = useQueueDeviceRemoteCommand();
+  const retryOta = useRetryDeviceOta();
   const [lastQueued, setLastQueued] = useState<string | null>(null);
   const [rebootOpen, setRebootOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
+  const [otaOpen, setOtaOpen] = useState(false);
 
   const queue = (
     label: string,
     action: 'REBOOT' | 'SYNC_NOW' | 'CLEAR_SD_CACHE' | 'UPLOAD_LOGS',
+    extra?: { skipOta?: boolean; forceOta?: boolean },
   ) => {
     if (!deviceId || disabled) return;
+    setLastQueued(`Queuing ${label}…`);
     mutate(
-      { deviceId, payload: { action } },
       {
-        onSuccess: () => setLastQueued(label),
+        deviceId,
+        payload: {
+          action,
+          ...(action === 'SYNC_NOW'
+            ? {
+                skipOta: extra?.forceOta === true ? false : true,
+                forceOta: extra?.forceOta === true,
+              }
+            : {}),
+        },
+      },
+      {
+        onSuccess: () =>
+          setLastQueued(
+            `${label} queued — runs on next player heartbeat (~60s). Keep the device online.`,
+          ),
+        onError: () => setLastQueued(`Failed to queue ${label}.`),
       },
     );
   };
+
+  const queueInstallOta = () => {
+    if (!deviceId || disabled) return;
+    setLastQueued('Queuing Install OTA…');
+    retryOta.mutate(
+      { deviceId, reboot: false },
+      {
+        onSuccess: () =>
+          setLastQueued(
+            'Install OTA queued — package download starts on next heartbeat (~60s).',
+          ),
+        onError: () => setLastQueued('Failed to queue Install OTA.'),
+      },
+    );
+  };
+
+  const busy = isPending || retryOta.isPending;
 
   return (
     <div className="space-y-3">
@@ -34,7 +70,7 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
           type="button"
           variant="outline"
           size="sm"
-          disabled={!deviceId || disabled || isPending}
+          disabled={!deviceId || disabled || busy}
           onClick={() => setRebootOpen(true)}
         >
           <Power className="h-4 w-4" />
@@ -44,17 +80,27 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
           type="button"
           variant="outline"
           size="sm"
-          disabled={!deviceId || disabled || isPending}
-          onClick={() => queue('Sync now', 'SYNC_NOW')}
+          disabled={!deviceId || disabled || busy}
+          onClick={() => queue('Sync now (media only)', 'SYNC_NOW', { skipOta: true })}
         >
           <RefreshCw className="h-4 w-4" />
           Sync now
         </Button>
         <Button
           type="button"
+          variant="primary"
+          size="sm"
+          disabled={!deviceId || disabled || busy}
+          onClick={() => setOtaOpen(true)}
+        >
+          <Download className="h-4 w-4" />
+          Install OTA
+        </Button>
+        <Button
+          type="button"
           variant="outline"
           size="sm"
-          disabled={!deviceId || disabled || isPending}
+          disabled={!deviceId || disabled || busy}
           onClick={() => queue('Upload logs', 'UPLOAD_LOGS')}
         >
           <FileText className="h-4 w-4" />
@@ -64,7 +110,7 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
           type="button"
           variant="outline"
           size="sm"
-          disabled={!deviceId || disabled || isPending}
+          disabled={!deviceId || disabled || busy}
           onClick={() => setClearOpen(true)}
         >
           <HardDriveDownload className="h-4 w-4" />
@@ -72,14 +118,23 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
         </Button>
       </div>
 
-      <p className="text-caption text-content-muted">
-        Delivered on the device&apos;s next heartbeat (~60s). Keep the player online.
-        After an OTA/download fail, use <span className="font-medium">Sync now</span> to
-        clear the fail lock and retry — or Retry on the OTA Releases page.
-        <span className="font-medium"> Upload logs</span> pulls JS + autorun
-        (SD:/perform6-led.log) into the cloud log viewer.
-        {lastQueued ? ` Last queued: ${lastQueued}.` : ''}
-      </p>
+      {disabled ? (
+        <p className="text-caption text-status-warning">
+          Device offline — remote commands are disabled until the player is online.
+        </p>
+      ) : (
+        <p className="text-caption text-content-muted">
+          Commands are not instant: they run on the next heartbeat (~60s).{' '}
+          <span className="font-medium">Sync now</span> = media only.{' '}
+          <span className="font-medium">Install OTA</span> = software update only.
+          {lastQueued ? (
+            <>
+              <br />
+              <span className="font-medium text-content-primary">{lastQueued}</span>
+            </>
+          ) : null}
+        </p>
+      )}
 
       <ConfirmModal
         open={rebootOpen}
@@ -89,9 +144,22 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
           setRebootOpen(false);
         }}
         title="Reboot player?"
-        description="The BrightSign will restart within about one minute. Use this to recover from a stuck sync or apply a pending OTA update."
+        description="Queued now; the BrightSign restarts after the next heartbeat (~60s)."
         confirmLabel="Reboot"
         tone="danger"
+      />
+
+      <ConfirmModal
+        open={otaOpen}
+        onClose={() => setOtaOpen(false)}
+        onConfirm={() => {
+          queueInstallOta();
+          setOtaOpen(false);
+        }}
+        title="Install OTA update?"
+        description="Downloads the published player package only (media sync is not mixed). Starts after the next heartbeat."
+        confirmLabel="Install OTA"
+        tone="default"
       />
 
       <ConfirmModal
@@ -102,7 +170,7 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
           setClearOpen(false);
         }}
         title="Clear SD cache?"
-        description="Deletes all files in SD:/perform6-cache on the device, then starts a fresh sync. Videos will re-download."
+        description="Wipes media cache + media pool, then media-only sync. OTA pool is not deleted. Runs after next heartbeat."
         confirmLabel="Clear cache"
         tone="danger"
       />

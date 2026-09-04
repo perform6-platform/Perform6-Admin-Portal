@@ -18,7 +18,7 @@ import { Badge, CARD_SURFACE_CLASS, SectionLabel } from '../ui';
 import { LiveSyncPreviewModal } from './LiveSyncPreviewModal';
 import { TouchRemoteControls } from './TouchRemoteControls';
 import { DeviceRemoteOps } from './DeviceRemoteOps';
-import { DeviceSdBrowser } from './DeviceSdBrowser';
+import { DeviceStoragePanel } from './DeviceStoragePanel';
 
 export interface DeviceMonitoringPanelProps {
   device: Device | null;
@@ -218,10 +218,13 @@ export function DeviceMonitoringPanel({
           </div>
 
           <div className="mt-4 border-t border-surface-border pt-4">
-            <SectionLabel className="mb-3 block">SD card (mini-DWS)</SectionLabel>
-            <DeviceSdBrowser
+            <SectionLabel className="mb-3 block">Storage</SectionLabel>
+            <DeviceStoragePanel
               deviceId={registeredDeviceId}
               disabled={device.status !== 'online'}
+              storageUsedBytes={device.storageUsedBytes}
+              storageCapacityBytes={device.storageCapacityBytes}
+              storageUsedPercent={device.storageUsed}
             />
           </div>
         </section>
@@ -233,10 +236,13 @@ export function DeviceMonitoringPanel({
             disabled={device.status !== 'online'}
           />
           <div className="mt-6 border-t border-surface-border pt-4">
-            <SectionLabel className="mb-3 block">SD card (mini-DWS)</SectionLabel>
-            <DeviceSdBrowser
+            <SectionLabel className="mb-3 block">Storage</SectionLabel>
+            <DeviceStoragePanel
               deviceId={registeredDeviceId}
               disabled={device.status !== 'online'}
+              storageUsedBytes={device.storageUsedBytes}
+              storageCapacityBytes={device.storageCapacityBytes}
+              storageUsedPercent={device.storageUsed}
             />
           </div>
         </section>

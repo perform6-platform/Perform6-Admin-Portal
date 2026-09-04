@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CloudUpload, Radio, RefreshCw, Rocket } from 'lucide-react';
+import { CloudUpload, Radio, Rocket } from 'lucide-react';
 import { useDeployRelease, useOtaFleet, usePublishRelease, useReleases } from '../hooks/useReleases';
 import { useRetryDeviceOta } from '../hooks/useDevices';
 import { useStartupFiles } from '../hooks/useStartupFiles';
@@ -129,7 +129,7 @@ function ReleaseRow({
             {publishing ? 'Publishing…' : 'Publish'}
           </Button>
         ) : (
-          <span className="text-body-sm text-content-muted">Devices receive on sync</span>
+          <span className="text-body-sm text-content-muted">Live — install from fleet below</span>
         )}
       </td>
     </tr>
@@ -351,18 +351,21 @@ export default function OtaReleases() {
                           <td className="px-4 py-3 text-right">
                             {(row.otaStatus === 'FAILED' ||
                               row.otaStatus === 'UPDATE_PENDING' ||
+                              row.otaStatus === 'DOWNLOADING' ||
                               row.updateAvailable) && (
                               <Button
                                 type="button"
                                 size="sm"
-                                variant="outline"
-                                disabled={
-                                  !row.isOnline ||
-                                  retryOtaMutation.isPending
+                                variant={
+                                  row.otaStatus === 'FAILED' ||
+                                  row.otaStatus === 'UPDATE_PENDING'
+                                    ? 'primary'
+                                    : 'outline'
                                 }
+                                disabled={!row.isOnline || retryOtaMutation.isPending}
                                 title={
                                   row.isOnline
-                                    ? 'Clear OTA fail state and queue Sync now'
+                                    ? 'Install published OTA on this player (media not mixed)'
                                     : 'Device must be online'
                                 }
                                 onClick={() => {
@@ -371,17 +374,17 @@ export default function OtaReleases() {
                                     {
                                       onSuccess: () =>
                                         showToast({
-                                          title: 'OTA retry queued',
+                                          title: 'Install OTA queued',
                                           description:
-                                            'Sync will run on next heartbeat (~60s).',
+                                            'Package install starts on next heartbeat (~60s). Media sync is not mixed in.',
                                           variant: 'success',
                                         }),
                                       onError: (err) =>
                                         showToast({
-                                          title: 'Retry failed',
+                                          title: 'Install OTA failed',
                                           description: getApiErrorMessage(
                                             err,
-                                            'Could not queue OTA retry',
+                                            'Could not queue OTA install',
                                           ),
                                           variant: 'error',
                                         }),
@@ -389,8 +392,8 @@ export default function OtaReleases() {
                                   );
                                 }}
                               >
-                                <RefreshCw className="h-4 w-4" />
-                                Retry
+                                <Rocket className="h-4 w-4" />
+                                {row.otaStatus === 'FAILED' ? 'Retry install' : 'Install OTA'}
                               </Button>
                             )}
                           </td>
@@ -419,7 +422,10 @@ export default function OtaReleases() {
               (in Perform6-Device-Runtime)
             </li>
             <li>Upload the ZIP below — same version as in the filename (e.g. 1.0.53)</li>
-            <li>Devices pick it up automatically on next sync</li>
+            <li>
+              On each device below, click <strong>Install OTA</strong> when you are ready (not
+              automatic — keeps media downloads separate)
+            </li>
           </ol>
 
           <form className="grid gap-4 md:grid-cols-2" onSubmit={(event) => void handleDeploy(event)}>

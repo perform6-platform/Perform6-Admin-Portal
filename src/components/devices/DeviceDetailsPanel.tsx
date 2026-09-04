@@ -19,9 +19,17 @@ import { getApiErrorMessage } from '../../services/axios';
 import { AttachDeviceModal } from './AttachDeviceModal';
 import { BrightSignDeviceImage } from './BrightSignDeviceImage';
 import { DeviceRemoteOps } from '../device-monitoring/DeviceRemoteOps';
-import { DeviceSdBrowser } from '../device-monitoring/DeviceSdBrowser';
+import { DeviceStoragePanel } from '../device-monitoring/DeviceStoragePanel';
 import { Badge, Button, Card, CardTitle, ConfirmModal } from '../ui';
 
+function formatStorageShort(raw: string | null | undefined): string {
+  if (raw == null || raw === '') return '—';
+  const bytes = Number(raw);
+  if (!Number.isFinite(bytes) || bytes < 0) return '—';
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
 interface DeviceDetailsPanelProps {
   device: Device | null;
   className?: string;
@@ -260,7 +268,11 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         <div className="py-2">
           <div className="flex items-center justify-between gap-4">
             <span className="text-body-sm text-content-secondary">Storage Used</span>
-            <span className="text-body-sm text-content-primary">{device.storageUsed}%</span>
+            <span className="text-body-sm text-content-primary">
+              {device.storageCapacityBytes
+                ? `${device.storageUsed}% · ${formatStorageShort(device.storageUsedBytes)} / ${formatStorageShort(device.storageCapacityBytes)}`
+                : `${device.storageUsed}%`}
+            </span>
           </div>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
             <div
@@ -284,10 +296,13 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
 
       {isRegistered && registeredDeviceId && !isDisabled ? (
         <div className="mt-4 rounded-lg border border-surface-border bg-surface-muted/30 p-4">
-          <p className="mb-3 text-body-sm font-medium text-content-primary">SD card (mini-DWS)</p>
-          <DeviceSdBrowser
+          <p className="mb-3 text-body-sm font-medium text-content-primary">Storage</p>
+          <DeviceStoragePanel
             deviceId={registeredDeviceId}
             disabled={device.status !== 'online'}
+            storageUsedBytes={device.storageUsedBytes}
+            storageCapacityBytes={device.storageCapacityBytes}
+            storageUsedPercent={device.storageUsed}
           />
         </div>
       ) : null}

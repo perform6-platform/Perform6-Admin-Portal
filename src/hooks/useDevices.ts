@@ -16,6 +16,7 @@ import {
   queueDeviceRemoteCommand,
   restoreDevice,
   retryDeviceOta,
+  retryDeviceMedia,
 } from '../services/devices.api';
 import type {
   ClaimPairingPayload,
@@ -160,6 +161,18 @@ export function useRetryDeviceOta() {
       retryDeviceOta(vars.deviceId, { reboot: vars.reboot }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.releases.otaFleet });
+      invalidateDeviceQueries(queryClient);
+    },
+  });
+}
+
+export function useRetryDeviceMedia() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (deviceId: string) => retryDeviceMedia(deviceId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.sync.fleet });
+      void queryClient.invalidateQueries({ queryKey: ['sync'] });
       invalidateDeviceQueries(queryClient);
     },
   });
