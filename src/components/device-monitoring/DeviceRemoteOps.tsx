@@ -39,7 +39,7 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
       {
         onSuccess: () =>
           setLastQueued(
-            `${label} queued — runs on next player heartbeat (~60s). Keep the device online.`,
+            `${label} queued — runs on next player heartbeat (~60s). Works even if the autorun bridge is down (Node path).`,
           ),
         onError: () => setLastQueued(`Failed to queue ${label}.`),
       },
