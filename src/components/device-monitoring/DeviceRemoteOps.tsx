@@ -62,9 +62,12 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
       {
         onSuccess: () =>
           setLastQueued(
-            'Install OTA queued — package download starts on next heartbeat (~60s).',
+            'Install OTA queued — full package download on next heartbeat (~60s), then reboot. Publish a newer release first if already up to date.',
           ),
-        onError: () => setLastQueued('Failed to queue Install OTA.'),
+        onError: (err) =>
+          setLastQueued(
+            `Failed to queue Install OTA${err instanceof Error && err.message ? `: ${err.message}` : '.'}`,
+          ),
       },
     );
   };
@@ -153,9 +156,8 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
       ) : (
         <p className="text-caption text-content-muted">
           Commands run on the next heartbeat (~60s).{' '}
-          <span className="font-medium">Bridge recycle</span> = soft HtmlWidget reload.{' '}
-          <span className="font-medium">Force bridge heal</span> = reboot even if heal
-          cooldown active.
+          <span className="font-medium">Install OTA</span> needs a published release
+          newer than the device. Bridge recycle/heal map to reboot on 1.0.93+.
           {lastQueued ? (
             <>
               <br />
@@ -199,7 +201,7 @@ export function DeviceRemoteOps({ deviceId, disabled }: DeviceRemoteOpsProps) {
           setOtaOpen(false);
         }}
         title="Install OTA update?"
-        description="Downloads the published player package only (media sync is not mixed). Starts after the next heartbeat."
+        description="Downloads the full published player package (not media), then reboots once. Requires an active OTA release newer than the device. Starts after the next heartbeat (~60s)."
         confirmLabel="Install OTA"
       />
 
