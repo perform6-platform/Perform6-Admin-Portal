@@ -18,6 +18,7 @@ import { Badge, CARD_SURFACE_CLASS, SectionLabel } from '../ui';
 import { LiveSyncPreviewModal } from './LiveSyncPreviewModal';
 import { TouchRemoteControls } from './TouchRemoteControls';
 import { DeviceRemoteOps } from './DeviceRemoteOps';
+import { DeviceSdBrowser } from './DeviceSdBrowser';
 import { DeviceStoragePanel } from './DeviceStoragePanel';
 
 export interface DeviceMonitoringPanelProps {
@@ -226,6 +227,13 @@ export function DeviceMonitoringPanel({
               storageCapacityBytes={device.storageCapacityBytes}
               storageUsedPercent={device.storageUsed}
             />
+            <div className="mt-4 border-t border-surface-border pt-4">
+              <SectionLabel className="mb-3 block">Remote SD diagnostics</SectionLabel>
+              <DeviceSdBrowser
+                deviceId={registeredDeviceId}
+                disabled={device.status !== 'online'}
+              />
+            </div>
           </div>
         </section>
       ) : (
@@ -244,6 +252,13 @@ export function DeviceMonitoringPanel({
               storageCapacityBytes={device.storageCapacityBytes}
               storageUsedPercent={device.storageUsed}
             />
+            <div className="mt-4 border-t border-surface-border pt-4">
+              <SectionLabel className="mb-3 block">Remote SD diagnostics</SectionLabel>
+              <DeviceSdBrowser
+                deviceId={registeredDeviceId}
+                disabled={device.status !== 'online'}
+              />
+            </div>
           </div>
         </section>
       )}
