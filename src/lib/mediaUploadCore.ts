@@ -53,7 +53,15 @@ export function putBlobWithRetry(
       }
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          const etag = xhr.getResponseHeader('ETag') ?? xhr.getResponseHeader('etag');
+          let etag = xhr.getResponseHeader('ETag') ?? xhr.getResponseHeader('etag');
+          if (!etag && xhr.responseText) {
+            try {
+              const response = JSON.parse(xhr.responseText) as { etag?: string };
+              etag = response.etag ?? null;
+            } catch {
+              // The API normally returns JSON; retain the clear missing-ETag error below.
+            }
+          }
           if (!etag) {
             reject(new Error('R2 part upload missing ETag header'));
             return;
