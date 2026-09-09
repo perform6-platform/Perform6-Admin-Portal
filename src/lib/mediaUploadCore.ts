@@ -1,3 +1,5 @@
+import { getAccessToken } from './authStorage';
+
 /** R2 multipart part size — must match backend MEDIA_UPLOAD_PART_BYTES (16 MB). */
 export const UPLOAD_PART_BYTES = 16 * 1024 * 1024;
 
@@ -45,6 +47,10 @@ export function putBlobWithRetry(
       attempt += 1;
       const xhr = new XMLHttpRequest();
       xhr.open('PUT', uploadUrl, true);
+      if (uploadUrl.includes('/media/upload/multipart/part?')) {
+        const token = getAccessToken();
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           const etag = xhr.getResponseHeader('ETag') ?? xhr.getResponseHeader('etag');
