@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CloudUpload, Radio, Rocket } from 'lucide-react';
-import { useDeployRelease, useOtaFleet, usePublishRelease, useReleases } from '../hooks/useReleases';
+import { useDeployRelease, useOtaFleet, usePublishRelease, useReleases, useUnpublishRelease } from '../hooks/useReleases';
 import { useRetryDeviceOta } from '../hooks/useDevices';
 import { useStartupFiles } from '../hooks/useStartupFiles';
 import { getApiErrorMessage } from '../services/axios';
@@ -96,10 +96,12 @@ function ReleaseRow({
   release,
   publishing,
   onPublish,
+  onUnpublish,
 }: {
   release: AppRelease;
   publishing: boolean;
   onPublish: (id: string) => void;
+  onUnpublish: (id: string) => void;
 }) {
   return (
     <tr className="border-t border-slate-100">
@@ -129,7 +131,15 @@ function ReleaseRow({
             {publishing ? 'Publishing…' : 'Publish'}
           </Button>
         ) : (
-          <span className="text-body-sm text-content-muted">Live — install from fleet below</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={publishing}
+            onClick={() => onUnpublish(release.id)}
+          >
+            Return to draft
+          </Button>
         )}
       </td>
     </tr>
@@ -143,6 +153,7 @@ export default function OtaReleases() {
   const { data: startupFiles, refetch: refetchStartupFiles } = useStartupFiles();
   const deployMutation = useDeployRelease();
   const publishMutation = usePublishRelease();
+  const unpublishMutation = useUnpublishRelease();
   const retryOtaMutation = useRetryDeviceOta();
 
   const [version, setVersion] = useState('');
@@ -218,6 +229,21 @@ export default function OtaReleases() {
     } catch (err) {
       showToast({
         title: getApiErrorMessage(err, 'Failed to publish release'),
+        variant: 'error',
+      });
+    } finally {
+      setPublishingId(null);
+    }
+  };
+
+  const handleUnpublish = async (releaseId: string) => {
+    setPublishingId(releaseId);
+    try {
+      const unpublished = await unpublishMutation.mutateAsync(releaseId);
+      showToast({ title: `Version ${unpublished.version} returned to draft`, variant: 'success' });
+    } catch (err) {
+      showToast({
+        title: getApiErrorMessage(err, 'Could not return release to draft'),
         variant: 'error',
       });
     } finally {
@@ -520,8 +546,12 @@ export default function OtaReleases() {
                     <ReleaseRow
                       key={release.id}
                       release={release}
-                      publishing={publishingId === release.id && publishMutation.isPending}
+                      publishing={
+                        publishingId === release.id &&
+                        (publishMutation.isPending || unpublishMutation.isPending)
+                      }
                       onPublish={(id) => void handlePublish(id)}
+                      onUnpublish={(id) => void handleUnpublish(id)}
                     />
                   ))}
                 </tbody>
