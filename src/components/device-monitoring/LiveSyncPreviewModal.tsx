@@ -153,8 +153,9 @@ export function LiveSyncPreviewModal({
                 <img src={thumbnail} alt="" className="h-24 w-40 rounded object-cover opacity-80" />
               ) : null}
               <p className="text-body-sm text-content-muted">
-                No live playhead yet. Keep the device online and playing — telemetry updates about
-                every 8 seconds.
+                {data?.isLive && data.screens.length > 0
+                  ? 'Not currently playing. Open the card for the active program shown above.'
+                  : 'No live playhead yet. Keep the device online and playing — telemetry updates about every 8 seconds.'}
               </p>
               <p className="text-caption text-content-secondary">{title}</p>
             </div>
