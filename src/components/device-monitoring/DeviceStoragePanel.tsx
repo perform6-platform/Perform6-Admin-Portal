@@ -94,7 +94,9 @@ export function DeviceStoragePanel({
     try {
       const cmd = await queue({
         deviceId,
-        payload: { action: 'SD_LIST', path: '/storage/sd' },
+        // The device command API accepts BrightSign SD paths. Passing the
+        // Node mount path was normalized to SD:/storage/sd and returned 404.
+        payload: { action: 'SD_LIST', path: 'SD:/' },
       });
       setAwaitingCommandId(cmd.id);
       void queryClient.invalidateQueries({ queryKey: queryKeys.devices.sdFs(deviceId) });
