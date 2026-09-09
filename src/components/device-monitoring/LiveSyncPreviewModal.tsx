@@ -170,6 +170,16 @@ export function LiveSyncPreviewModal({
                 }`
               : 'Open this preview while the BrightSign player is active to sync from the same moment.'}
           </p>
+          {screen?.source === 'NATIVE_HDMI' ? (
+            <div className="mt-2 space-y-0.5 text-caption text-content-secondary">
+              <p>
+                {screen.output ?? 'HDMI-2'} native state: {screen.stage ?? 'unknown'}
+              </p>
+              {screen.error ? <p className="text-status-error">{screen.error}</p> : null}
+              {screen.requestId ? <p className="truncate">Request: {screen.requestId}</p> : null}
+              {screen.path ? <p className="truncate">Local media: {screen.path}</p> : null}
+            </div>
+          ) : null}
         </div>
       </ModalBody>
     </Modal>

@@ -59,6 +59,13 @@ export interface LivePlaybackScreen {
   positionMs: number;
   durationMs: number | null;
   isPlaying: boolean;
+  output: string | null;
+  source: string | null;
+  requestId: string | null;
+  stage: string | null;
+  error: string | null;
+  path: string | null;
+  nativeUpdatedAt: string | null;
   fileUrl: string | null;
   thumbnailUrl: string | null;
 }
