@@ -498,18 +498,26 @@ export default function ContentLibrary() {
     finishingRef.current = false;
     start();
     try {
-      await cacheUploadFile(payload.file);
-      const durationSeconds = await readVideoDurationSeconds(payload.file);
-      const uploadTarget = resolveMediaUploadTarget(payload.categoryId);
       const pending = getPendingUploadSession();
       const shouldResume =
         pending && fileMatchesStoredSession(payload.file, pending);
 
       if (pending && !shouldResume) {
-        throw new Error(
-          `Selected file does not match "${pending.fileName}". Discard the interrupted upload on the card first, or choose the same file to resume.`,
-        );
+        // Choosing a different file is an explicit replacement. A failed upload
+        // must not globally block uploads to every other content category.
+        await clearCachedUploadFile(pending);
+        clearPendingUploadSession();
+        try {
+          await deleteMediaAsset(pending.assetId);
+        } catch {
+          // The stale asset may already have been removed server-side.
+        }
+        refreshPendingUploadSession();
       }
+
+      await cacheUploadFile(payload.file);
+      const durationSeconds = await readVideoDurationSeconds(payload.file);
+      const uploadTarget = resolveMediaUploadTarget(payload.categoryId);
 
       const result = shouldResume
         ? await resumeStoredUpload(payload.file, (percent) => {

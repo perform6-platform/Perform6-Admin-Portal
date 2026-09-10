@@ -91,6 +91,8 @@ export interface DeviceInventoryItem {
     categoryName: string | null;
     categorySlug?: string | null;
     playlistKey?: string | null;
+    title?: string | null;
+    thumbnail?: string | null;
   }>;
   activationStatus?: string | null;
   pairingStatus?: string | null;

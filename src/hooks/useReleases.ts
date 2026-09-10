@@ -6,6 +6,7 @@ import {
   getOtaFleet,
   getReleases,
   publishRelease,
+  unpublishRelease,
   updateRelease,
 } from '../services/releases.api';
 import type {
@@ -74,6 +75,17 @@ export function usePublishRelease() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (releaseId: string) => publishRelease(releaseId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.releases.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.releases.otaFleet });
+    },
+  });
+}
+
+export function useUnpublishRelease() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (releaseId: string) => unpublishRelease(releaseId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.releases.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.releases.otaFleet });

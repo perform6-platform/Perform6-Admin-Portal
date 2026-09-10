@@ -30,6 +30,13 @@ export function getAccessToken(): string | null {
   return getAuthSession()?.accessToken ?? null;
 }
 
+export function updateAuthTokens(accessToken: string, refreshToken: string): void {
+  const session = getAuthSession();
+  if (!session) return;
+  const storage = localStorage.getItem(SESSION_KEY) ? localStorage : sessionStorage;
+  storage.setItem(SESSION_KEY, JSON.stringify({ ...session, accessToken, refreshToken }));
+}
+
 export function isAuthenticated(): boolean {
   return Boolean(getAccessToken());
 }

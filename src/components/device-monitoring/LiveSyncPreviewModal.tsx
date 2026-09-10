@@ -153,8 +153,9 @@ export function LiveSyncPreviewModal({
                 <img src={thumbnail} alt="" className="h-24 w-40 rounded object-cover opacity-80" />
               ) : null}
               <p className="text-body-sm text-content-muted">
-                No live playhead yet. Keep the device online and playing — telemetry updates about
-                every 8 seconds.
+                {data?.isLive && data.screens.length > 0
+                  ? 'Not currently playing. Open the card for the active program shown above.'
+                  : 'No live playhead yet. Keep the device online and playing — telemetry updates about every 8 seconds.'}
               </p>
               <p className="text-caption text-content-secondary">{title}</p>
             </div>
@@ -170,6 +171,16 @@ export function LiveSyncPreviewModal({
                 }`
               : 'Open this preview while the BrightSign player is active to sync from the same moment.'}
           </p>
+          {screen?.source === 'NATIVE_HDMI' ? (
+            <div className="mt-2 space-y-0.5 text-caption text-content-secondary">
+              <p>
+                {screen.output ?? 'HDMI-2'} native state: {screen.stage ?? 'unknown'}
+              </p>
+              {screen.error ? <p className="text-status-error">{screen.error}</p> : null}
+              {screen.requestId ? <p className="truncate">Request: {screen.requestId}</p> : null}
+              {screen.path ? <p className="truncate">Local media: {screen.path}</p> : null}
+            </div>
+          ) : null}
         </div>
       </ModalBody>
     </Modal>

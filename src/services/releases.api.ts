@@ -72,3 +72,11 @@ export async function publishRelease(releaseId: string): Promise<AppRelease> {
   });
   return data.data;
 }
+
+/** POST /releases/unpublish */
+export async function unpublishRelease(releaseId: string): Promise<AppRelease> {
+  const { data } = await apiClient.post<ApiResponse<AppRelease>>('/releases/unpublish', {
+    releaseId,
+  });
+  return data.data;
+}

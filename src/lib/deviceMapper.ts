@@ -99,7 +99,7 @@ function resolveSerialAndFirmware(item: {
   const serialFromHw = serialCandidates[0] ?? null;
 
   const serialNumber =
-    (!isPlaceholderSerial(topSerial, model) && !isMacLike(topSerial) && topSerial !== '00:00:00:00:00:00'
+    (topSerial && !isPlaceholderSerial(topSerial, model) && !isMacLike(topSerial) && topSerial !== '00:00:00:00:00:00'
       ? topSerial
       : null) ||
     serialFromHw ||
@@ -183,7 +183,11 @@ export function mapInventoryItem(item: DeviceInventoryItem): Device {
     deploymentType: item.deploymentType ?? null,
     fieldCategory: item.fieldCategory ?? null,
     exerciseVariant: item.exerciseVariant ?? null,
-    screens: item.screens ?? [],
+    screens: (item.screens ?? []).map((screen) => ({
+      ...screen,
+      title: screen.title ?? null,
+      thumbnail: screen.thumbnail ?? null,
+    })),
     activationStatus: item.activationStatus ?? null,
     pairingStatus: item.pairingStatus ?? null,
     inventoryState: item.state,
