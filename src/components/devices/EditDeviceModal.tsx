@@ -27,7 +27,9 @@ export interface EditDeviceModalProps {
 
 export function EditDeviceModal({ open, device, onClose, onSubmit }: EditDeviceModalProps) {
   const [deviceName, setDeviceName] = useState('');
-  const [location, setLocation] = useState(assignableLocations[0]?.value ?? 'new-york');
+  const [location, setLocation] = useState<string>(
+    assignableLocations[0]?.value ?? 'new-york',
+  );
   const [currentDay, setCurrentDay] = useState('');
   const [status, setStatus] = useState<DeviceStatus>('online');
 

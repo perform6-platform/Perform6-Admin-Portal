@@ -99,7 +99,7 @@ export async function clearCachedUploadFile(
 }
 
 /** Prompt user to pick a file (hidden input) — used only when IndexedDB cache miss. */
-export function pickVideoFile(existingName?: string): Promise<File | null> {
+export function pickVideoFile(_existingName?: string): Promise<File | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';

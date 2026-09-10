@@ -10,6 +10,7 @@ export interface DatePickerProps {
   value?: Date;
   onChange?: (date: Date) => void;
   className?: string;
+  disabled?: boolean;
 }
 
 interface CalendarPosition {
@@ -17,7 +18,7 @@ interface CalendarPosition {
   left: number;
 }
 
-export function DatePicker({ value, onChange, className }: DatePickerProps) {
+export function DatePicker({ value, onChange, className, disabled = false }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date>(value ?? new Date());
   const [position, setPosition] = useState<CalendarPosition | null>(null);
@@ -112,14 +113,18 @@ export function DatePicker({ value, onChange, className }: DatePickerProps) {
         <button
           ref={triggerRef}
           type="button"
+          disabled={disabled}
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label="Select date"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={() => {
+            if (!disabled) setOpen((prev) => !prev);
+          }}
           className={cn(
             'ui-field inline-flex w-full items-center gap-2 rounded-lg px-4 py-2 sm:w-auto',
             'text-body-sm hover:border-brand-500/30',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
+            'disabled:cursor-not-allowed disabled:opacity-60',
           )}
         >
           <CalendarIcon className="h-4 w-4 text-content-muted" />

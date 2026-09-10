@@ -61,7 +61,6 @@ export interface DeploymentPreviewQuery {
   exerciseVariant?: string;
   rotationMode?: RotationMode;
   rotationStartDate?: string;
-  rotationMode?: RotationMode;
   /** Optional single-day filter — omit in wizard to load the full rotation list. */
   day?: number;
   /** DEFAULT_DEPLOYMENT: selected parent categories per screen. */

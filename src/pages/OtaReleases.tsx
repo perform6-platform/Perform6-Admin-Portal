@@ -401,14 +401,14 @@ export default function OtaReleases() {
                                       onSuccess: () =>
                                         showToast({
                                           title: 'Install OTA queued',
-                                          description:
+                                          message:
                                             'Package install starts on next heartbeat (~60s). Media sync is not mixed in.',
                                           variant: 'success',
                                         }),
                                       onError: (err) =>
                                         showToast({
                                           title: 'Install OTA failed',
-                                          description: getApiErrorMessage(
+                                          message: getApiErrorMessage(
                                             err,
                                             'Could not queue OTA install',
                                           ),

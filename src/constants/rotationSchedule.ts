@@ -21,6 +21,19 @@ export interface RotationScheduleRow {
   isEllipsis?: boolean;
 }
 
+type RotationColumnTone = 'neutral' | 'slate' | 'blue' | 'teal' | 'purple' | 'gold';
+
+interface RotationColumn {
+  key: string;
+  label: string;
+  tone: RotationColumnTone;
+}
+
+interface RotationColumnGroup {
+  label: string;
+  columns: RotationColumn[];
+}
+
 export const rotationViewOptions = [
   { value: 'all', label: 'All Categories' },
   { value: 'fitness', label: 'Fitness Track' },
@@ -28,7 +41,7 @@ export const rotationViewOptions = [
   { value: 'rotation', label: '36-Day Rotation Only' },
 ] as const;
 
-export const rotationColumnGroups = [
+export const rotationColumnGroups: RotationColumnGroup[] = [
   {
     label: '',
     columns: [

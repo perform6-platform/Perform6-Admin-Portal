@@ -33,6 +33,7 @@ export interface MediaAsset {
 export interface MediaVersion {
   id: string;
   mediaAssetId: string;
+  title?: string | null;
   fileUrl: string;
   checksum: string;
   codec: string | null;
