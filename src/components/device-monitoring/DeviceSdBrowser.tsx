@@ -63,7 +63,13 @@ export function DeviceSdBrowser({ deviceId, disabled }: DeviceSdBrowserProps) {
   useEffect(() => {
     const latest = sdFs?.latest;
     if (!latest) return;
-    if (awaitingCommandId && latest.commandId !== awaitingCommandId) return;
+    if (awaitingCommandId && latest.commandId !== awaitingCommandId) {
+      // Another SD widget can queue a command during the same heartbeat. If
+      // our command is no longer pending, do not leave this browser disabled
+      // forever just because the shared "latest" slot contains its result.
+      if (sdFs?.pending?.commandId === awaitingCommandId) return;
+      setAwaitingCommandId(null);
+    }
 
     if (awaitingCommandId && latest.commandId === awaitingCommandId) {
       setAwaitingCommandId(null);
@@ -102,7 +108,7 @@ export function DeviceSdBrowser({ deviceId, disabled }: DeviceSdBrowserProps) {
       void refreshList();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refreshList uses path/queue
-  }, [sdFs?.latest, awaitingCommandId]);
+  }, [sdFs?.latest, sdFs?.pending, awaitingCommandId]);
 
   const sortedEntries = useMemo(() => {
     return [...entries].sort((a, b) => {
