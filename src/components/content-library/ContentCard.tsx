@@ -39,6 +39,19 @@ function statusBadge(visual: CardUploadVisual) {
   return null;
 }
 
+function formatFrameRate(frameRate: number | null | undefined): string | null {
+  if (frameRate == null || !Number.isFinite(frameRate)) return null;
+  const rounded = Math.round(frameRate * 100) / 100;
+  return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(2)} fps`;
+}
+
+function formatCodec(codec: string | null | undefined): string | null {
+  if (!codec) return null;
+  if (codec.toLowerCase() === 'h264') return 'H.264';
+  if (codec.toLowerCase() === 'hevc') return 'H.265';
+  return codec.toUpperCase();
+}
+
 export function ContentCard({
   item,
   selected = false,
@@ -60,6 +73,15 @@ export function ContentCard({
   const isFailed = uploadVisual === 'failed';
   const canPlay = isVideo && uploadVisual === 'ready' && Boolean(item.videoUrl);
   const badge = statusBadge(uploadVisual);
+  const sourceProfileParts = [
+    item.sourceProfile?.resolution?.replace('x', '×') ?? null,
+    formatFrameRate(item.sourceProfile?.frameRate),
+    formatCodec(item.sourceProfile?.codec),
+    item.sourceProfile?.pixelFormat === 'yuv420p' ? '8-bit' : item.sourceProfile?.pixelFormat ?? null,
+  ].filter((part): part is string => Boolean(part));
+  const hasVerifiedSourceProfile = Boolean(
+    item.sourceProfile?.resolution && item.sourceProfile?.frameRate != null,
+  );
 
   useEffect(() => {
     setThumbnailUrl(item.thumbnailUrl || defaultContentThumbnail);
@@ -241,6 +263,24 @@ export function ContentCard({
           {getFullCategoryLabel(item.categoryId)}
           {item.rotationDay ? ` · Day ${item.rotationDay}` : ''}
         </p>
+
+        {uploadVisual === 'ready' && (
+          <p
+            className={cn(
+              'mt-1 truncate text-[11px]',
+              hasVerifiedSourceProfile ? 'text-content-muted' : 'text-status-warning',
+            )}
+            title={
+              hasVerifiedSourceProfile
+                ? sourceProfileParts.join(' · ')
+                : 'This legacy upload predates source-profile verification. Re-upload to inspect resolution and frame rate.'
+            }
+          >
+            {hasVerifiedSourceProfile
+              ? sourceProfileParts.join(' · ')
+              : 'Profile unavailable · re-upload to verify'}
+          </p>
+        )}
 
         <div className="mt-1 flex items-center justify-between gap-2 text-caption text-content-muted">
           <span>{item.dateLabel}</span>

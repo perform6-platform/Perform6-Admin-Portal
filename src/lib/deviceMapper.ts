@@ -326,5 +326,13 @@ export function mapMediaAssetToContentItem(asset: MediaAsset): ContentItem | nul
     programId: asset.programId ?? undefined,
     status: asset.status,
     updatedAt: asset.updatedAt,
+    sourceProfile: activeVersion
+      ? {
+          resolution: activeVersion.resolution ?? null,
+          frameRate: activeVersion.frameRate ?? null,
+          codec: activeVersion.codec ?? null,
+          pixelFormat: activeVersion.pixelFormat ?? null,
+        }
+      : undefined,
   };
 }
