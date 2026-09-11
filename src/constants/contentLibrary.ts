@@ -25,6 +25,12 @@ export interface ContentItem {
   /** Backend media workflow status. */
   status?: 'READY' | 'PROCESSING' | 'FAILED' | 'ARCHIVED' | string;
   updatedAt?: string;
+  sourceProfile?: {
+    resolution: string | null;
+    frameRate: number | null;
+    codec: string | null;
+    pixelFormat: string | null;
+  };
 }
 
 export const defaultContentThumbnail =

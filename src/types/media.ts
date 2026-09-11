@@ -38,6 +38,11 @@ export interface MediaVersion {
   checksum: string;
   codec: string | null;
   resolution: string | null;
+  frameRate: number | null;
+  pixelFormat: string | null;
+  fieldOrder: string | null;
+  audioCodec: string | null;
+  bitrateKbps: number | null;
   fileSize: string;
   isActive: boolean;
 }
