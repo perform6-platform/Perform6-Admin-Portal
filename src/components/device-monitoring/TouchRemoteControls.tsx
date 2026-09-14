@@ -87,7 +87,7 @@ export function TouchRemoteControls({ deviceId, disabled }: TouchRemoteControlsP
       </div>
 
       <p className="text-caption text-content-muted">
-        Commands normally arrive within about 10 seconds; heartbeat remains the fallback.
+        Commands are delivered on the device&apos;s next heartbeat (~60s). Keep the player online.
         {lastQueued ? ` Last queued: ${lastQueued}.` : ''}
       </p>
     </div>
