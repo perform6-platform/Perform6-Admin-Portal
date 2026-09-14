@@ -80,6 +80,27 @@ export interface LivePlaybackStatus {
   isLive: boolean;
   screens: LivePlaybackScreen[];
   touchUi?: TouchUiSnapshot | null;
+  screenCapture?: ScreenCaptureSnapshot | null;
+}
+
+export interface ScreenCaptureOutput {
+  screenKey: 'SCREEN_1' | 'SCREEN_2' | string;
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ScreenCaptureSnapshot {
+  requestId: string;
+  url: string;
+  capturedAt: string;
+  uploadedAt: string;
+  width: number;
+  height: number;
+  canvas: { width: number; height: number };
+  outputs: ScreenCaptureOutput[];
 }
 
 export interface TouchUiSnapshot {
@@ -109,7 +130,8 @@ export type DeviceRemoteCommandAction =
   | 'SD_LIST'
   | 'SD_READ'
   | 'SD_WRITE'
-  | 'SD_DELETE';
+  | 'SD_DELETE'
+  | 'CAPTURE_SCREENSHOT';
 
 export type TouchRemoteSlot =
   | 'touch-default'

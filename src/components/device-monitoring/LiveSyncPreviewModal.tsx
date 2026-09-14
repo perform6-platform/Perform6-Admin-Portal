@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useDeviceLivePlayback } from '../../hooks/useMonitoring';
 import { resolveStorageUrl } from '../../lib/libraryType';
 import { Badge, Modal, ModalBody } from '../ui';
+import { XtOutputCaptureImage } from './XtOutputCaptureImage';
 
 const SOFT_RESYNC_DRIFT_SEC = 8;
 const POLL_MS = 8_000;
@@ -64,6 +65,9 @@ export function LiveSyncPreviewModal({
     null;
   const title = screen?.title || fallbackTitle || screenKey;
   const isLive = Boolean(data?.isLive && screen && fileUrl);
+  const capturedOutput = data?.screenCapture?.outputs.find(
+    (entry) => entry.screenKey === screenKey,
+  );
 
   useEffect(() => {
     if (!open) {
@@ -104,7 +108,7 @@ export function LiveSyncPreviewModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Live sync preview"
+      title="Input versus output"
       description={`${deviceName} · ${screenKey.replace(/_/g, ' ')}`}
       size="lg"
     >
@@ -126,6 +130,25 @@ export function LiveSyncPreviewModal({
           ) : null}
         </div>
 
+        <div>
+          <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-content-secondary">
+            Output · actual HDMI capture
+          </p>
+          <div className="overflow-hidden rounded-lg border border-surface-border bg-black">
+            {data?.screenCapture && capturedOutput ? (
+              <XtOutputCaptureImage capture={data.screenCapture} output={capturedOutput} />
+            ) : (
+              <div className="flex aspect-video items-center justify-center px-4 text-center text-body-sm text-content-muted">
+                No native output capture has arrived yet.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-content-secondary">
+            Input · expected playback reconstruction
+          </p>
         <div className="overflow-hidden rounded-lg border border-surface-border bg-black">
           {isLoading ? (
             <div className="flex aspect-video items-center justify-center text-body-sm text-content-muted">
@@ -160,6 +183,7 @@ export function LiveSyncPreviewModal({
               <p className="text-caption text-content-secondary">{title}</p>
             </div>
           )}
+        </div>
         </div>
 
         <div className="rounded-lg border border-surface-border bg-surface-muted/40 px-4 py-2">
