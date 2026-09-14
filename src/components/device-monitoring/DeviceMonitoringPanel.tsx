@@ -12,7 +12,7 @@ import {
 } from '../../lib/screenOutputLabels';
 import { resolveStorageUrl } from '../../lib/libraryType';
 import type { ManifestSlot } from '../../types/deployments';
-import type { TouchUiSnapshot } from '../../types/monitoring';
+import type { LivePlaybackStatus, TouchUiSnapshot } from '../../types/monitoring';
 import { BrightSignDeviceImage } from '../devices/BrightSignDeviceImage';
 import { Badge, CARD_SURFACE_CLASS, SectionLabel } from '../ui';
 import { LiveSyncPreviewModal } from './LiveSyncPreviewModal';
@@ -29,11 +29,28 @@ export interface DeviceMonitoringPanelProps {
 
 interface PlayingEntry {
   key: string;
+  previewScreenKey?: string;
   group: string;
   label: string;
   video: string;
   thumbnail?: string;
 }
+
+const XT_SLOT_ASSIGNMENT_KEYS: Record<string, string> = {
+  'touch-default': 'SCREEN_1',
+  'start-here': 'SCREEN_2',
+  phase1: 'SCREEN_3',
+  phase2: 'SCREEN_4',
+  'full-program': 'SCREEN_5',
+};
+
+const XT_PROGRAM_LABELS: Record<string, string> = {
+  'touch-default': 'Default',
+  'start-here': 'Start Here',
+  phase1: 'Phase 1',
+  phase2: 'Phase 2',
+  'full-program': 'Full Program',
+};
 
 function slotEntries(content: Record<string, ManifestSlot> | undefined): PlayingEntry[] {
   if (!content) return [];
@@ -70,6 +87,49 @@ function screenEntries(device: Device): PlayingEntry[] {
     video: screen.title || 'No video assigned',
     thumbnail: resolveStorageUrl(screen.thumbnail) ?? undefined,
   }));
+}
+
+/** Present XT's five logical program choices as its two physical outputs. */
+function xtOutputEntries(
+  device: Device,
+  livePlayback: LivePlaybackStatus | undefined,
+  touchUi: TouchUiSnapshot | null | undefined,
+): PlayingEntry[] {
+  const assignments = device.screens ?? [];
+  const bluefinAssignment = assignments.find((screen) => screen.screenKey === 'SCREEN_1');
+  const htmlScreen = livePlayback?.screens.find(
+    (screen) => screen.source === 'HTML_UI' && screen.screenKey === 'SCREEN_1',
+  );
+  const nativeScreens = livePlayback?.screens.filter(
+    (screen) => screen.source === 'NATIVE_HDMI',
+  ) ?? [];
+  const nativeScreen = nativeScreens.find((screen) => screen.isPlaying) ?? nativeScreens[0];
+  const activeSlot = touchUi?.currentContent?.slot ?? null;
+  const activeAssignmentKey = activeSlot ? XT_SLOT_ASSIGNMENT_KEYS[activeSlot] : null;
+  const activeAssignment = activeAssignmentKey
+    ? assignments.find((screen) => screen.screenKey === activeAssignmentKey)
+    : null;
+
+  return [
+    {
+      key: 'XT_HDMI_1',
+      previewScreenKey: htmlScreen?.screenKey ?? 'SCREEN_1',
+      group: 'Bluefin · HDMI-1',
+      label: 'Touch controls',
+      video: 'Bluefin touch interface',
+      thumbnail: resolveStorageUrl(bluefinAssignment?.thumbnail) ?? undefined,
+    },
+    {
+      key: 'XT_HDMI_2',
+      previewScreenKey: nativeScreen?.screenKey ?? 'SCREEN_2',
+      group: 'LED · HDMI-2',
+      label: 'Selected program',
+      video: activeSlot
+        ? (XT_PROGRAM_LABELS[activeSlot] ?? formatTouchSlotLabel(activeSlot))
+        : 'Awaiting program selection',
+      thumbnail: resolveStorageUrl(activeAssignment?.thumbnail) ?? undefined,
+    },
+  ];
 }
 
 function formatSessionElapsed(sessionStartedAt?: number | null): string | null {
@@ -143,11 +203,13 @@ export function DeviceMonitoringPanel({
   });
 
   const touchUi = livePlayback?.touchUi ?? device?.touchUi ?? null;
+  const isXt2145 = (device?.model ?? '').toUpperCase() === 'XT2145';
 
   const currentVideos = useMemo(() => {
     if (!device) return [];
+    if (isXt2145) return xtOutputEntries(device, livePlayback, touchUi);
     return hasFleetScreens ? screenEntries(device) : slotEntries(playback?.content);
-  }, [device, hasFleetScreens, playback?.content]);
+  }, [device, hasFleetScreens, isXt2145, livePlayback, playback?.content, touchUi]);
 
   if (!device) {
     return (
@@ -304,7 +366,8 @@ export function DeviceMonitoringPanel({
                   type="button"
                   onClick={() =>
                     setPreview({
-                      screenKey: hasFleetScreens ? entry.key : 'SCREEN_1',
+                      screenKey:
+                        entry.previewScreenKey ?? (hasFleetScreens ? entry.key : 'SCREEN_1'),
                       title: entry.video,
                       thumbnail: entry.thumbnail,
                     })
