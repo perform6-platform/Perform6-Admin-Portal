@@ -19,6 +19,7 @@ import {
   type RotationScheduleRow,
 } from '../constants/rotationSchedule';
 import { useRotationPrograms } from '../hooks/useRotation';
+import { isAuthenticated } from '../lib/authStorage';
 import { usesRotationForPlayback } from '../lib/deploymentHelpers';
 import { mapRotationProgramsToScheduleRows } from '../lib/rotationMapper';
 import {
@@ -76,7 +77,9 @@ function applyDeploymentToScheduleRows(
 const RotationScheduleContext = createContext<RotationScheduleContextValue | null>(null);
 
 export function RotationScheduleProvider({ children }: { children: ReactNode }) {
-  const { data: programs, isLoading, isError } = useRotationPrograms();
+  const { data: programs, isLoading, isError } = useRotationPrograms({
+    enabled: isAuthenticated(),
+  });
   const [rows, setRows] = useState<RotationScheduleRow[]>([]);
   const [isEditing, setIsEditing] = useState(false);
 

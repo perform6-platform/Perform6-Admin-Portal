@@ -16,7 +16,7 @@ export function useSyncFleet() {
             device.status === 'FAILED' ||
             device.status === 'SYNCING'),
       );
-      return hasIncomplete ? 8_000 : 20_000;
+      return hasIncomplete ? 3_000 : 20_000;
     },
   });
 }
@@ -32,9 +32,10 @@ export function useSyncDeviceDetail(deviceId: string | null) {
         (row) =>
           row.downloadStatus === 'MISSING' ||
           row.downloadStatus === 'FAILED' ||
-          row.downloadStatus === 'DOWNLOADING',
+          row.downloadStatus === 'DOWNLOADING' ||
+          row.downloadStatus === 'QUEUED',
       );
-      return unsettled ? 5_000 : 15_000;
+      return unsettled ? 2_000 : 15_000;
     },
   });
 }

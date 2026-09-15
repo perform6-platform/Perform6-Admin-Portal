@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Cloud,
@@ -13,6 +13,7 @@ import {
 import { Button, Input } from '../components/ui';
 import { useToast } from '../context/ToastContext';
 import { useLogin } from '../hooks/useLogin';
+import { isAuthenticated } from '../lib/authStorage';
 import { getApiErrorMessage } from '../services/axios';
 import loginBg from '../assets/login-bg.png';
 
@@ -52,6 +53,10 @@ export default function Login() {
       navigate('/');
     },
   });
+
+  if (isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

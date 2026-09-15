@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, type ReactNode } from 
 import type { ContentCategoryId, ContentItem } from '../constants/contentLibrary';
 import type { PlaybackCategoryId } from '../constants/contentPlayback';
 import { useMediaAssets } from '../hooks/useMedia';
+import { isAuthenticated } from '../lib/authStorage';
 import { mapMediaAssetToContentItem } from '../lib/deviceMapper';
 import { getManageableCategoryIds } from '../lib/programHelpers';
 import { isInterruptedUploadAsset } from '../lib/uploadFileCache';
@@ -32,6 +33,7 @@ const MEDIA_LIST_QUERY = {
 
 export function ContentProvider({ children }: { children: ReactNode }) {
   const { data, isLoading, isError, refetch } = useMediaAssets(MEDIA_LIST_QUERY, {
+    enabled: isAuthenticated(),
     refetchInterval: (query) => {
       if (query.state.error) return false;
       const items = query.state.data?.items ?? [];
@@ -44,7 +46,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     },
     retry: (failureCount, error) => {
       const status = (error as { response?: { status?: number } })?.response?.status;
-      if (status === 429) return false;
+      if (status === 401 || status === 429) return false;
       return failureCount < 2;
     },
   });

@@ -1,6 +1,11 @@
 export type SyncFleetStatus = 'IDLE' | 'DOWNLOADING' | 'SYNCING' | 'FAILED' | 'COMPLETE';
 
-export type RequiredMediaStatus = 'CACHED' | 'DOWNLOADING' | 'FAILED' | 'MISSING';
+export type RequiredMediaStatus =
+  | 'CACHED'
+  | 'DOWNLOADING'
+  | 'QUEUED'
+  | 'FAILED'
+  | 'MISSING';
 
 export interface PrefetchStatus {
   mode: string;
@@ -79,6 +84,7 @@ export interface RequiredMediaRow {
   fileSize: string | null;
   downloadStatus: RequiredMediaStatus;
   bytesDownloaded: string | null;
+  totalBytes?: string | null;
   errorMessage: string | null;
 }
 
