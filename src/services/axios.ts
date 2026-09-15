@@ -1,11 +1,11 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import type { ApiErrorBody } from '../types/api';
 import {
-  clearAuthSession,
   getAccessToken,
   getAuthSession,
   updateAuthTokens,
 } from '../lib/authStorage';
+import { forceLogout, notifyAuthSessionChanged } from '../lib/authSession';
 
 function normalizeBaseUrl(url: string): string {
   const trimmed = url.trim().replace(/\/+$/, '');
@@ -42,33 +42,46 @@ apiClient.interceptors.response.use(
     if (!axios.isAxiosError(error) || error.response?.status !== 401) {
       return Promise.reject(error);
     }
-    const request = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
+    const request = error.config as
+      | (InternalAxiosRequestConfig & { _retried?: boolean })
+      | undefined;
     if (!request || request._retried || request.url?.includes('/auth/')) {
       return Promise.reject(error);
     }
+
     const refreshToken = getAuthSession()?.refreshToken;
-    if (!refreshToken) return Promise.reject(error);
+    if (!refreshToken) {
+      forceLogout('missing-refresh-token');
+      return Promise.reject(error);
+    }
 
     request._retried = true;
     refreshPromise ??= axios
       .post(`${baseURL}/auth/refresh`, { refreshToken })
       .then((response) => {
         const data = response.data?.data;
-        if (!data?.accessToken || !data?.refreshToken) throw new Error('Invalid refresh response');
+        if (!data?.accessToken || !data?.refreshToken) {
+          throw new Error('Invalid refresh response');
+        }
         updateAuthTokens(data.accessToken, data.refreshToken);
+        notifyAuthSessionChanged();
         return data.accessToken as string;
       })
       .catch((refreshError) => {
-        clearAuthSession();
+        forceLogout('refresh-failed');
         throw refreshError;
       })
       .finally(() => {
         refreshPromise = null;
       });
 
-    const accessToken = await refreshPromise;
-    request.headers.Authorization = `Bearer ${accessToken}`;
-    return apiClient.request(request);
+    try {
+      const accessToken = await refreshPromise;
+      request.headers.Authorization = `Bearer ${accessToken}`;
+      return apiClient.request(request);
+    } catch (refreshError) {
+      return Promise.reject(refreshError);
+    }
   },
 );
 

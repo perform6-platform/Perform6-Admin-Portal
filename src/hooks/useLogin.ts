@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { loginRequest } from '../services/auth.api';
 import { saveAuthSession } from '../lib/authStorage';
+import { notifyAuthSessionChanged } from '../lib/authSession';
 import type { LoginPayload } from '../types/auth';
 
 interface UseLoginOptions {
@@ -20,6 +21,7 @@ export function useLogin({ rememberMe = true, onSuccess }: UseLoginOptions = {})
         },
         rememberMe,
       );
+      notifyAuthSessionChanged();
       onSuccess?.(result.message);
     },
   });

@@ -28,15 +28,20 @@ import type {
 } from '../types/rotation';
 
 /** GET /rotation */
-export function useRotationPrograms() {
-  return useQuery({ queryKey: queryKeys.rotation.all, queryFn: getRotationPrograms });
+export function useRotationPrograms(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: queryKeys.rotation.all,
+    queryFn: getRotationPrograms,
+    enabled: options?.enabled ?? true,
+  });
 }
 
 /** GET /rotation/settings/global */
-export function useGlobalRotationSettings() {
+export function useGlobalRotationSettings(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.rotation.globalSettings,
     queryFn: getGlobalRotationSettings,
+    enabled: options?.enabled ?? true,
   });
 }
 

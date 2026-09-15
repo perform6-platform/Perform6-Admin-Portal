@@ -1,16 +1,18 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { logoutRequest } from '../services/auth.api';
-import { clearAuthSession } from '../lib/authStorage';
+import { forceLogout } from '../lib/authSession';
 
 interface UseLogoutOptions {
   onSuccess?: () => void;
 }
 
 export function useLogout({ onSuccess }: UseLogoutOptions = {}) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: logoutRequest,
     onSettled: () => {
-      clearAuthSession();
+      queryClient.clear();
+      forceLogout('manual-logout');
       onSuccess?.();
     },
   });

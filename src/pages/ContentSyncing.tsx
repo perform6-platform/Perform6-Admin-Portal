@@ -103,6 +103,8 @@ function mediaStatusVariant(status: RequiredMediaRow['downloadStatus']) {
       return 'danger';
     case 'DOWNLOADING':
       return 'brand';
+    case 'QUEUED':
+      return 'neutral';
     default:
       return 'warning';
   }
@@ -206,7 +208,27 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
         if (row.downloadStatus === 'CACHED') {
           return <ProgressBar percent={100} label="100%" />;
         }
-        const pct = downloadPercent(row.bytesDownloaded, row.fileSize);
+        if (row.downloadStatus === 'QUEUED') {
+          return <ProgressBar percent={0} label="Waiting…" />;
+        }
+
+        const sizeForPct = row.totalBytes ?? row.fileSize;
+        const pct = downloadPercent(row.bytesDownloaded, sizeForPct);
+
+        if (row.downloadStatus === 'DOWNLOADING') {
+          if (pct == null || Number(row.bytesDownloaded) <= 0) {
+            return (
+              <ProgressBar percent={0} label="Downloading…" />
+            );
+          }
+          return (
+            <ProgressBar
+              percent={pct}
+              label={`${pct}% · ${formatBytes(row.bytesDownloaded)} / ${formatBytes(sizeForPct)}`}
+            />
+          );
+        }
+
         if (pct == null) {
           return (
             <span className="text-caption text-content-muted">
@@ -217,7 +239,7 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
         return (
           <ProgressBar
             percent={pct}
-            label={`${pct}% · ${formatBytes(row.bytesDownloaded)} / ${formatBytes(row.fileSize)}`}
+            label={`${pct}% · ${formatBytes(row.bytesDownloaded)} / ${formatBytes(sizeForPct)}`}
           />
         );
       },
