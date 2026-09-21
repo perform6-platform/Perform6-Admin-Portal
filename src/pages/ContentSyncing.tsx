@@ -344,6 +344,13 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
             <span className="font-mono text-xs">
               {device.activeDownload.mediaVersionId.slice(0, 8)}…
             </span>
+            {device.activeDownload.doneCount != null &&
+            device.activeDownload.totalCount != null
+              ? ` · file ${Math.min(
+                  device.activeDownload.doneCount + 1,
+                  device.activeDownload.totalCount,
+                )}/${device.activeDownload.totalCount}`
+              : ''}
             {' · '}
             {formatBytes(device.activeDownload.bytesDownloaded)}
             {device.activeDownload.totalBytes
@@ -355,7 +362,13 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
             <div className="mt-3">
               <ProgressBar percent={activePct} />
             </div>
-          ) : null}
+          ) : (
+            <p className="mt-1 text-caption text-content-secondary">
+              {device.activeDownload.phase === 'START'
+                ? 'Starting transfer…'
+                : 'Transfer in progress…'}
+            </p>
+          )}
         </div>
       )}
 
