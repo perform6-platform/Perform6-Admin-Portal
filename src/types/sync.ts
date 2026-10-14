@@ -63,6 +63,8 @@ export interface SyncFleetDeviceRow {
     bytesDownloaded: string;
     totalBytes: string | null;
     phase: string;
+    doneCount?: number | null;
+    totalCount?: number | null;
   } | null;
 }
 
