@@ -1,9 +1,22 @@
-import type { ReactNode } from 'react';
-import { Mail, Shield, User } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Mail, Pencil, Shield, User } from 'lucide-react';
+import { EditProfileModal } from '../components/profile/EditProfileModal';
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  IconButton,
+  PageShell,
+} from '../components/ui';
+import { useToast } from '../context/ToastContext';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import { updateAuthSessionUser } from '../lib/authStorage';
 import { formatUserRole } from '../lib/formatUserRole';
+import { updateProfileRequest } from '../services/auth.api';
 import { getApiErrorMessage } from '../services/axios';
-import { Badge, Card, CardContent, CardHeader, CardTitle, PageShell } from '../components/ui';
 
 function ProfileField({
   icon,
@@ -21,14 +34,34 @@ function ProfileField({
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-caption text-content-muted">{label}</p>
-        <p className="mt-0.5 break-all text-body-sm text-content-primary">{value}</p>
+        <p className="mt-0.5 break-all text-body-sm font-medium text-content-primary">{value}</p>
       </div>
     </div>
   );
 }
 
 export default function Profile() {
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const { data: user, isLoading, isError, error } = useCurrentUser();
+  const [editOpen, setEditOpen] = useState(false);
+
+  const { mutate: saveProfile, isPending } = useMutation({
+    mutationFn: updateProfileRequest,
+    onSuccess: (updated) => {
+      updateAuthSessionUser(updated);
+      void queryClient.setQueryData(['auth', 'me'], updated);
+      void queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      setEditOpen(false);
+      showToast({ title: 'Profile updated', variant: 'success' });
+    },
+    onError: (err) => {
+      showToast({
+        title: getApiErrorMessage(err, 'Failed to update profile'),
+        variant: 'error',
+      });
+    },
+  });
 
   if (isLoading && !user) {
     return (
@@ -68,25 +101,42 @@ export default function Profile() {
   return (
     <PageShell title="Profile">
       <Card>
-        <CardHeader>
-          <CardTitle>Account Information</CardTitle>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle>Account Information</CardTitle>
+            <p className="mt-1 text-body-sm text-content-secondary">
+              View your account details. Use Edit to update your name or email.
+            </p>
+          </div>
+          <IconButton
+            label="Edit profile"
+            onClick={() => setEditOpen(true)}
+            className="shrink-0 text-brand-600 hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-600/15"
+          >
+            <Pencil className="h-4 w-4" />
+          </IconButton>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 rounded-xl border border-surface-border bg-surface-muted/30 p-4 sm:p-5">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-100 text-lg font-medium text-brand-600 dark:bg-brand-600/20 dark:text-brand-400">
               {initials}
             </div>
             <div className="min-w-0">
-              <p className="text-lg font-semibold text-content-primary">{user.name}</p>
-              <Badge variant="brand" className="mt-1">
+              <p className="truncate text-lg font-semibold text-content-primary">{user.name}</p>
+              <p className="mt-0.5 truncate text-body-sm text-content-secondary">{user.email}</p>
+              <Badge variant="brand" className="mt-2">
                 {formatUserRole(user.role)}
               </Badge>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <ProfileField icon={<User className="h-4 w-4" />} label="Full Name" value={user.name} />
-            <ProfileField icon={<Mail className="h-4 w-4" />} label="Email Address" value={user.email} />
+            <ProfileField
+              icon={<Mail className="h-4 w-4" />}
+              label="Email Address"
+              value={user.email}
+            />
             <ProfileField
               icon={<Shield className="h-4 w-4" />}
               label="Role"
@@ -95,6 +145,14 @@ export default function Profile() {
           </div>
         </CardContent>
       </Card>
+
+      <EditProfileModal
+        open={editOpen}
+        user={user}
+        isSaving={isPending}
+        onClose={() => setEditOpen(false)}
+        onSubmit={(payload) => saveProfile(payload)}
+      />
     </PageShell>
   );
 }
