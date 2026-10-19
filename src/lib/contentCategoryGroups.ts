@@ -8,6 +8,10 @@ import {
   type SystemPlaybackCategoryId,
 } from '../constants/contentPlayback';
 import { LIBRARY_TYPE_TO_CATEGORY } from './libraryType';
+import {
+  categoryDisplayName,
+  configurationScopeLabel,
+} from './systemCategoryCopy';
 
 const SYSTEM_SLUG_ORDER = [
   'default',
@@ -17,6 +21,14 @@ const SYSTEM_SLUG_ORDER = [
   'full-program',
   '15-minutes',
 ] as const;
+
+/** Named playlists A–D under Full Program (4-Zone) — keep keys stable; labels are display-only. */
+const ZONE_PLAYLIST_META: Record<string, { label: string; description: string }> = {
+  A: { label: 'Zone 1', description: 'Mobility / Stability' },
+  B: { label: 'Zone 2', description: 'Power' },
+  C: { label: 'Zone 3', description: 'Strength' },
+  D: { label: 'Zone 4', description: 'Energy / Recovery' },
+};
 
 const SLUG_TO_PLAYBACK: Record<string, SystemPlaybackCategoryId> = {
   default: 'default',
@@ -31,12 +43,23 @@ export function playlistAxisLabel(
   exerciseVariant: string | null | undefined,
   playlistKey?: string | null,
 ): string {
-  if (playlistKey) return `Program ${playlistKey}`;
+  if (playlistKey) {
+    return ZONE_PLAYLIST_META[playlistKey]?.label ?? `Program ${playlistKey}`;
+  }
   if (!fieldCategory) return 'All deployments';
   const fieldLabel = fieldCategory === 'FITNESS' ? 'Fitness' : 'Golf';
   if (!exerciseVariant) return fieldLabel;
   const variantLabel = exerciseVariant === 'WALL' ? 'Wall' : 'No Wall';
   return `${fieldLabel} (${variantLabel})`;
+}
+
+export function playlistAxisDescription(playlistKey?: string | null): string | undefined {
+  if (!playlistKey) return undefined;
+  return ZONE_PLAYLIST_META[playlistKey]?.description;
+}
+
+function categoryGroupDisplayLabel(category: ContentCategory): string {
+  return categoryDisplayName(category.slug, category.name);
 }
 
 function playlistChildId(playlist: CategoryPlaylist): ContentCategoryId {
@@ -64,14 +87,18 @@ function categoryToGroup(category: ContentCategory): CategoryGroup {
     ? (SLUG_TO_PLAYBACK[category.slug] ?? 'custom')
     : 'custom';
 
-  const playlists = [...(category.playlists ?? [])].sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
+  const playlists = [...(category.playlists ?? [])].sort((a, b) => {
+    const aKey = a.playlistKey ?? '';
+    const bKey = b.playlistKey ?? '';
+    if (aKey && bKey && aKey !== bKey) return aKey.localeCompare(bKey);
+    return a.name.localeCompare(b.name);
+  });
 
   return {
     groupKey: category.id,
     playbackCategory,
-    label: category.name,
+    label: categoryGroupDisplayLabel(category),
+    slug: category.slug,
     isSystem: category.isSystem,
     parentCategoryId: category.id,
     scope: category.scope,
@@ -82,6 +109,7 @@ function categoryToGroup(category: ContentCategory): CategoryGroup {
         playlist.exerciseVariant,
         playlist.playlistKey,
       ),
+      description: playlistAxisDescription(playlist.playlistKey),
       programId: playlist.id,
     })),
   };
@@ -150,16 +178,5 @@ export function scopePlaylistCount(scope: string): number {
 }
 
 export function scopeLabel(scope: string): string {
-  switch (scope) {
-    case 'GLOBAL':
-      return 'Global (1 playlist)';
-    case 'BY_FIELD':
-      return 'By field (Fitness / Golf)';
-    case 'BY_FIELD_AND_VARIANT':
-      return 'By field + variant (4 playlists)';
-    case 'BY_NAMED_PLAYLIST':
-      return 'Named programs (A–D)';
-    default:
-      return scope;
-  }
+  return configurationScopeLabel(scope);
 }

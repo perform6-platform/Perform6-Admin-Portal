@@ -16,15 +16,6 @@ export interface ScheduleDayDetailsModalProps {
   row: DeploymentScheduleTableRow | null;
   columns: DeploymentScheduleTableColumn[];
   device?: Device;
-  connectionStartDate?: string;
-  isCurrentDay?: boolean;
-}
-
-function formatConnectionStartLabel(value: string): string {
-  const [year, month, day] = value.split('-').map((part) => Number.parseInt(part, 10));
-  if (!year || !month || !day) return value;
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function ScheduleDayDetailsModal({
@@ -33,8 +24,6 @@ export function ScheduleDayDetailsModal({
   row,
   columns,
   device,
-  connectionStartDate,
-  isCurrentDay = false,
 }: ScheduleDayDetailsModalProps) {
   const videos = row ? getScheduleVideosForDay(row, columns) : [];
 
@@ -43,7 +32,6 @@ export function ScheduleDayDetailsModal({
       open={open}
       onClose={onClose}
       title={row ? formatScheduleDayModalTitle(row) : 'Schedule details'}
-      description={row ? row.dateLabel : undefined}
       size="lg"
       footer={
         <Button type="button" size="sm" className="h-9 px-4" onClick={onClose}>
@@ -63,19 +51,12 @@ export function ScheduleDayDetailsModal({
                 </div>
                 <div>
                   <SectionLabel className="mb-1 block">
-                    {isCurrentDay
-                      ? `Currently playing on Rotation Day ${row.rotationDay}`
-                      : `Videos on Day ${row.day}`}
+                    SCHEDULED CONTENT — DAY {row.rotationDay}
                   </SectionLabel>
                   <p className="text-body-sm text-content-secondary">
                     {device
-                      ? `${device.name} · ${device.location} · Rotation Day ${row.rotationDay}`
-                      : `Day ${row.day} · ${row.dateLabel} · Rotation Day ${row.rotationDay}`}
-                    {connectionStartDate
-                      ? ` · Connection started ${formatConnectionStartLabel(connectionStartDate)}`
-                      : device?.currentDay
-                        ? ` · ${device.currentDay}`
-                        : ''}
+                      ? `${device.name}${device.location && device.location !== '—' ? ` · ${device.location}` : ''}`
+                      : `Day ${row.rotationDay} · ${row.dateLabel}`}
                   </p>
                 </div>
               </div>
@@ -98,13 +79,17 @@ export function ScheduleDayDetailsModal({
                 const thumbnailUrl = resolveStorageUrl(entry.thumbnail);
                 return (
                   <li
-                    key={`${entry.group}-${entry.variantLabel ?? ''}-${entry.label ?? ''}-${entry.video}`}
-                    className="rounded-lg border border-surface-border bg-surface-muted/30 px-4 py-2"
+                    key={`${entry.playlistLabel}-${entry.video}`}
+                    className="rounded-lg border border-surface-border bg-surface-muted/30 px-4 py-3"
                   >
                     <div className="flex items-start gap-2">
                       <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-md border border-surface-border bg-gradient-to-br from-p6-gray-300 to-p6-gray-400 dark:from-p6-gray-700 dark:to-p6-gray-900">
                         {entry.assigned && thumbnailUrl ? (
-                          <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                          <img
+                            src={thumbnailUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
                             <Film className="h-4 w-4 text-content-muted" />
@@ -112,22 +97,14 @@ export function ScheduleDayDetailsModal({
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-caption font-medium text-content-muted">
-                            {entry.label ? `${entry.group} · ${entry.label}` : entry.group}
-                          </p>
-                          {entry.variantLabel && (
-                            <Badge variant="brand" className="shrink-0">
-                              {entry.variantLabel}
-                            </Badge>
-                          )}
-                        </div>
+                        <Badge variant="brand" className="mb-1 max-w-full">
+                          {entry.playlistLabel}
+                        </Badge>
                         <p
                           className={cn(
-                            'mt-0.5 truncate text-body-sm font-medium',
+                            'text-body-sm font-medium break-words',
                             entry.assigned ? 'text-content-primary' : 'italic text-content-muted',
                           )}
-                          title={entry.video}
                         >
                           {entry.video}
                         </p>
@@ -137,10 +114,6 @@ export function ScheduleDayDetailsModal({
                 );
               })}
             </ul>
-
-            <p className="mt-4 text-caption text-content-muted">
-              Source: <code className="text-content-secondary">GET /deployments/:id/schedule-table</code>
-            </p>
           </section>
         )}
       </ModalBody>

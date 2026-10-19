@@ -194,10 +194,10 @@ export default function RotationSchedule() {
             ) : scheduleTable ? (
               <>
                 {deploymentSummary || 'Deployment schedule'} — {tableColumns.length} content{' '}
-                {tableColumns.length === 1 ? 'column' : 'columns'} from the API.
+                {tableColumns.length === 1 ? 'column' : 'columns'}.
               </>
             ) : (
-              <>Select a registered device to load its deployment schedule table from the API.</>
+              <>Select a device to view its {ROTATION_DAYS}-day deployment schedule.</>
             )}
           </p>
         </div>
@@ -259,7 +259,7 @@ export default function RotationSchedule() {
       </div>
 
       {!selectedDeviceId ? (
-        <EmptyState message="Select a device to preview its deployment schedule." />
+        <EmptyState message="Select a device to view its 36-day deployment schedule." />
       ) : !deploymentId ? (
         <EmptyState message="This device does not have a deployment yet." />
       ) : isLoading ? (
@@ -285,17 +285,11 @@ export default function RotationSchedule() {
         row={viewRow}
         columns={tableColumns}
         device={selectedDevice}
-        connectionStartDate={
-          registeredDevice?.effectiveRotationStartDate ??
-          registeredDevice?.rotationStartDate ??
-          deviceDeployment?.connectionStartDate
-        }
-        isCurrentDay={viewRow?.rotationDay === deviceRotationDay}
       />
 
       <p className="flex items-center gap-2 text-body-sm text-content-secondary">
         <CheckCircle2 className="h-4 w-4 shrink-0 text-status-success" />
-        To change which videos play on each day, go to{' '}
+        To change daily video assignments, go to{' '}
         <Link to="/rotation" className="font-medium text-brand-600 hover:underline dark:text-brand-400">
           Rotation
         </Link>

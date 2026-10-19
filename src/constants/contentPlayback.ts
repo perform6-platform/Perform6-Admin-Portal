@@ -122,6 +122,8 @@ export const playbackRules: PlaybackRule[] = [
 export interface CategoryGroupChild {
   id: ContentCategoryId;
   label: string;
+  /** Optional secondary line (e.g. zone focus under Zone 1–4). */
+  description?: string;
   /** Backend program UUID for this playlist (system or custom). */
   programId?: string;
 }
@@ -131,6 +133,8 @@ export interface CategoryGroup {
   groupKey: string;
   playbackCategory: PlaybackCategoryId;
   label: string;
+  /** Backend category slug when loaded from API. */
+  slug?: string;
   isSystem?: boolean;
   parentCategoryId?: string;
   scope?: 'GLOBAL' | 'BY_FIELD' | 'BY_FIELD_AND_VARIANT' | 'BY_NAMED_PLAYLIST';
@@ -142,6 +146,7 @@ export const contentCategoryGroups: CategoryGroup[] = [
     groupKey: 'default',
     playbackCategory: 'default',
     label: 'Default',
+    slug: 'default',
     isSystem: true,
     scope: 'BY_FIELD',
     children: [
@@ -153,6 +158,7 @@ export const contentCategoryGroups: CategoryGroup[] = [
     groupKey: 'start-here',
     playbackCategory: 'start-here',
     label: 'Start Here',
+    slug: 'start-here',
     isSystem: true,
     scope: 'BY_FIELD',
     children: [
@@ -164,6 +170,7 @@ export const contentCategoryGroups: CategoryGroup[] = [
     groupKey: 'phase-1',
     playbackCategory: 'phase-1',
     label: 'Phase 1',
+    slug: 'phase-1',
     isSystem: true,
     scope: 'BY_FIELD_AND_VARIANT',
     children: [
@@ -177,6 +184,7 @@ export const contentCategoryGroups: CategoryGroup[] = [
     groupKey: 'phase-2',
     playbackCategory: 'phase-2',
     label: 'Phase 2',
+    slug: 'phase-2',
     isSystem: true,
     scope: 'GLOBAL',
     children: [{ id: 'phase-2', label: 'All Deployments' }],
@@ -185,6 +193,7 @@ export const contentCategoryGroups: CategoryGroup[] = [
     groupKey: 'full-program',
     playbackCategory: 'full-program',
     label: 'Full Program',
+    slug: 'full-program',
     isSystem: true,
     scope: 'GLOBAL',
     children: [{ id: 'full-program', label: 'All Deployments' }],

@@ -103,30 +103,48 @@ function xtOutputEntries(
   const nativeScreens = livePlayback?.screens.filter(
     (screen) => screen.source === 'NATIVE_HDMI',
   ) ?? [];
-  const nativeScreen = nativeScreens.find((screen) => screen.isPlaying) ?? nativeScreens[0];
+  const nativePlaying =
+    nativeScreens.find((screen) => screen.isPlaying) ?? null;
+  const nativeScreen = nativePlaying ?? nativeScreens[0] ?? null;
   const activeSlot = touchUi?.currentContent?.slot ?? null;
+  const selectedLabel = activeSlot
+    ? (XT_PROGRAM_LABELS[activeSlot] ?? formatTouchSlotLabel(activeSlot))
+    : null;
   const activeAssignmentKey = activeSlot ? XT_SLOT_ASSIGNMENT_KEYS[activeSlot] : null;
   const activeAssignment = activeAssignmentKey
     ? assignments.find((screen) => screen.screenKey === activeAssignmentKey)
     : null;
+  const playingCategory =
+    nativePlaying?.title ||
+    assignments.find((screen) => screen.screenKey === (nativePlaying?.screenKey ?? 'SCREEN_2'))
+      ?.categoryName ||
+    null;
+  const isSessionPlaying = touchUi?.playbackState === 'PLAYING';
 
   return [
     {
       key: 'XT_HDMI_1',
       previewScreenKey: htmlScreen?.screenKey ?? 'SCREEN_1',
       group: 'Bluefin · HDMI-1',
-      label: 'Touch controls',
-      video: 'Bluefin touch interface',
+      label: 'Touchscreen Background',
+      video: 'Background Video Only (UI Not Shown)',
       thumbnail: resolveStorageUrl(bluefinAssignment?.thumbnail) ?? undefined,
     },
     {
       key: 'XT_HDMI_2',
       previewScreenKey: nativeScreen?.screenKey ?? 'SCREEN_2',
       group: 'LED · HDMI-2',
-      label: 'Selected program',
-      video: activeSlot
-        ? (XT_PROGRAM_LABELS[activeSlot] ?? formatTouchSlotLabel(activeSlot))
-        : 'Awaiting program selection',
+      // Now Playing must reflect native LED playback, not a pending touch selection.
+      label: nativePlaying
+        ? `Now Playing: ${playingCategory ?? 'Main Display'}`
+        : selectedLabel && !isSessionPlaying
+          ? `Selected (not playing): ${selectedLabel}`
+          : 'Main Display',
+      video: nativePlaying
+        ? (nativePlaying.title || playingCategory || 'Playing')
+        : selectedLabel && !isSessionPlaying
+          ? `Pending selection · ${selectedLabel}`
+          : 'Awaiting Main Display playback',
       thumbnail: resolveStorageUrl(activeAssignment?.thumbnail) ?? undefined,
     },
   ];
@@ -295,10 +313,10 @@ export function DeviceMonitoringPanel({
             {mainDisplayEntry ? (
               <div className="space-y-1">
                 <p className="text-body-sm font-medium text-content-primary">
-                  {mainDisplayEntry.video}
+                  {mainDisplayEntry.label}
                 </p>
                 <p className="truncate text-caption text-content-secondary">
-                  {mainDisplayEntry.label}
+                  {mainDisplayEntry.video}
                   {mainDisplayEntry.group ? ` · ${mainDisplayEntry.group}` : ''}
                 </p>
                 {dayLabel ? (
@@ -443,6 +461,7 @@ export function DeviceMonitoringPanel({
         screenKey={preview?.screenKey ?? ''}
         fallbackTitle={preview?.title}
         fallbackThumbnail={preview?.thumbnail}
+        deviceModel={device.model}
       />
     </div>
   );

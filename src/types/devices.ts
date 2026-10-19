@@ -103,6 +103,9 @@ export interface DeviceInventoryItem {
   sdPresent?: boolean | null;
   sdEvent?: string | null;
   sdEventAt?: string | null;
+  /** Heartbeat-reported SD usage (bytes as decimal strings). */
+  storageUsedBytes?: string | null;
+  storageCapacityBytes?: string | null;
   claimedAt: string | null;
   registeredAt: string | null;
   pairingCode: string | null;
@@ -189,6 +192,9 @@ export interface RegisteredDevice {
   ipAddress?: string | null;
   lanIpAddress?: string | null;
   macAddress?: string | null;
+  /** GeoIP location from pairing / heartbeat refresh. */
+  location?: string | null;
+  timezone?: string | null;
   screenCount: number;
   runtimeVersion?: string | null;
   activationStatus: DeviceActivationStatus;

@@ -13,8 +13,11 @@ import {
 import { useDeploymentsList } from '../../hooks/useDeployments';
 import { useCategories } from '../../hooks/useCategories';
 import {
+  formatBrandingModeLabel,
   formatDeploymentAxes,
-  formatEnumLabel,
+  formatDeploymentTypeLabel,
+  formatRotationScheduleLabel,
+  resolveDeploymentRotationMode,
 } from '../../lib/deploymentDisplay';
 import { cn } from '../../lib/cn';
 import type { DeploymentEntity } from '../../types/deployments';
@@ -22,13 +25,6 @@ import { DeploymentDetailsModal } from './DeploymentDetailsModal';
 import { EditDeploymentModal } from './EditDeploymentModal';
 
 const PAGE_SIZE = 10;
-
-function brandingLabel(config?: Record<string, unknown>): string {
-  const mode = config?.brandingMode;
-  if (mode === 'CUSTOM') return 'Custom';
-  if (mode === 'NONE') return 'None';
-  return 'Platform default';
-}
 
 export function DeploymentsList() {
   const [page, setPage] = useState(1);
@@ -46,7 +42,7 @@ export function DeploymentsList() {
     [page, search],
   );
 
-  const { data, isLoading, isError, refetch } = useDeploymentsList(query);
+  const { data, isLoading, isError } = useDeploymentsList(query);
   const { data: contentCategories = [] } = useCategories();
   const items = data?.items ?? [];
   const meta = data?.meta;
@@ -58,7 +54,8 @@ export function DeploymentsList() {
           <div>
             <SectionLabel>Registered deployments</SectionLabel>
             <p className="mt-1 text-caption text-content-secondary">
-              View screen→category mapping, or edit field, variant, branding, and screens.
+              View and manage registered deployments, including configuration, devices, branding,
+              and rotation schedules.
             </p>
           </div>
           <form
@@ -94,9 +91,10 @@ export function DeploymentsList() {
               <thead className="bg-surface text-caption uppercase tracking-wide text-content-muted">
                 <tr>
                   <th className="px-4 py-2 font-medium">Name</th>
-                  <th className="px-4 py-2 font-medium">Type</th>
-                  <th className="px-4 py-2 font-medium">Field / Content</th>
-                  <th className="px-4 py-2 font-medium">Variant / Program</th>
+                  <th className="px-4 py-2 font-medium">Deployment Type</th>
+                  <th className="px-4 py-2 font-medium">Content Type</th>
+                  <th className="px-4 py-2 font-medium">Environment</th>
+                  <th className="px-4 py-2 font-medium">Rotation Schedule</th>
                   <th className="px-4 py-2 font-medium">Devices</th>
                   <th className="px-4 py-2 font-medium">Branding</th>
                   <th className="px-4 py-2 font-medium text-right">Actions</th>
@@ -107,6 +105,7 @@ export function DeploymentsList() {
                   const axes = formatDeploymentAxes(deployment, {
                     categories: contentCategories,
                   });
+                  const rotationMode = resolveDeploymentRotationMode(deployment);
                   return (
                     <tr
                       key={deployment.id}
@@ -121,24 +120,35 @@ export function DeploymentsList() {
                         {deployment.name || deployment.id.slice(0, 8)}
                       </td>
                       <td className="px-4 py-4 text-content-secondary">
-                        {formatEnumLabel(deployment.deploymentType)}
+                        {formatDeploymentTypeLabel(deployment.deploymentType)}
                       </td>
                       <td className="px-4 py-4">
-                        <Badge variant="brand">{axes.fieldLabel}</Badge>
+                        {axes.fieldLabel && axes.fieldLabel !== '—' ? (
+                          <Badge variant="brand">{axes.fieldLabel}</Badge>
+                        ) : (
+                          <span className="text-content-secondary">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-4 text-content-secondary">
-                        {axes.variantLabel}
+                        {axes.variantLabel && axes.variantLabel !== '—'
+                          ? axes.variantLabel
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-4 text-content-secondary">
+                        {rotationMode
+                          ? formatRotationScheduleLabel(rotationMode)
+                          : '—'}
                       </td>
                       <td className="px-4 py-4 text-content-secondary">
                         {deployment.devices?.length ?? 0}
                       </td>
                       <td className="px-4 py-4 text-content-secondary">
-                        {brandingLabel(deployment.config)}
+                        {formatBrandingModeLabel(undefined, deployment.config)}
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex justify-end gap-1">
                           <IconButton
-                            label={`View ${deployment.name ?? 'deployment'}`}
+                            label={`View details for ${deployment.name ?? 'deployment'}`}
                             onClick={() => setViewingId(deployment.id)}
                           >
                             <Eye />
@@ -180,10 +190,7 @@ export function DeploymentsList() {
         open={editing !== null}
         deployment={editing}
         onClose={() => setEditing(null)}
-        onSaved={() => {
-          setEditing(null);
-          void refetch();
-        }}
+        onSaved={() => setEditing(null)}
       />
     </>
   );

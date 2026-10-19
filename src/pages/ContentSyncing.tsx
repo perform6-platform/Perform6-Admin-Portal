@@ -430,7 +430,8 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
 export default function ContentSyncing() {
   const [filter, setFilter] = useState<(typeof filterOptions)[number]['value']>('all');
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const { data, isLoading, isError, refetch, isFetching } = useSyncFleet();
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  const { data, isLoading, isError, refetch } = useSyncFleet();
 
   const devices = data?.devices ?? [];
 
@@ -450,19 +451,41 @@ export default function ContentSyncing() {
     return filteredDevices[0] ?? null;
   }, [filteredDevices, selectedDeviceId]);
 
+  async function handleManualRefresh() {
+    setIsManualRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  }
+
   const columns: TableColumn<SyncFleetDeviceRow>[] = [
     {
       key: 'serialNumber',
       header: 'Device',
       render: (row) => (
-        <button
-          type="button"
-          className="text-left font-medium text-brand-600 hover:underline dark:text-brand-400"
-          onClick={() => setSelectedDeviceId(row.deviceId)}
-        >
+        <span className="font-medium text-content-primary">
           {row.serialNumber ?? row.deviceName ?? row.deviceId?.slice(0, 8) ?? '—'}
-        </button>
+        </span>
       ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <Badge variant={row.isOnline ? 'success' : 'neutral'}>
+            {row.isOnline ? 'Online' : 'Offline'}
+          </Badge>
+          <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
+        </div>
+      ),
+    },
+    {
+      key: 'lastSyncAt',
+      header: 'Last Sync',
+      render: (row) => formatLastSync(row.lastSyncAt),
     },
     { key: 'deployment', header: 'Deployment', render: (row) => deploymentLabel(row) },
     {
@@ -491,23 +514,6 @@ export default function ContentSyncing() {
         />
       ),
     },
-    {
-      key: 'lastSyncAt',
-      header: 'Last Sync',
-      render: (row) => formatLastSync(row.lastSyncAt),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          <Badge variant={row.isOnline ? 'success' : 'neutral'}>
-            {row.isOnline ? 'Online' : 'Offline'}
-          </Badge>
-          <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
-        </div>
-      ),
-    },
   ];
 
   return (
@@ -532,10 +538,11 @@ export default function ContentSyncing() {
           />
           <button
             type="button"
-            onClick={() => void refetch()}
-            className="rounded-lg border border-surface-border px-4 py-2 text-sm text-content-secondary hover:bg-surface-muted"
+            onClick={() => void handleManualRefresh()}
+            disabled={isManualRefreshing}
+            className="min-w-[5.5rem] rounded-lg border border-surface-border px-4 py-2 text-sm text-content-secondary hover:bg-surface-muted disabled:opacity-70"
           >
-            {isFetching ? 'Refreshing…' : 'Refresh'}
+            {isManualRefreshing ? 'Refreshing…' : 'Refresh'}
           </button>
         </div>
       </div>

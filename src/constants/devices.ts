@@ -26,6 +26,9 @@ export interface Device {
   /** Raw bytes from last heartbeat (for Admin storage panel). */
   storageUsedBytes?: string | null;
   storageCapacityBytes?: string | null;
+  /** Used for schedule-table export (deployment rotation anchor). */
+  rotationStartDate?: string | null;
+  effectiveRotationStartDate?: string | null;
   /** Registered device UUID — null while pending/claimed only. */
   deviceId?: string | null;
   pairingId?: string | null;
