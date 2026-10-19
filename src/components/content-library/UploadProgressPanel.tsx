@@ -52,7 +52,9 @@ export function UploadProgressPanel({ state, className }: UploadProgressPanelPro
             {isBusy
               ? percent < 70
                 ? 'Transferring file to cloud storage…'
-                : 'Optimizing and preparing for BrightSign…'
+                : percent < 90
+                  ? 'Promoting file in cloud storage…'
+                  : 'Preparing for BrightSign…'
               : isDone
                 ? 'Video uploaded successfully.'
                 : 'Something went wrong. Try again.'}
