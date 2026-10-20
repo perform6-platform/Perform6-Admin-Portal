@@ -67,8 +67,8 @@ export function GlobalRotationSettingsPanel() {
             <SectionLabel className="block">Global rotation calendar</SectionLabel>
           </div>
           <p className="mt-1 text-body-sm text-content-secondary">
-            All deployments assigned to Global Rotation follow the same continuous 36-day
-            schedule, joining at the current rotation day regardless of activation date.
+          Platform-wide Day 1 for deployments that join global rotation. Devices download a rolling 7-day window from 
+          today's rotation day (not week-aligned).
             Default and Start Here remain continuously assigned until changed. Devices
             automatically maintain a rolling 7-day content cache.
           </p>

@@ -38,8 +38,10 @@ export function ContentVideoPlayerModal({ open, item, onClose }: ContentVideoPla
           ref={videoRef}
           key={videoUrl}
           controls
+          controlsList="nodownload noremoteplayback noplaybackrate"
+          disablePictureInPicture
           playsInline
-          className="aspect-video w-full rounded-lg bg-black"
+          className="video-no-overflow aspect-video w-full rounded-lg bg-black"
           src={videoUrl}
         >
           Your browser does not support video playback.

@@ -90,14 +90,14 @@ export function DeploymentsList() {
             <table className="min-w-full text-left text-body-sm">
               <thead className="bg-surface text-caption uppercase tracking-wide text-content-muted">
                 <tr>
-                  <th className="px-4 py-2 font-medium">Name</th>
-                  <th className="px-4 py-2 font-medium">Deployment Type</th>
-                  <th className="px-4 py-2 font-medium">Content Type</th>
-                  <th className="px-4 py-2 font-medium">Environment</th>
-                  <th className="px-4 py-2 font-medium">Rotation Schedule</th>
-                  <th className="px-4 py-2 font-medium">Devices</th>
-                  <th className="px-4 py-2 font-medium">Branding</th>
-                  <th className="px-4 py-2 font-medium text-right">Actions</th>
+                  <th className="whitespace-nowrap px-4 py-2 font-medium">Name</th>
+                  <th className="whitespace-nowrap px-4 py-2 font-medium">Deployment Type</th>
+                  <th className="whitespace-nowrap px-4 py-2 font-medium">Content Type</th>
+                  <th className="whitespace-nowrap px-4 py-2 font-medium">Environment</th>
+                  <th className="whitespace-nowrap px-4 py-2 font-medium">Rotation Schedule</th>
+                  <th className="whitespace-nowrap px-4 py-2 font-medium">Devices</th>
+                  <th className="whitespace-nowrap px-4 py-2 font-medium">Branding</th>
+                  <th className="whitespace-nowrap px-4 py-2 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>

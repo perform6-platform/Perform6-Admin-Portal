@@ -64,12 +64,12 @@ export function CategorySidebar({
                         onClick={() => onCategoryChange(category.id)}
                         aria-current={isActive ? 'page' : undefined}
                         className={cn(
-                          'flex w-full flex-col items-center justify-center rounded-md border px-2 text-center transition-colors',
+                          'flex w-full flex-col items-start justify-center rounded-md border px-2 text-left transition-colors',
                           hasDescriptions && !isFullWidth ? 'min-h-[3.25rem] py-2' : 'py-2',
                           'text-[13px] font-medium leading-tight',
                           isActive
                             ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
-                            : 'border-surface-border bg-surface text-content-primary hover:bg-surface-muted',
+                            : 'border-surface-border bg-[#f3f4f6] text-content-primary hover:bg-surface-muted',
                         )}
                       >
                         <span>{isFullWidth ? group.label : category.label}</span>

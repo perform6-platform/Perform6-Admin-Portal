@@ -88,10 +88,11 @@ export function ContentCard({
   }, [item.id, item.thumbnailUrl, item.status, item.updatedAt]);
 
   function handleClick() {
-    onSelect?.(item.id);
     if (canPlay) {
       onPlay?.(item);
+      return;
     }
+    onSelect?.(item.id);
   }
 
   return (
