@@ -150,16 +150,16 @@ export function SidebarPanel({
             className={cn(
               // Anchored to sidebar right edge; vertically midway between logo block and Dashboard.
               // Same bottom-edge anchor in expanded + collapsed so the control does not jump.
-              'absolute -right-4 bottom-0 z-30 flex h-7 w-7 translate-y-1/2 items-center justify-center rounded-full',
+              'absolute top-[70px] right-[-14px] z-30 flex h-7 w-7 items-center justify-center rounded-full',
               'border-2 border-white bg-brand-600 text-white shadow-[0_4px_12px_rgba(17,85,204,0.35)]',
               'transition-transform hover:scale-105 hover:bg-brand-500',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
             )}
           >
             {isCollapsedView ? (
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-5 w-5" />
             ) : (
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
             )}
           </button>
         )}
@@ -168,13 +168,13 @@ export function SidebarPanel({
             <img
               src={perform6Logo}
               alt="Perform6"
-              className="h-11 w-11 object-cover object-left"
+              className="h-12 w-12 object-cover object-left"
             />
           ) : (
             <img
               src={perform6Logo}
               alt="Perform6"
-              className="h-11 w-full object-contain object-left"
+              className="h-12 w-full object-contain object-left"
             />
           )}
         </div>

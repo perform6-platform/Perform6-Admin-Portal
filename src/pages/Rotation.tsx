@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RotationPhasePanel } from '../components/rotation/RotationPhasePanel';
 import { GlobalRotationSettingsPanel } from '../components/rotation/GlobalRotationSettingsPanel';
-import { Button, PageTitle } from '../components/ui';
+import { PageTitle } from '../components/ui';
 import type { ContentCategoryId } from '../constants/contentPlayback';
 import { useContent } from '../context/ContentContext';
 import { useRotationSchedule } from '../context/RotationScheduleContext';
@@ -251,26 +250,11 @@ export default function Rotation() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <PageTitle>Rotation</PageTitle>
-          <p className="mt-1 text-body-sm text-content-secondary">
-            Select a category to manage its content assignments and 36-day rotation schedule.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="md"
-          className="h-9 w-full gap-2 px-4 sm:w-auto"
-          onClick={() => {
-            if (!confirmLeaveIfDirty()) return;
-            navigate('/rotation-schedule');
-          }}
-        >
-          <CalendarDays className="h-4 w-4" />
-          View Schedule
-        </Button>
+      <div>
+        <PageTitle>Rotation</PageTitle>
+        <p className="mt-1 text-body-sm text-content-secondary">
+        Open a category, pick a track/variant playlist, and assign videos to the 36-day schedule.
+        </p>
       </div>
 
       <GlobalRotationSettingsPanel />
@@ -298,6 +282,10 @@ export default function Rotation() {
         assignments={assignments}
         isSaving={isSaving}
         onSave={() => void handleSave()}
+        onViewSchedule={() => {
+          if (!confirmLeaveIfDirty()) return;
+          navigate('/rotation-schedule');
+        }}
         onAssignmentChange={handleAssignmentChange}
       />
     </div>

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Save } from 'lucide-react';
+import { CalendarDays, Save } from 'lucide-react';
 import type { CategoryGroup } from '../../constants/contentPlayback';
 import { getPlaybackCategoryForContent, ROTATION_DAYS } from '../../constants/contentPlayback';
 import type { ContentCategoryId } from '../../constants/contentPlayback';
@@ -24,6 +24,7 @@ interface RotationPhasePanelProps {
   assignments: Record<string, VideoAssignmentState>;
   isSaving?: boolean;
   onSave?: () => void;
+  onViewSchedule?: () => void;
   onAssignmentChange: (
     categoryId: ContentCategoryId,
     videoTitle: string,
@@ -58,6 +59,7 @@ export function RotationPhasePanel({
   assignments,
   isSaving = false,
   onSave,
+  onViewSchedule,
   onAssignmentChange,
 }: RotationPhasePanelProps) {
   const { getVideosByCategory } = useContent();
@@ -109,17 +111,33 @@ export function RotationPhasePanel({
               ) : null}
               <p className="mt-2 text-caption text-content-muted">{secondary}</p>
             </div>
-            {onSave ? (
-              <Button
-                type="button"
-                size="md"
-                className="h-9 w-full shrink-0 gap-2 px-4 sm:w-auto"
-                disabled={isSaving}
-                onClick={onSave}
-              >
-                <Save className="h-4 w-4" />
-                {isSaving ? 'Saving…' : `Save ${group.label}`}
-              </Button>
+            {onSave || onViewSchedule ? (
+              <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                {onViewSchedule ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="md"
+                    className="h-9 w-full gap-2 px-4 sm:w-auto"
+                    onClick={onViewSchedule}
+                  >
+                    <CalendarDays className="h-4 w-4" />
+                    View Schedule
+                  </Button>
+                ) : null}
+                {onSave ? (
+                  <Button
+                    type="button"
+                    size="md"
+                    className="h-9 w-full gap-2 px-4 sm:w-auto"
+                    disabled={isSaving}
+                    onClick={onSave}
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSaving ? 'Saving…' : `Save ${group.label}`}
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </section>
@@ -139,17 +157,33 @@ export function RotationPhasePanel({
             ) : null}
             <p className="mt-2 text-caption text-content-muted">{secondary}</p>
           </div>
-          {onSave ? (
-            <Button
-              type="button"
-              size="md"
-              className="h-9 w-full shrink-0 gap-2 px-4 sm:w-auto"
-              disabled={isSaving}
-              onClick={onSave}
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? 'Saving…' : `Save ${group.label}`}
-            </Button>
+          {onSave || onViewSchedule ? (
+            <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              {onViewSchedule ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  className="h-9 w-full gap-2 px-4 sm:w-auto"
+                  onClick={onViewSchedule}
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  View Schedule
+                </Button>
+              ) : null}
+              {onSave ? (
+                <Button
+                  type="button"
+                  size="md"
+                  className="h-9 w-full gap-2 px-4 sm:w-auto"
+                  disabled={isSaving}
+                  onClick={onSave}
+                >
+                  <Save className="h-4 w-4" />
+                  {isSaving ? 'Saving…' : `Save ${group.label}`}
+                </Button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </section>

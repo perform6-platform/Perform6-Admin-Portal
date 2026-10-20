@@ -1,13 +1,11 @@
 import { useMemo } from 'react';
 import { useDeployment } from '../../hooks/useDeployments';
 import { useGlobalRotationSettings } from '../../hooks/useRotation';
-import { cn } from '../../lib/cn';
 import {
   formatBrandingModeLabel,
   formatCategoryShortLabel,
   formatDeploymentAxes,
   formatDeploymentTypeLabel,
-  formatEnumLabel,
   formatPlaylistKeyLabel,
   formatPortalDate,
   formatRotationScheduleLabel,
@@ -16,7 +14,7 @@ import {
 } from '../../lib/deploymentDisplay';
 import { isTouchscreenDeployment } from '../../lib/deploymentWizard';
 import { resolveStorageUrl } from '../../lib/libraryType';
-import { Badge, Button, CARD_SURFACE_CLASS, Modal, ModalBody, SectionLabel } from '../ui';
+import { Badge, Button, Modal, ModalBody, SectionLabel } from '../ui';
 
 export interface DeploymentDetailsModalProps {
   open: boolean;
@@ -82,7 +80,7 @@ export function DeploymentDetailsModal({
           <p className="text-body-sm text-content-muted">Failed to load deployment details.</p>
         ) : (
           <>
-            <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
+            <section>
               <SectionLabel className="mb-4 block">Overview</SectionLabel>
               <dl className="divide-y divide-surface-border rounded-lg border border-surface-border">
                 <DetailRow label="Name" value={deployment.name || '—'} />
@@ -117,7 +115,7 @@ export function DeploymentDetailsModal({
               </dl>
             </section>
 
-            <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
+            <section>
               <SectionLabel className="mb-4 block">
                 {isTouchscreen ? 'Content Category Assignments' : 'Screen → Category'}
               </SectionLabel>
@@ -138,11 +136,6 @@ export function DeploymentDetailsModal({
                             ? categoryAssignmentLabel(screen)
                             : `Screen ${index + 1}`}
                         </p>
-                        {!isTouchscreen ? (
-                          <p className="text-caption text-content-muted">
-                            {formatEnumLabel(screen.screenKey)}
-                          </p>
-                        ) : null}
                       </div>
                       <Badge variant="brand">
                         {isTouchscreen
@@ -159,7 +152,7 @@ export function DeploymentDetailsModal({
             </section>
 
             {deployment.devices && deployment.devices.length > 0 && (
-              <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
+              <section>
                 <SectionLabel className="mb-4 block">Linked Devices</SectionLabel>
                 <ul className="divide-y divide-surface-border rounded-lg border border-surface-border">
                   {deployment.devices.map((device) => {
@@ -208,7 +201,7 @@ export function DeploymentDetailsModal({
             )}
 
             {(logoUrl || branding?.brandName) && (
-              <section className={cn(CARD_SURFACE_CLASS, 'p-4 sm:p-6')}>
+              <section>
                 <SectionLabel className="mb-4 block">Branding</SectionLabel>
                 <div className="flex items-center gap-4">
                   {logoUrl && (

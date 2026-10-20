@@ -852,11 +852,10 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                       checked={rotationMode === 'GLOBAL'}
                       onChange={() => setRotationMode('GLOBAL')}
                     />
-                    Join Global Rotation
+                    Global Rotation
                   </span>
                   <span className="pl-6 text-caption text-content-secondary">
-                    Synchronize with the Portal&apos;s global 36-day rotation using a rolling 7-day
-                    content cache.
+                    Deployment follows the synchronized Perform6 global rotation.
                   </span>
                 </label>
                 <label
@@ -875,10 +874,10 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                       checked={rotationMode === 'DEVICE'}
                       onChange={() => setRotationMode('DEVICE')}
                     />
-                    Custom Rotation Schedule
+                    Custom Rotation
                   </span>
                   <span className="pl-6 text-caption text-content-secondary">
-                    Start an independent rotation from Day 1 with a rolling 7-day content cache.
+                  Deployment follows an independent rotation based on its configured start date.
                   </span>
                 </label>
               </div>
@@ -898,14 +897,14 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               {globalRotationStartDate ? (
                 <>
                   <p>
-                    Global Rotation Start Date:{' '}
+                    Global Day 1 :{' '}
                     <span className="font-medium text-content-primary">
                       {formatPortalDate(globalRotationStartDate)}
                     </span>
                   </p>
                   {globalRotationSettings?.currentRotationDay != null && (
                     <p className="mt-1">
-                      Current Rotation Day: Day {globalRotationSettings.currentRotationDay} of 36
+                      Current platform day : Day {globalRotationSettings.currentRotationDay} of 36
                     </p>
                   )}
                 </>

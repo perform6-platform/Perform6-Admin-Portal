@@ -243,7 +243,7 @@ export function EditDeploymentModal({
       open={open}
       onClose={onClose}
       title="Edit deployment"
-      description="Update deployment name, description, content type, environment, and branding."
+      description="Update content, branding, screens, or display name."
       size="lg"
       footer={
         <>

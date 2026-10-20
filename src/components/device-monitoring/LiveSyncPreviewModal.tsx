@@ -219,8 +219,10 @@ export function LiveSyncPreviewModal({
               ref={videoRef}
               key={fileUrl}
               src={fileUrl}
-              className="aspect-video w-full bg-black object-contain"
+              className="video-no-overflow aspect-video w-full bg-black object-contain"
               controls
+              controlsList="nodownload noremoteplayback noplaybackrate"
+              disablePictureInPicture
               playsInline
               muted
               autoPlay={screen?.isPlaying ?? true}

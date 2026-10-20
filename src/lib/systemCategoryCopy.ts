@@ -141,7 +141,7 @@ export function rotationCategoryDescription(slug: string | undefined): string | 
     case 'full-program':
       return 'Plays the assigned daily guided training program once when started by the user, then returns to Home if no other selection is made. Supports Pause and Resume.';
     case '15-minutes':
-      return 'Four independent zones, each playing its assigned 15-minute segment continuously until the next rotation day.';
+      return 'Designed for Custom Deployments using four independent HD226 players and displays. Each zone continuously loops its assigned 15-minute segment, following the applicable 36-day rotation schedule.';
     default:
       return null;
   }
@@ -152,14 +152,14 @@ export function rotationSecondaryInstruction(
   usesRotation: boolean,
 ): string {
   if (slug === '15-minutes') {
-    return 'Assign videos for each zone across the 36-day rotation.';
+    return 'Select which videos play on each day of the 36-day rotation.';
   }
   if (usesRotation) {
-    return 'Assign videos to the 36-day rotation schedule.';
+    return 'Select which videos play on each day of the 36-day rotation.';
   }
-  return 'Select one video for each configuration. The assigned video remains active until changed.';
+  return 'Choose one video — or leave none selected to remove it from the schedule. Selected video plays on all days.';
 }
 
 export function rotationEmptyPlaylistMessage(playlistLabel: string): string {
-  return `No videos available for ${playlistLabel}. Upload videos to the Content Library to begin assigning content.`;
+  return `No videos uploaded for ${playlistLabel}. Add content in Content Library first.`;
 }
