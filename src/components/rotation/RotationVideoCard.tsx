@@ -43,11 +43,6 @@ export function RotationVideoCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
-            {usesRotation && assignment.included && (
-              <span className="text-caption font-medium text-brand-600 dark:text-brand-400">
-                Day {assignment.day}
-              </span>
-            )}
             <Badge variant="success">Uploaded</Badge>
           </div>
           <p className="truncate text-body-sm font-medium text-content-primary">{video.title}</p>

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Dropdown, PageTitle } from '../components/ui';
+import { Download } from 'lucide-react';
+import { Button, Dropdown, PageTitle } from '../components/ui';
 import { useDeviceLogs } from '../hooks/useDeviceLogs';
 import { useDevices } from '../hooks/useDevices';
-import type { DeviceLogLevel, DeviceLogSource } from '../services/deviceLogs.api';
+import type { DeviceLogLevel, DeviceLogRow, DeviceLogSource } from '../services/deviceLogs.api';
 
 const levelOptions = [
   { value: '', label: 'All levels' },
@@ -21,6 +22,35 @@ function levelClass(level: DeviceLogLevel): string {
   if (level === 'ERROR') return 'text-red-600';
   if (level === 'WARN') return 'text-amber-600';
   return 'text-slate-600';
+}
+
+function csvEscape(value: string): string {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function downloadCurrentLogsCsv(rows: DeviceLogRow[]): void {
+  const headers = ['Time', 'Device', 'Serial', 'Level', 'Source', 'Message'];
+  const lines = rows.map((row) =>
+    [
+      new Date(row.createdAt).toISOString(),
+      row.deviceName || row.deviceId || row.pairingId || '',
+      row.serialNumber || '',
+      row.level,
+      row.source,
+      row.message,
+    ]
+      .map((cell) => csvEscape(String(cell)))
+      .join(','),
+  );
+  const csv = [headers.join(','), ...lines].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  link.href = url;
+  link.download = `perform6-device-logs-${stamp}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function DeviceLogs() {
@@ -57,14 +87,27 @@ export default function DeviceLogs() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <PageTitle>Device Logs</PageTitle>
-        <p className="text-sm text-slate-500">
-          Remote player logs (`[Perform6]` JS console + `perform6-led.log` autorun tail). OTA lines
-          include file path and byte progress — search <code className="rounded bg-slate-100 px-1">OTA</code>.
-          Refreshes every 3s.
-          {isFetching && !isLoading ? ' Updating…' : ''}
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <PageTitle>Device Logs</PageTitle>
+          <p className="text-sm text-slate-500">
+            Remote player logs (`[Perform6]` JS console + `perform6-led.log` autorun tail). OTA lines
+            include file path and byte progress — search{' '}
+            <code className="rounded bg-slate-100 px-1">OTA</code>. Refreshes every 3s.
+            {isFetching && !isLoading ? ' Updating…' : ''}
+          </p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="shrink-0 self-start"
+          disabled={rows.length === 0 || isLoading}
+          onClick={() => downloadCurrentLogsCsv(rows)}
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">

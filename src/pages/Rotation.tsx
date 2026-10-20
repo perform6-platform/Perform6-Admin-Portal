@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Save } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RotationPhasePanel } from '../components/rotation/RotationPhasePanel';
 import { GlobalRotationSettingsPanel } from '../components/rotation/GlobalRotationSettingsPanel';
@@ -28,6 +28,40 @@ import {
 import { getApiErrorMessage } from '../services/axios';
 import type { RotationBulkSection } from '../types/rotation';
 
+const ACTIVE_GROUP_STORAGE_KEY = 'perform6.rotation.activeGroupKey';
+
+function readStoredGroupKey(): string | null {
+  try {
+    return sessionStorage.getItem(ACTIVE_GROUP_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredGroupKey(key: string) {
+  try {
+    sessionStorage.setItem(ACTIVE_GROUP_STORAGE_KEY, key);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function assignmentsEqual(
+  a: Record<string, VideoAssignmentState>,
+  b: Record<string, VideoAssignmentState>,
+): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    const left = a[key];
+    const right = b[key];
+    if (!left && !right) continue;
+    if (!left || !right) return false;
+    if (left.included !== right.included) return false;
+    if ((left.day ?? null) !== (right.day ?? null)) return false;
+  }
+  return true;
+}
+
 export default function Rotation() {
   const navigate = useNavigate();
   const { getVideosByCategory, items } = useContent();
@@ -41,9 +75,17 @@ export default function Rotation() {
   const { mutateAsync: patchBulk, isPending: isSavingBulk } = usePatchRotationBulk();
   const { mutateAsync: patchProgram, isPending: isSavingProgram } = usePatchRotationProgram();
   const isSaving = isSavingBulk || isSavingProgram;
-  const [activeGroupKey, setActiveGroupKey] = useState<string>('default');
+  const [activeGroupKey, setActiveGroupKey] = useState<string>(
+    () => readStoredGroupKey() ?? 'default',
+  );
   const [assignments, setAssignments] = useState<Record<string, VideoAssignmentState>>({});
+  const [savedBaseline, setSavedBaseline] = useState<Record<string, VideoAssignmentState>>({});
   const skipNextProgramsSyncRef = useRef(false);
+
+  const isDirty = useMemo(
+    () => !assignmentsEqual(assignments, savedBaseline),
+    [assignments, savedBaseline],
+  );
 
   useEffect(() => {
     if (!programs) return;
@@ -52,17 +94,54 @@ export default function Rotation() {
       return;
     }
     if (!Array.isArray(programs) && normalizeRotationPrograms(programs).length === 0) return;
-    setAssignments(buildVideoAssignmentsFromPrograms(programs, getVideosByCategory));
+    const next = buildVideoAssignmentsFromPrograms(programs, getVideosByCategory);
+    setAssignments(next);
+    setSavedBaseline(next);
   }, [programs, getVideosByCategory]);
 
   useEffect(() => {
-    if (categoryGroups.some((group) => group.groupKey === activeGroupKey)) return;
+    if (categoryGroups.some((group) => group.groupKey === activeGroupKey)) {
+      writeStoredGroupKey(activeGroupKey);
+      return;
+    }
+    const stored = readStoredGroupKey();
+    if (stored && categoryGroups.some((group) => group.groupKey === stored)) {
+      setActiveGroupKey(stored);
+      return;
+    }
     if (categoryGroups[0]) setActiveGroupKey(categoryGroups[0].groupKey);
   }, [categoryGroups, activeGroupKey]);
+
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
 
   const activeGroup = useMemo(
     () => categoryGroups.find((group) => group.groupKey === activeGroupKey),
     [activeGroupKey, categoryGroups],
+  );
+
+  const confirmLeaveIfDirty = useCallback(() => {
+    if (!isDirty) return true;
+    return window.confirm(
+      'You have unsaved rotation changes. Leave this page without saving?',
+    );
+  }, [isDirty]);
+
+  const selectGroup = useCallback(
+    (groupKey: string) => {
+      if (groupKey === activeGroupKey) return;
+      if (!confirmLeaveIfDirty()) return;
+      setActiveGroupKey(groupKey);
+      writeStoredGroupKey(groupKey);
+    },
+    [activeGroupKey, confirmLeaveIfDirty],
   );
 
   const handleAssignmentChange = useCallback(
@@ -80,6 +159,17 @@ export default function Rotation() {
           });
         }
 
+        // One video per rotation day within a playlist.
+        if (next.included && usesRotationCategory(categoryId, categoryGroups)) {
+          Object.keys(updated).forEach((assignmentKey) => {
+            if (!assignmentKey.startsWith(`${categoryId}::`) || assignmentKey === key) return;
+            const other = updated[assignmentKey];
+            if (other?.included && other.day === next.day) {
+              updated[assignmentKey] = { ...other, included: false };
+            }
+          });
+        }
+
         return updated;
       });
     },
@@ -93,8 +183,8 @@ export default function Rotation() {
       ([key, state]) => {
         const separatorIndex = key.indexOf('::');
         const categoryId = key.slice(0, separatorIndex) as ContentCategoryId;
-        const videoTitle = key.slice(separatorIndex + 2);
-        return { categoryId, videoTitle, ...state };
+        const title = key.slice(separatorIndex + 2);
+        return { categoryId, videoTitle: title, ...state };
       },
     );
 
@@ -116,7 +206,6 @@ export default function Rotation() {
             sectionAssignments,
             items,
           );
-          // Empty assignments clears all days for this playlist (full replace).
           await patchProgram({ programId, payload });
         }
       } else {
@@ -135,6 +224,7 @@ export default function Rotation() {
         await patchBulk({ section, payload });
       }
 
+      setSavedBaseline(assignments);
       showToast({
         title: 'Rotation saved',
         message: `${activeGroup.label} synced to the backend.`,
@@ -165,32 +255,22 @@ export default function Rotation() {
         <div>
           <PageTitle>Rotation</PageTitle>
           <p className="mt-1 text-body-sm text-content-secondary">
-            Open a category, pick a track/variant playlist, and assign videos to the 36-day
-            schedule.
+            Select a category to manage its content assignments and 36-day rotation schedule.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            size="md"
-            className="h-9 w-full gap-2 px-4 sm:w-auto"
-            onClick={() => navigate('/rotation-schedule')}
-          >
-            <CalendarDays className="h-4 w-4" />
-            View Schedule
-          </Button>
-          <Button
-            type="button"
-            size="md"
-            className="h-9 w-full gap-2 px-4 sm:w-auto"
-            disabled={isSaving}
-            onClick={() => void handleSave()}
-          >
-            <Save className="h-4 w-4" />
-            {isSaving ? 'Saving…' : `Save ${activeGroup.label}`}
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="md"
+          className="h-9 w-full gap-2 px-4 sm:w-auto"
+          onClick={() => {
+            if (!confirmLeaveIfDirty()) return;
+            navigate('/rotation-schedule');
+          }}
+        >
+          <CalendarDays className="h-4 w-4" />
+          View Schedule
+        </Button>
       </div>
 
       <GlobalRotationSettingsPanel />
@@ -200,7 +280,7 @@ export default function Rotation() {
           <button
             key={group.groupKey}
             type="button"
-            onClick={() => setActiveGroupKey(group.groupKey)}
+            onClick={() => selectGroup(group.groupKey)}
             className={cn(
               'shrink-0 rounded-lg border px-4 py-2 text-body-sm font-medium transition-colors',
               activeGroupKey === group.groupKey
@@ -216,6 +296,8 @@ export default function Rotation() {
       <RotationPhasePanel
         group={activeGroup}
         assignments={assignments}
+        isSaving={isSaving}
+        onSave={() => void handleSave()}
         onAssignmentChange={handleAssignmentChange}
       />
     </div>
@@ -234,6 +316,7 @@ function usesRotationCategory(
     group.playbackCategory === 'phase-1' ||
     group.playbackCategory === 'phase-2' ||
     group.playbackCategory === 'full-program' ||
-    group.playbackCategory === 'custom'
+    group.playbackCategory === 'custom' ||
+    group.slug === '15-minutes'
   );
 }

@@ -59,9 +59,10 @@ export function formatTouchSlotLabel(slot?: string | null): string {
 export function formatTouchPlaybackState(state?: string | null): string {
   switch (state) {
     case 'MENU':
-      return 'Main menu';
+    case 'IDLE':
+      return 'Home';
     case 'MODAL':
-      return 'Category overview';
+      return 'Session selected';
     case 'PLAYING':
       return 'Session playing';
     case 'PAUSED':

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Download, Link2, Link2Off, Ban, RotateCcw } from 'lucide-react';
 import type { Device } from '../../constants/devices';
-import { useRotationSchedule } from '../../context/RotationScheduleContext';
 import { useToast } from '../../context/ToastContext';
 import {
   useAttachDevice,
@@ -11,11 +10,10 @@ import {
 } from '../../hooks/useDevices';
 import { cn } from '../../lib/cn';
 import { formatDeviceContentAxes } from '../../lib/deploymentDisplay';
-import {
-  exportRotationScheduleCsv,
-  getDeviceScheduleExportFilename,
-} from '../../lib/exportRotationSchedule';
+import { getDeviceScheduleExportFilename } from '../../lib/exportRotationSchedule';
+import { exportScheduleTableCsv } from '../../lib/scheduleTable';
 import { getApiErrorMessage } from '../../services/axios';
+import { getDeploymentScheduleTable } from '../../services/deployments.api';
 import { AttachDeviceModal } from './AttachDeviceModal';
 import { BrightSignDeviceImage } from './BrightSignDeviceImage';
 import { DeviceRemoteOps } from '../device-monitoring/DeviceRemoteOps';
@@ -52,7 +50,6 @@ function DetailRow({ label, value }: DetailRowProps) {
 }
 
 export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProps) {
-  const { getRowByDay } = useRotationSchedule();
   const { showToast } = useToast();
   const { mutateAsync: disconnect, isPending: isDisconnecting } = useDisconnectDevice();
   const { mutateAsync: disable, isPending: isDisabling } = useDisableDevice();
@@ -63,6 +60,7 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const [disableOpen, setDisableOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [isExportingSchedule, setIsExportingSchedule] = useState(false);
 
   if (!device) {
     return (
@@ -83,8 +81,37 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const canRestore = Boolean(registeredDeviceId) && (isDisabled || needsRepair);
   const axes = formatDeviceContentAxes(device);
 
-  function handleExportSchedule() {
-    exportRotationScheduleCsv(getRowByDay, getDeviceScheduleExportFilename(device!.name));
+  async function handleExportSchedule() {
+    const deploymentId = device!.deploymentId;
+    const rotationStartDate =
+      device!.effectiveRotationStartDate ?? device!.rotationStartDate ?? null;
+    if (!deploymentId || !rotationStartDate) {
+      showToast({
+        title: 'Schedule unavailable',
+        message: 'Attach this device to a deployment with a rotation start date to export.',
+        variant: 'error',
+      });
+      return;
+    }
+    setIsExportingSchedule(true);
+    try {
+      const table = await getDeploymentScheduleTable(deploymentId, {
+        rotationStartDate,
+      });
+      exportScheduleTableCsv(table, getDeviceScheduleExportFilename(device!.name));
+      showToast({
+        title: 'Schedule exported',
+        message: 'Downloaded the same schedule-table CSV used on the Schedule page.',
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Failed to export schedule'),
+        variant: 'error',
+      });
+    } finally {
+      setIsExportingSchedule(false);
+    }
   }
 
   async function handleDisconnect() {
@@ -383,9 +410,15 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
             Disable frees the serial for a fresh pair → claim → register.
           </p>
         )}
-        <Button type="button" size="sm" className="h-9 w-full gap-2" onClick={handleExportSchedule}>
+        <Button
+          type="button"
+          size="sm"
+          className="h-9 w-full gap-2"
+          disabled={isExportingSchedule}
+          onClick={() => void handleExportSchedule()}
+        >
           <Download className="h-4 w-4" />
-          Export Schedule
+          {isExportingSchedule ? 'Exporting…' : 'Export Schedule'}
         </Button>
       </div>
 

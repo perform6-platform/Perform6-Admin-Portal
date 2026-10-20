@@ -18,7 +18,8 @@ export default function Deployments() {
         <div>
           <PageTitle>Deployments</PageTitle>
           <p className="mt-1 text-body-sm text-content-secondary">
-            Configure type, category, variant, pick a claimed device, set branding, and register.
+            Register Touchscreen or Custom deployments, assign devices, and configure branding and
+            rotation.
           </p>
         </div>
         <Button

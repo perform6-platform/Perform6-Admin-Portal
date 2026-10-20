@@ -4,6 +4,7 @@ import type {
   DeploymentScheduleTableRow,
 } from '../../types/deployments';
 import {
+  getScheduleColumnPlaylistBadge,
   getScheduleColumnVariantLabel,
   groupScheduleColumns,
   hasScheduleVariantSubHeaders,
@@ -19,13 +20,14 @@ const SCHEDULE_FOOTER_NOTE =
   'Schedule preview from the deployment API. Assign videos in Rotation to update each day.';
 
 const FIXED_COLUMNS = [
-  { key: 'day', label: 'Day' },
   { key: 'date', label: 'Date' },
   { key: 'rotationDay', label: 'Rotation Day' },
 ] as const;
 
 const thBaseClass =
-  'whitespace-nowrap px-4 py-2 text-center text-table-header font-semibold uppercase';
+  'whitespace-nowrap px-4 py-2 text-center text-table-header font-semibold';
+
+const thMetaClass = cn(thBaseClass, 'uppercase');
 
 function isGolfColumn(column: DeploymentScheduleTableColumn): boolean {
   const libraryType = (column.libraryType ?? '').toUpperCase();
@@ -174,7 +176,7 @@ function RotationScheduleTableHeader({
         {showActions && (
           <th
             rowSpan={headerRowCount}
-            className={cn(thBaseClass, 'rotation-schedule-header-neutral w-12')}
+            className={cn(thMetaClass, 'rotation-schedule-header-neutral w-12')}
           >
             Edit
           </th>
@@ -183,7 +185,7 @@ function RotationScheduleTableHeader({
           <th
             key={column.key}
             rowSpan={headerRowCount}
-            className={cn(thBaseClass, 'rotation-schedule-header-neutral')}
+            className={cn(thMetaClass, 'rotation-schedule-header-neutral')}
           >
             {column.label}
           </th>
@@ -192,7 +194,7 @@ function RotationScheduleTableHeader({
         {showViewActions && (
           <th
             rowSpan={headerRowCount}
-            className={cn(thBaseClass, 'rotation-schedule-header-neutral w-12')}
+            className={cn(thMetaClass, 'rotation-schedule-header-neutral w-12')}
           >
             View
           </th>
@@ -273,26 +275,24 @@ export function RotationScheduleTable({
                   {showActions && (
                     <td className="px-2 py-2 text-center">
                       <IconButton
-                        label={`Edit Day ${row.day}`}
+                        label={`Edit Day ${row.rotationDay}`}
                         className="mx-auto h-8 w-8"
-                        onClick={() => onEditDay?.(row.day)}
+                        onClick={() => onEditDay?.(row.rotationDay)}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </IconButton>
                     </td>
                   )}
                   <td className="px-4 py-2 text-body-sm text-content-primary">
-                    {row.dayLabel}
-                  </td>
-                  <td className="px-4 py-2 text-body-sm text-content-primary">
                     {row.dateLabel}
                   </td>
                   <td className="px-4 py-2 text-body-sm text-content-primary">
-                    {row.rotationDay}
+                    Day {row.rotationDay}
                   </td>
                   {columns.map((column) => {
                     const isHighlightedCell =
                       highlightCell?.day === row.day && highlightCell.columnKey === column.key;
+                    const playlistLabel = getScheduleColumnPlaylistBadge(column);
                     return (
                       <td
                         key={column.key}
@@ -303,8 +303,9 @@ export function RotationScheduleTable({
                       >
                         <ScheduleTableCell
                           cell={row.cells?.[column.key]}
-                          variantLabel={getScheduleColumnVariantLabel(column)}
-                          showVariant={Boolean(getScheduleColumnVariantLabel(column))}
+                          playlistLabel={playlistLabel}
+                          showPlaylistLabel={Boolean(playlistLabel)}
+                          rotationDay={row.rotationDay}
                         />
                       </td>
                     );
@@ -312,7 +313,7 @@ export function RotationScheduleTable({
                   {showViewActions && onViewRow && (
                     <td className="px-2 py-2 text-center">
                       <IconButton
-                        label={`View Day ${row.day} videos`}
+                        label={`View details for Day ${row.rotationDay}`}
                         className="mx-auto h-8 w-8"
                         onClick={() => onViewRow(row)}
                       >

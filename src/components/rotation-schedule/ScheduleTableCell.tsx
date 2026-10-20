@@ -8,23 +8,25 @@ import { Badge } from '../ui';
 export interface ScheduleTableCellProps {
   cell: DeploymentScheduleTableCell | null | undefined;
   compact?: boolean;
-  /** Wall / No Wall — shown for Phase 1 columns. */
-  variantLabel?: string | null;
-  showVariant?: boolean;
+  /** Blue playlist / variant badge (e.g. Default (Golf), Zone 1, Fitness (No Wall)). */
+  playlistLabel?: string | null;
+  showPlaylistLabel?: boolean;
+  rotationDay?: number;
 }
 
 export function ScheduleTableCell({
   cell,
   compact = false,
-  variantLabel,
-  showVariant = false,
+  playlistLabel,
+  showPlaylistLabel = false,
+  rotationDay,
 }: ScheduleTableCellProps) {
   const assigned = isScheduleCellAssigned(cell);
-  const title = getScheduleCellTitle(cell);
+  const title = getScheduleCellTitle(cell, rotationDay);
   const thumbnailUrl = resolveStorageUrl(cell?.thumbnail);
 
   return (
-    <div className={cn('flex min-w-0 items-center gap-2', compact ? 'max-w-[180px]' : 'max-w-[220px]')}>
+    <div className={cn('flex min-w-0 items-center gap-2', compact ? 'max-w-[180px]' : 'max-w-[240px]')}>
       <div
         className={cn(
           'relative shrink-0 overflow-hidden rounded-md border border-surface-border bg-gradient-to-br from-p6-gray-300 to-p6-gray-400 dark:from-p6-gray-700 dark:to-p6-gray-900',
@@ -40,15 +42,15 @@ export function ScheduleTableCell({
         )}
       </div>
       <div className="min-w-0 flex-1">
-        {showVariant && variantLabel && (
+        {showPlaylistLabel && playlistLabel ? (
           <Badge variant="brand" className="mb-0.5 max-w-full truncate">
-            {variantLabel}
+            {playlistLabel}
           </Badge>
-        )}
+        ) : null}
         <span
           className={cn(
-            'block min-w-0 truncate text-body-sm',
-            assigned ? 'text-content-secondary' : 'italic text-content-muted',
+            'block min-w-0 text-body-sm',
+            assigned ? 'truncate text-content-secondary' : 'italic text-content-muted',
           )}
           title={title}
         >

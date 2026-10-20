@@ -38,12 +38,12 @@ export const PALETTE_SLUG_ORDER = [
 ] as const;
 
 export const PALETTE_SHORT_LABELS: Record<string, string> = {
-  'start-here': 'Start',
+  'start-here': 'Start Here',
   default: 'Default',
   'phase-1': 'Phase 1',
   'phase-2': 'Phase 2',
   'full-program': 'Full Program',
-  '15-minutes': '15 Min',
+  '15-minutes': 'Full Program (4-Zone)',
 };
 
 export interface DeploymentScreenDefinition {
@@ -141,4 +141,8 @@ export function isXcModel(model: string | null | undefined): boolean {
 
 export function isHdModel(model: string | null | undefined): boolean {
   return (model ?? '').toUpperCase().includes('HD226');
+}
+
+export function isXtModel(model: string | null | undefined): boolean {
+  return (model ?? '').toUpperCase().includes('XT2145');
 }

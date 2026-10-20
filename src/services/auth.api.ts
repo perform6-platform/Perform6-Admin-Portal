@@ -21,6 +21,18 @@ export async function getCurrentUserRequest(): Promise<AuthUser> {
   return data.data;
 }
 
+export interface UpdateProfilePayload {
+  name?: string;
+  email?: string;
+}
+
+export async function updateProfileRequest(
+  payload: UpdateProfilePayload,
+): Promise<AuthUser> {
+  const { data } = await apiClient.patch<ApiResponse<AuthUser>>('/auth/me', payload);
+  return data.data;
+}
+
 export interface MessageResult {
   message: string;
 }

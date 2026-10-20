@@ -2,10 +2,10 @@ import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
+  CalendarDays,
   Cloud,
   Eye,
   EyeOff,
-  LineChart,
   Lock,
   Mail,
   Monitor,
@@ -20,18 +20,19 @@ import loginBg from '../assets/login-bg.png';
 const FEATURES = [
   {
     icon: Monitor,
-    title: 'Centralized Control',
-    description: 'Manage all your BrightSign devices from one powerful dashboard.',
+    title: 'Device Management',
+    description: 'Configure and manage Perform6 players and deployments.',
   },
   {
     icon: Cloud,
-    title: 'Offline First',
-    description: 'Reliable playback and content delivery even without an internet connection.',
+    title: 'Offline Playback',
+    description:
+      'Scheduled content remains available locally when internet connectivity is interrupted.',
   },
   {
-    icon: LineChart,
-    title: 'Powerful Analytics',
-    description: 'Real-time insights and reports to optimize performance.',
+    icon: CalendarDays,
+    title: 'Content Scheduling',
+    description: 'Manage daily programming and scheduled content delivery.',
   },
 ] as const;
 
@@ -88,14 +89,11 @@ export default function Login() {
           <div className="flex flex-1 items-center">
             <div className="max-w-md">
               <h1 className="text-4xl font-bold leading-tight text-white">
-                Smart Fitness.
+                Perform6 Management Portal
               </h1>
-              <p className="mt-1 text-4xl font-bold leading-tight text-white">
-                Seamless Management.
-              </p>
               <p className="mt-4 text-sm leading-relaxed text-white/75">
-                Perform6 is an interactive touchscreen fitness platform built for reliability,
-                offline performance and centralized control.
+                Manage Perform6 devices, content, schedules and deployments from one centralized
+                portal.
               </p>
 
               <ul className="mt-8 space-y-4">
@@ -114,7 +112,7 @@ export default function Login() {
             </div>
           </div>
 
-          <p className="shrink-0 text-xs text-white/45">© 2024 Perform6. All rights reserved.</p>
+          <p className="shrink-0 text-xs text-white/45">© 2026 Perform6. All rights reserved.</p>
         </div>
       </div>
 
@@ -122,7 +120,7 @@ export default function Login() {
       <div className="flex w-full flex-col items-center justify-center bg-white px-8 py-8 sm:px-8 lg:w-1/2 lg:px-16 xl:px-24">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold text-p6-gray-950">Welcome Back!</h2>
+            <h2 className="text-3xl font-bold text-p6-gray-950">Welcome Back</h2>
             <p className="mt-2 text-sm text-p6-gray-600">
               Sign in to access your Perform6 admin dashboard.
             </p>
@@ -200,16 +198,6 @@ export default function Login() {
               <ArrowRight className="h-4 w-4" strokeWidth={2} />
             </Button>
           </form>
-
-          <p className="mt-8 text-center text-sm text-p6-gray-600">
-            Don&apos;t have an account?{' '}
-            <button
-              type="button"
-              className="font-medium text-brand-600 transition-colors hover:text-brand-500"
-            >
-              Contact your system administrator.
-            </button>
-          </p>
         </div>
       </div>
     </div>

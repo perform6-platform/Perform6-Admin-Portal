@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Folder, HardDrive, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronRight, Folder, HardDrive, RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDeviceSdFs, useQueueDeviceRemoteCommand } from '../../hooks/useDevices';
 import { queryKeys } from '../../lib/queryKeys';
@@ -50,6 +50,7 @@ export function DeviceStoragePanel({
   const [entries, setEntries] = useState<SdFsEntry[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [filesExpanded, setFilesExpanded] = useState(false);
 
   const polling = Boolean(awaitingCommandId);
   const { data: sdFs } = useDeviceSdFs(deviceId, {
@@ -182,62 +183,92 @@ export function DeviceStoragePanel({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-body-sm font-medium text-content-primary">Folders on SD:/</p>
-        <Button
+      <div className="rounded-lg border border-surface-border">
+        <button
           type="button"
-          size="sm"
-          variant="outline"
-          disabled={!deviceId || disabled || isQueueing}
-          onClick={() => void refreshFolders()}
+          className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+          onClick={() => setFilesExpanded((open) => !open)}
+          aria-expanded={filesExpanded}
         >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh folders
-        </Button>
+          <span className="flex items-center gap-2 text-body-sm font-medium text-content-primary">
+            {filesExpanded ? (
+              <ChevronDown className="h-4 w-4 shrink-0 text-content-muted" />
+            ) : (
+              <ChevronRight className="h-4 w-4 shrink-0 text-content-muted" />
+            )}
+            Folders on SD:/
+            {folders.length + rootFiles.length > 0 ? (
+              <span className="text-caption font-normal text-content-muted">
+                ({folders.length + rootFiles.length})
+              </span>
+            ) : null}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!deviceId || disabled || isQueueing}
+            onClick={(event) => {
+              event.stopPropagation();
+              void refreshFolders();
+            }}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </Button>
+        </button>
+
+        {filesExpanded ? (
+          <div className="space-y-2 border-t border-surface-border px-3 py-3">
+            {status ? <p className="text-caption text-content-secondary">{status}</p> : null}
+            {error ? <p className="text-caption text-danger">{error}</p> : null}
+
+            {folders.length === 0 && rootFiles.length === 0 ? (
+              <p className="text-caption text-content-muted">
+                No folder list yet — click Refresh (player must be online; result arrives on next
+                heartbeat).
+              </p>
+            ) : (
+              <ul className="divide-y divide-surface-border rounded-lg border border-surface-border">
+                {folders.map((entry) => (
+                  <li
+                    key={`dir-${entry.name}`}
+                    className="flex items-start gap-3 px-3 py-2.5 text-body-sm"
+                  >
+                    <Folder className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-content-primary">{entry.name}</p>
+                      <p className="text-caption text-content-muted">{folderRole(entry.name)}</p>
+                    </div>
+                    {entry.kind === 'file' && entry.size > 0 ? (
+                      <span className="text-caption text-content-muted">
+                        {formatBytes(entry.size)}
+                      </span>
+                    ) : (
+                      <span className="text-caption text-content-muted">folder</span>
+                    )}
+                  </li>
+                ))}
+                {rootFiles.map((entry) => (
+                  <li
+                    key={`file-${entry.name}`}
+                    className="flex items-start gap-3 px-3 py-2.5 text-body-sm"
+                  >
+                    <HardDrive className="mt-0.5 h-4 w-4 shrink-0 text-content-muted" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-content-primary">{entry.name}</p>
+                      <p className="text-caption text-content-muted">{folderRole(entry.name)}</p>
+                    </div>
+                    <span className="text-caption text-content-muted">
+                      {formatBytes(entry.size)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
       </div>
-
-      {status ? <p className="text-caption text-content-secondary">{status}</p> : null}
-      {error ? <p className="text-caption text-danger">{error}</p> : null}
-
-      {folders.length === 0 && rootFiles.length === 0 ? (
-        <p className="text-caption text-content-muted">
-          No folder list yet — click Refresh (player must be online; result arrives on next
-          heartbeat).
-        </p>
-      ) : (
-        <ul className="divide-y divide-surface-border rounded-lg border border-surface-border">
-          {folders.map((entry) => (
-            <li
-              key={`dir-${entry.name}`}
-              className="flex items-start gap-3 px-3 py-2.5 text-body-sm"
-            >
-              <Folder className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-content-primary">{entry.name}</p>
-                <p className="text-caption text-content-muted">{folderRole(entry.name)}</p>
-              </div>
-              {entry.kind === 'file' && entry.size > 0 ? (
-                <span className="text-caption text-content-muted">{formatBytes(entry.size)}</span>
-              ) : (
-                <span className="text-caption text-content-muted">folder</span>
-              )}
-            </li>
-          ))}
-          {rootFiles.map((entry) => (
-            <li
-              key={`file-${entry.name}`}
-              className="flex items-start gap-3 px-3 py-2.5 text-body-sm"
-            >
-              <HardDrive className="mt-0.5 h-4 w-4 shrink-0 text-content-muted" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-content-primary">{entry.name}</p>
-                <p className="text-caption text-content-muted">{folderRole(entry.name)}</p>
-              </div>
-              <span className="text-caption text-content-muted">{formatBytes(entry.size)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

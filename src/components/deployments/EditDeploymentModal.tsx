@@ -37,9 +37,9 @@ export interface EditDeploymentModalProps {
 type ScreenRoute = { categoryId: string; playlistKey?: string };
 
 const brandingOptions = [
-  { value: 'PLATFORM_DEFAULT', label: 'Platform default' },
-  { value: 'CUSTOM', label: 'Custom' },
   { value: 'NONE', label: 'None' },
+  { value: 'PLATFORM_DEFAULT', label: 'Perform6' },
+  { value: 'CUSTOM', label: 'Custom' },
 ];
 
 function isDefaultDeployment(type: string | undefined): boolean {
@@ -243,7 +243,7 @@ export function EditDeploymentModal({
       open={open}
       onClose={onClose}
       title="Edit deployment"
-      description="Update content, branding, screens, or display name."
+      description="Update deployment name, description, content type, environment, and branding."
       size="lg"
       footer={
         <>
@@ -287,7 +287,7 @@ export function EditDeploymentModal({
           {needsField && (
             <div>
               <label className="mb-1 block text-xs font-medium text-content-muted">
-                Field category
+                Content Type
               </label>
               <Dropdown
                 fullWidth
@@ -307,7 +307,7 @@ export function EditDeploymentModal({
           {needsVariant && (
             <div>
               <label className="mb-1 block text-xs font-medium text-content-muted">
-                Exercise variant
+                Environment
               </label>
               <Dropdown
                 fullWidth
@@ -318,14 +318,16 @@ export function EditDeploymentModal({
                   label: variant.label,
                 }))}
                 disabled={!fieldCategory}
-                placeholder={fieldCategory ? 'Select variant' : 'Select field first'}
+                placeholder={
+                  fieldCategory ? 'Select environment' : 'Select content type first'
+                }
               />
             </div>
           )}
 
           <div>
             <label className="mb-1 block text-xs font-medium text-content-muted">
-              Branding mode
+              Branding
             </label>
             <Dropdown
               fullWidth
