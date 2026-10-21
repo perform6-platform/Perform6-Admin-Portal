@@ -147,16 +147,18 @@ export default function DeviceLogs() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Dropdown options={deviceOptions} value={deviceId} onChange={setDeviceId} />
-        <Dropdown options={levelOptions} value={level} onChange={setLevel} />
-        <Dropdown options={sourceOptions} value={source} onChange={setSource} />
+      <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <Dropdown options={deviceOptions} value={deviceId} onChange={setDeviceId} />
+          <Dropdown options={levelOptions} value={level} onChange={setLevel} />
+          <Dropdown options={sourceOptions} value={source} onChange={setSource} />
+        </div>
         <input
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search e.g. OTA, manifest, prefetch"
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:w-72"
         />
       </div>
 
