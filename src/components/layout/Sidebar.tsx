@@ -150,7 +150,7 @@ export function SidebarPanel({
             className={cn(
               // Anchored to sidebar right edge; vertically midway between logo block and Dashboard.
               // Same bottom-edge anchor in expanded + collapsed so the control does not jump.
-              'absolute top-[70px] right-[-14px] z-30 flex h-7 w-7 items-center justify-center rounded-full',
+              'absolute top-[73px] right-[-14px] z-30 flex h-7 w-7 items-center justify-center rounded-full',
               'border-2 border-white bg-brand-600 text-white shadow-[0_4px_12px_rgba(17,85,204,0.35)]',
               'transition-transform hover:scale-105 hover:bg-brand-500',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
