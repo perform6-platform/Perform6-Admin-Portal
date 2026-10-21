@@ -56,7 +56,7 @@ export function DeploymentDetailsModal({
     branding && typeof branding.logoUrl === 'string'
       ? resolveStorageUrl(branding.logoUrl)
       : null;
-  const isTouchscreen = isTouchscreenDeployment(deployment?.deploymentType);
+  const isTouchscreen = isTouchscreenDeployment(deployment?.deploymentType ?? '');
   const rotationMode = resolveDeploymentRotationMode(deployment);
 
   return (

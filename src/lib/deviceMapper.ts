@@ -14,7 +14,10 @@ function relativeTime(iso: string | null | undefined): string {
   return formatDistanceToNow(date, { addSuffix: true });
 }
 
-function storagePercent(used?: string, capacity?: string): number {
+function storagePercent(
+  used?: string | null,
+  capacity?: string | null,
+): number {
   const usedBytes = Number(used ?? 0);
   const capacityBytes = Number(capacity ?? 0);
   if (!capacityBytes || Number.isNaN(usedBytes) || Number.isNaN(capacityBytes)) return 0;
