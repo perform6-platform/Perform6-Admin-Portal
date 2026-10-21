@@ -1,40 +1,32 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 import type { ApiErrorBody } from '../types/api';
+import { API_BASE_URL } from '../lib/apiBaseUrl';
+import { getAuthSession } from '../lib/authStorage';
+import { forceLogout } from '../lib/authSession';
 import {
-  getAccessToken,
-  getAuthSession,
-  updateAuthTokens,
-} from '../lib/authStorage';
-import { forceLogout, notifyAuthSessionChanged } from '../lib/authSession';
-
-function normalizeBaseUrl(url: string): string {
-  const trimmed = url.trim().replace(/\/+$/, '');
-  const withProtocol = /^https?:\/\//i.test(trimmed)
-    ? trimmed
-    : `http://${trimmed}`;
-  return withProtocol.endsWith('/api/v1') ? withProtocol : `${withProtocol}/api/v1`;
-}
-
-const baseURL = normalizeBaseUrl(
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1',
-);
+  ensureFreshAccessToken,
+  isAuthPublicPath,
+  refreshAccessToken,
+} from './sessionRefresh';
 
 export const apiClient = axios.create({
-  baseURL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = getAccessToken();
+apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  if (isAuthPublicPath(config.url)) {
+    return config;
+  }
+
+  const token = await ensureFreshAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
-
-let refreshPromise: Promise<string> | null = null;
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -45,38 +37,19 @@ apiClient.interceptors.response.use(
     const request = error.config as
       | (InternalAxiosRequestConfig & { _retried?: boolean })
       | undefined;
-    if (!request || request._retried || request.url?.includes('/auth/')) {
+    if (!request || request._retried || isAuthPublicPath(request.url)) {
       return Promise.reject(error);
     }
 
-    const refreshToken = getAuthSession()?.refreshToken;
-    if (!refreshToken) {
+    if (!getAuthSession()?.refreshToken) {
       forceLogout('missing-refresh-token');
       return Promise.reject(error);
     }
 
     request._retried = true;
-    refreshPromise ??= axios
-      .post(`${baseURL}/auth/refresh`, { refreshToken })
-      .then((response) => {
-        const data = response.data?.data;
-        if (!data?.accessToken || !data?.refreshToken) {
-          throw new Error('Invalid refresh response');
-        }
-        updateAuthTokens(data.accessToken, data.refreshToken);
-        notifyAuthSessionChanged();
-        return data.accessToken as string;
-      })
-      .catch((refreshError) => {
-        forceLogout('refresh-failed');
-        throw refreshError;
-      })
-      .finally(() => {
-        refreshPromise = null;
-      });
 
     try {
-      const accessToken = await refreshPromise;
+      const accessToken = await refreshAccessToken();
       request.headers.Authorization = `Bearer ${accessToken}`;
       return apiClient.request(request);
     } catch (refreshError) {
