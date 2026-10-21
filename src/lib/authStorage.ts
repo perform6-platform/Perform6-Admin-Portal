@@ -37,6 +37,13 @@ export function updateAuthTokens(accessToken: string, refreshToken: string): voi
   storage.setItem(SESSION_KEY, JSON.stringify({ ...session, accessToken, refreshToken }));
 }
 
+export function updateAuthSessionUser(user: AuthSession['user']): void {
+  const session = getAuthSession();
+  if (!session) return;
+  const storage = localStorage.getItem(SESSION_KEY) ? localStorage : sessionStorage;
+  storage.setItem(SESSION_KEY, JSON.stringify({ ...session, user }));
+}
+
 export function isAuthenticated(): boolean {
   return Boolean(getAccessToken());
 }

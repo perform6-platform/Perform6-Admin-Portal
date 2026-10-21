@@ -67,13 +67,15 @@ export function GlobalRotationSettingsPanel() {
             <SectionLabel className="block">Global rotation calendar</SectionLabel>
           </div>
           <p className="mt-1 text-body-sm text-content-secondary">
-            Platform-wide Day 1 for deployments that join global rotation. Devices download a
-            rolling 7-day window from today&apos;s rotation day (not week-aligned).
+          Platform-wide Day 1 for deployments that join global rotation. Devices download a rolling 7-day window from 
+          today's rotation day (not week-aligned).
+            Default and Start Here remain continuously assigned until changed. Devices
+            automatically maintain a rolling 7-day content cache.
           </p>
         </div>
         {settings?.currentRotationDay != null && (
           <p className="shrink-0 rounded-lg border border-brand-500/30 bg-brand-500/10 px-4 py-2 text-body-sm font-medium text-brand-700 dark:text-brand-300">
-            Today: Day {settings.currentRotationDay}
+            Current Global Rotation Day: {settings.currentRotationDay}
           </p>
         )}
       </div>
@@ -91,15 +93,11 @@ export function GlobalRotationSettingsPanel() {
               onChange={setStartDate}
               disabled={!isPlatformAdmin}
             />
-            {settings?.globalRotationStartDate ? (
-              <p className="mt-1 text-caption text-content-secondary">
-                Saved: {settings.globalRotationStartDate}
-              </p>
-            ) : (
+            {!settings?.globalRotationStartDate ? (
               <p className="mt-1 text-caption text-status-warning">
                 Not configured yet — global deployments stay idle until this is set.
               </p>
-            )}
+            ) : null}
           </div>
           {isPlatformAdmin && (
             <Button

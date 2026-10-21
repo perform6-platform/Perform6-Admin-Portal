@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import { CategoryFormModal } from '../components/categories/CategoryFormModal';
 import {
   Badge,
@@ -17,7 +17,10 @@ import {
   useDeleteCategory,
   useUpdateCategory,
 } from '../hooks/useCategories';
-import { scopeLabel } from '../lib/contentCategoryGroups';
+import {
+  categoryDisplayName,
+  configurationColumnText,
+} from '../lib/systemCategoryCopy';
 import { getApiErrorMessage } from '../services/axios';
 import type {
   CategoryScope,
@@ -37,7 +40,7 @@ export default function Categories() {
   const { mutateAsync: deleteCategory } = useDeleteCategory();
 
   const [formOpen, setFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
   const [editing, setEditing] = useState<ContentCategory | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ContentCategory | null>(null);
@@ -49,35 +52,48 @@ export default function Categories() {
         header: 'Category',
         render: (row) => (
           <div>
-            <p className="text-content-primary">{row.name}</p>
+            <p className="text-content-primary">
+              {categoryDisplayName(row.slug, row.name)}
+            </p>
             <p className="text-caption text-content-muted">{row.slug}</p>
           </div>
         ),
       },
       {
-        key: 'scope',
-        header: 'Scope',
+        key: 'playlists',
+        header: 'Playlists',
         render: (row) => (
-          <span className="text-body-sm text-content-secondary">{scopeLabel(row.scope)}</span>
+          <span className="text-body-sm text-content-secondary">{row.playlistCount}</span>
         ),
       },
       {
+        key: 'configuration',
+        header: 'Configuration',
+        render: (row) => (
+          <span className="whitespace-pre-line text-body-sm text-content-secondary">
+            {configurationColumnText(row.slug, row.scope)}
+          </span>
+        ),
+      },
+      {
+        key: 'assignments',
+        header: 'Assignments',
+        render: (row) => {
+          const total = row.sessionCount || row.cycleDays || 0;
+          return (
+            <span className="text-body-sm text-content-secondary">
+              {row.assignedSessionCount} of {total}
+            </span>
+          );
+        },
+      },
+      {
         key: 'playback',
-        header: 'Day playback',
+        header: 'Playback',
         render: (row) => (
           <Badge variant={row.dayPlaybackMode === 'LOOP' ? 'brand' : 'warning'}>
             {playbackLabel(row.dayPlaybackMode)}
           </Badge>
-        ),
-      },
-      {
-        key: 'schedule',
-        header: 'Playlists',
-        render: (row) => (
-          <span className="text-body-sm text-content-secondary">
-            {row.playlistCount} · {row.assignedSessionCount}/{row.sessionCount || row.cycleDays}{' '}
-            days assigned
-          </span>
         ),
       },
       {
@@ -93,32 +109,48 @@ export default function Categories() {
       {
         key: 'actions',
         header: '',
-        render: (row) => (
-          <div className="flex justify-end gap-1">
-            <IconButton
-              label={`Edit ${row.name}`}
-              onClick={() => {
-                setEditing(row);
-                setFormMode('edit');
-                setFormOpen(true);
-              }}
-            >
-              <Pencil />
-            </IconButton>
-            {!row.isSystem && (
-              <IconButton
-                label={`Delete ${row.name}`}
-                className="hover:border-status-danger/30 hover:text-status-danger"
-                onClick={() => {
-                  setDeleteTarget(row);
-                  setDeleteOpen(true);
-                }}
-              >
-                <Trash2 />
-              </IconButton>
-            )}
-          </div>
-        ),
+        render: (row) => {
+          const label = categoryDisplayName(row.slug, row.name);
+          return (
+            <div className="flex justify-end gap-1">
+              {row.isSystem ? (
+                <IconButton
+                  label={`View ${label}`}
+                  onClick={() => {
+                    setEditing(row);
+                    setFormMode('view');
+                    setFormOpen(true);
+                  }}
+                >
+                  <Eye />
+                </IconButton>
+              ) : (
+                <IconButton
+                  label={`Edit ${label}`}
+                  onClick={() => {
+                    setEditing(row);
+                    setFormMode('edit');
+                    setFormOpen(true);
+                  }}
+                >
+                  <Pencil />
+                </IconButton>
+              )}
+              {!row.isSystem && (
+                <IconButton
+                  label={`Delete ${label}`}
+                  className="hover:border-status-danger/30 hover:text-status-danger"
+                  onClick={() => {
+                    setDeleteTarget(row);
+                    setDeleteOpen(true);
+                  }}
+                >
+                  <Trash2 />
+                </IconButton>
+              )}
+            </div>
+          );
+        },
       },
     ],
     [],
@@ -144,7 +176,7 @@ export default function Categories() {
           message: 'Playlists and empty 36-day schedules are ready for media.',
           variant: 'success',
         });
-      } else if (editing) {
+      } else if (formMode === 'edit' && editing && !editing.isSystem) {
         await updateCategory({
           id: editing.id,
           payload: {
@@ -186,8 +218,8 @@ export default function Categories() {
         <div>
           <PageTitle>Categories</PageTitle>
           <p className="mt-1 text-body-sm text-content-secondary">
-            Parent content categories for screen assignment. Scope decides how many playlists
-            (Global / by field / by field+variant) the system creates.
+            Manage content categories, playlist configurations, playback settings and
+            assignments.
           </p>
         </div>
         <Button
@@ -237,7 +269,7 @@ export default function Categories() {
         title="Delete category?"
         description={
           deleteTarget
-            ? `“${deleteTarget.name}” and its playlists will be removed. This is blocked if the category is assigned to any deployment screen.`
+            ? `“${categoryDisplayName(deleteTarget.slug, deleteTarget.name)}” and its playlists will be removed. This is blocked if the category is assigned to any deployment screen.`
             : undefined
         }
         confirmLabel="Delete"

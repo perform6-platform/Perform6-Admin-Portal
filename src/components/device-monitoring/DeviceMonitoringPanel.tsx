@@ -103,30 +103,48 @@ function xtOutputEntries(
   const nativeScreens = livePlayback?.screens.filter(
     (screen) => screen.source === 'NATIVE_HDMI',
   ) ?? [];
-  const nativeScreen = nativeScreens.find((screen) => screen.isPlaying) ?? nativeScreens[0];
+  const nativePlaying =
+    nativeScreens.find((screen) => screen.isPlaying) ?? null;
+  const nativeScreen = nativePlaying ?? nativeScreens[0] ?? null;
   const activeSlot = touchUi?.currentContent?.slot ?? null;
+  const selectedLabel = activeSlot
+    ? (XT_PROGRAM_LABELS[activeSlot] ?? formatTouchSlotLabel(activeSlot))
+    : null;
   const activeAssignmentKey = activeSlot ? XT_SLOT_ASSIGNMENT_KEYS[activeSlot] : null;
   const activeAssignment = activeAssignmentKey
     ? assignments.find((screen) => screen.screenKey === activeAssignmentKey)
     : null;
+  const playingCategory =
+    nativePlaying?.title ||
+    assignments.find((screen) => screen.screenKey === (nativePlaying?.screenKey ?? 'SCREEN_2'))
+      ?.categoryName ||
+    null;
+  const isSessionPlaying = touchUi?.playbackState === 'PLAYING';
 
   return [
     {
       key: 'XT_HDMI_1',
       previewScreenKey: htmlScreen?.screenKey ?? 'SCREEN_1',
       group: 'Bluefin · HDMI-1',
-      label: 'Touch controls',
-      video: 'Bluefin touch interface',
+      label: 'Touchscreen Background',
+      video: 'Background Video Only (UI Not Shown)',
       thumbnail: resolveStorageUrl(bluefinAssignment?.thumbnail) ?? undefined,
     },
     {
       key: 'XT_HDMI_2',
       previewScreenKey: nativeScreen?.screenKey ?? 'SCREEN_2',
       group: 'LED · HDMI-2',
-      label: 'Selected program',
-      video: activeSlot
-        ? (XT_PROGRAM_LABELS[activeSlot] ?? formatTouchSlotLabel(activeSlot))
-        : 'Awaiting program selection',
+      // Now Playing must reflect native LED playback, not a pending touch selection.
+      label: nativePlaying
+        ? `Now Playing: ${playingCategory ?? 'Main Display'}`
+        : selectedLabel && !isSessionPlaying
+          ? `Selected (not playing): ${selectedLabel}`
+          : 'Main Display',
+      video: nativePlaying
+        ? (nativePlaying.title || playingCategory || 'Playing')
+        : selectedLabel && !isSessionPlaying
+          ? `Pending selection · ${selectedLabel}`
+          : 'Awaiting Main Display playback',
       thumbnail: resolveStorageUrl(activeAssignment?.thumbnail) ?? undefined,
     },
   ];
@@ -227,112 +245,102 @@ export function DeviceMonitoringPanel({
         ? device.currentDay
         : null;
 
+  const mainDisplayEntry =
+    currentVideos.find((entry) => entry.key === 'XT_HDMI_2') ??
+    currentVideos.find((entry) => entry.group.toLowerCase().includes('hdmi-2')) ??
+    currentVideos.find((entry) => entry.group.toLowerCase().includes('led')) ??
+    currentVideos[currentVideos.length > 1 ? 1 : 0];
+
   return (
     <div className={cn(CARD_SURFACE_CLASS, 'p-6 sm:p-6', className)}>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-content-primary">{device.name}</h2>
-          <p className="mt-1 text-body-sm text-content-secondary">{device.location}</p>
+      {/* 1. Device Overview */}
+      <section className="mb-6">
+        <SectionLabel className="mb-3 block">Device Overview</SectionLabel>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-semibold text-content-primary">{device.name}</h2>
+            <p className="mt-1 text-body-sm text-content-secondary">{device.location}</p>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <Badge variant={device.status === 'online' ? 'success' : 'danger'} className="shrink-0">
+              {device.status === 'online' ? 'Online' : 'Offline'}
+            </Badge>
+            {device.sdPresent === true && (
+              <Badge variant="success">SD card: Present</Badge>
+            )}
+            {device.sdPresent === false && (
+              <Badge variant="warning">SD card: Missing</Badge>
+            )}
+          </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <Badge variant={device.status === 'online' ? 'success' : 'danger'} className="shrink-0">
-            {device.status === 'online' ? 'Online' : 'Offline'}
-          </Badge>
-          {device.sdPresent === true && (
-            <Badge variant="success">SD card: Present</Badge>
-          )}
-          {device.sdPresent === false && (
-            <Badge variant="warning">SD card: Missing</Badge>
-          )}
+
+        <div className="mt-6 flex flex-col items-center">
+          <BrightSignDeviceImage />
+          <p className="mt-2 text-body-sm text-content-primary">{device.model}</p>
         </div>
-      </div>
+      </section>
 
-      <div className="mb-6 flex flex-col items-center">
-        <BrightSignDeviceImage />
-        <p className="mt-2 text-body-sm text-content-primary">{device.model}</p>
-      </div>
-
-      {isTouchDevice ? (
-        <section className="mb-6 rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
-          <div className="mb-4 flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-400">
-              <Smartphone className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <SectionLabel className="mb-1 block">Bluefin touch (HDMI-1)</SectionLabel>
+      {/* 2. Playback Summary */}
+      <section className="mb-6 rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
+        <SectionLabel className="mb-4 block">Playback Summary</SectionLabel>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {isTouchDevice ? (
+            <div className="rounded-lg border border-surface-border bg-surface-card p-4">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-400">
+                  <Smartphone className="h-4 w-4" />
+                </div>
+                <SectionLabel className="block">HDMI-1 — Bluefin Touchscreen</SectionLabel>
+              </div>
               <TouchUiStatus touchUi={touchUi} />
             </div>
-          </div>
-
-          <div className="border-t border-surface-border pt-4">
-            <SectionLabel className="mb-3 block">Remote control</SectionLabel>
-            <TouchRemoteControls
-              deviceId={registeredDeviceId}
-              disabled={device.status !== 'online'}
-            />
-          </div>
-
-          <div className="mt-4 border-t border-surface-border pt-4">
-            <SectionLabel className="mb-3 block">Device operations</SectionLabel>
-            <DeviceRemoteOps
-              deviceId={registeredDeviceId}
-              disabled={device.status !== 'online'}
-            />
-          </div>
-
-          <div className="mt-4 border-t border-surface-border pt-4">
-            <SectionLabel className="mb-3 block">Storage</SectionLabel>
-            <DeviceStoragePanel
-              deviceId={registeredDeviceId}
-              disabled={device.status !== 'online'}
-              storageUsedBytes={device.storageUsedBytes}
-              storageCapacityBytes={device.storageCapacityBytes}
-              storageUsedPercent={device.storageUsed}
-            />
-            <div className="mt-4 border-t border-surface-border pt-4">
-              <SectionLabel className="mb-3 block">Remote SD diagnostics</SectionLabel>
-              <DeviceSdBrowser
-                deviceId={registeredDeviceId}
-                disabled={device.status !== 'online'}
-              />
+          ) : (
+            <div className="rounded-lg border border-surface-border bg-surface-card p-4">
+              <SectionLabel className="mb-2 block">Touchscreen</SectionLabel>
+              <p className="text-body-sm text-content-muted">
+                Not applicable for this deployment type.
+              </p>
             </div>
-          </div>
-        </section>
-      ) : (
-        <section className="mb-6 rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
-          <SectionLabel className="mb-3 block">Device operations</SectionLabel>
-          <DeviceRemoteOps
-            deviceId={registeredDeviceId}
-            disabled={device.status !== 'online'}
-          />
-          <div className="mt-6 border-t border-surface-border pt-4">
-            <SectionLabel className="mb-3 block">Storage</SectionLabel>
-            <DeviceStoragePanel
-              deviceId={registeredDeviceId}
-              disabled={device.status !== 'online'}
-              storageUsedBytes={device.storageUsedBytes}
-              storageCapacityBytes={device.storageCapacityBytes}
-              storageUsedPercent={device.storageUsed}
-            />
-            <div className="mt-4 border-t border-surface-border pt-4">
-              <SectionLabel className="mb-3 block">Remote SD diagnostics</SectionLabel>
-              <DeviceSdBrowser
-                deviceId={registeredDeviceId}
-                disabled={device.status !== 'online'}
-              />
-            </div>
-          </div>
-        </section>
-      )}
+          )}
 
-      <section className="rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
+          <div className="rounded-lg border border-surface-border bg-surface-card p-4">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-400">
+                <Monitor className="h-4 w-4" />
+              </div>
+              <SectionLabel className="block">HDMI-2 — Main Display</SectionLabel>
+            </div>
+            {mainDisplayEntry ? (
+              <div className="space-y-1">
+                <p className="text-body-sm font-medium text-content-primary">
+                  {mainDisplayEntry.label}
+                </p>
+                <p className="truncate text-caption text-content-secondary">
+                  {mainDisplayEntry.video}
+                  {mainDisplayEntry.group ? ` · ${mainDisplayEntry.group}` : ''}
+                </p>
+                {dayLabel ? (
+                  <p className="text-caption text-content-muted">{dayLabel}</p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-body-sm text-content-muted">No Main Display content reported.</p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Currently Playing / Live Sync Preview */}
+      <section className="mb-6 rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
         <div className="mb-4 flex items-start gap-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-400">
             <Monitor className="h-5 w-5" />
           </div>
           <div>
             <SectionLabel className="mb-1 block">
-              {dayLabel ? `Currently playing on ${dayLabel}` : 'Currently playing'}
+              {dayLabel
+                ? `Currently Playing / Live Sync Preview · ${dayLabel}`
+                : 'Currently Playing / Live Sync Preview'}
             </SectionLabel>
             <p className="text-body-sm text-content-secondary">
               {device.name} · {device.location}
@@ -401,6 +409,50 @@ export function DeviceMonitoringPanel({
         )}
       </section>
 
+      {/* 4. Device Operations */}
+      <section className="mb-6 rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
+        <SectionLabel className="mb-3 block">Device Operations</SectionLabel>
+        {isTouchDevice ? (
+          <>
+            <SectionLabel className="mb-3 block text-content-secondary">Remote control</SectionLabel>
+            <TouchRemoteControls
+              deviceId={registeredDeviceId}
+              disabled={device.status !== 'online'}
+            />
+            <div className="mt-4 border-t border-surface-border pt-4">
+              <DeviceRemoteOps
+                deviceId={registeredDeviceId}
+                disabled={device.status !== 'online'}
+              />
+            </div>
+          </>
+        ) : (
+          <DeviceRemoteOps
+            deviceId={registeredDeviceId}
+            disabled={device.status !== 'online'}
+          />
+        )}
+      </section>
+
+      {/* 5. Storage / SD Diagnostics */}
+      <section className="rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
+        <SectionLabel className="mb-3 block">Storage / SD Diagnostics</SectionLabel>
+        <DeviceStoragePanel
+          deviceId={registeredDeviceId}
+          disabled={device.status !== 'online'}
+          storageUsedBytes={device.storageUsedBytes}
+          storageCapacityBytes={device.storageCapacityBytes}
+          storageUsedPercent={device.storageUsed}
+        />
+        <div className="mt-4 border-t border-surface-border pt-4">
+          <SectionLabel className="mb-3 block">Remote SD diagnostics</SectionLabel>
+          <DeviceSdBrowser
+            deviceId={registeredDeviceId}
+            disabled={device.status !== 'online'}
+          />
+        </div>
+      </section>
+
       <LiveSyncPreviewModal
         open={Boolean(preview)}
         onClose={() => setPreview(null)}
@@ -409,6 +461,7 @@ export function DeviceMonitoringPanel({
         screenKey={preview?.screenKey ?? ''}
         fallbackTitle={preview?.title}
         fallbackThumbnail={preview?.thumbnail}
+        deviceModel={device.model}
       />
     </div>
   );

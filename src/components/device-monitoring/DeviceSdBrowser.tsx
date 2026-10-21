@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  ChevronDown,
+  ChevronRight,
   ChevronUp,
   FileText,
   Folder,
@@ -53,6 +55,7 @@ export function DeviceSdBrowser({ deviceId, disabled }: DeviceSdBrowserProps) {
   const [error, setError] = useState<string | null>(null);
   const [deletePath, setDeletePath] = useState<string | null>(null);
   const [writeName, setWriteName] = useState('');
+  const [listingExpanded, setListingExpanded] = useState(false);
 
   const polling = Boolean(awaitingCommandId);
   const { data: sdFs } = useDeviceSdFs(deviceId, {
@@ -189,145 +192,175 @@ export function DeviceSdBrowser({ deviceId, disabled }: DeviceSdBrowserProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={path}
-          onChange={(e) => setPath(e.target.value)}
-          className="min-w-[12rem] flex-1 font-mono text-xs"
-          disabled={busy}
-          aria-label="SD path"
-        />
-        <Button
+      <div className="rounded-lg border border-surface-border">
+        <button
           type="button"
-          variant="outline"
-          size="sm"
-          disabled={busy}
-          onClick={() => void refreshList()}
+          className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+          onClick={() => setListingExpanded((open) => !open)}
+          aria-expanded={listingExpanded}
         >
-          <RefreshCw className="h-4 w-4" />
-          List
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={busy || path === 'SD:/' || path === 'SD:'}
-          onClick={() => {
-            const parent = parentSdPath(path);
-            setPath(parent.endsWith('/') ? parent : `${parent}/`);
-            void refreshList(parent);
-          }}
-        >
-          <ChevronUp className="h-4 w-4" />
-          Up
-        </Button>
-      </div>
+          <span className="flex items-center gap-2 text-body-sm font-medium text-content-primary">
+            {listingExpanded ? (
+              <ChevronDown className="h-4 w-4 shrink-0 text-content-muted" />
+            ) : (
+              <ChevronRight className="h-4 w-4 shrink-0 text-content-muted" />
+            )}
+            SD files / folders
+            {sortedEntries.length > 0 ? (
+              <span className="text-caption font-normal text-content-muted">
+                ({sortedEntries.length})
+              </span>
+            ) : null}
+          </span>
+          <span className="text-caption text-content-muted">
+            {listingExpanded ? 'Hide' : 'Show'}
+          </span>
+        </button>
 
-      <p className="text-caption text-content-muted">
-        Remote SD access (mini-DWS). Commands run after the next device heartbeat.
-        Text/small files only (max 32KB). Big packages use OTA. Reboot after changing
-        <span className="font-mono">autorun.brs</span>.
-        {sdFs?.pending ? ` Pending: ${sdFs.pending.action}.` : ''}
-        {status ? ` ${status}` : ''}
-      </p>
-
-      {error ? <p className="text-caption text-status-danger">{error}</p> : null}
-
-      <div className="max-h-56 overflow-auto rounded-md border border-surface-border bg-surface-base">
-        {sortedEntries.length === 0 ? (
-          <p className="p-3 text-caption text-content-muted">
-            {awaitingCommandId || sdFs?.pending
-              ? 'Waiting for device heartbeat to return SD listing…'
-              : 'No listing yet — opening this panel queues List SD:/ (device must be online).'}
-          </p>
-        ) : (
-          <ul className="divide-y divide-surface-border">
-            {sortedEntries.map((entry) => (
-              <li
-                key={`${entry.kind}:${entry.name}`}
-                className="flex items-center gap-2 px-3 py-2 text-body-sm"
+        {listingExpanded ? (
+          <div className="space-y-3 border-t border-surface-border px-3 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={path}
+                onChange={(e) => setPath(e.target.value)}
+                className="min-w-[12rem] flex-1 font-mono text-xs"
+                disabled={busy}
+                aria-label="SD path"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={() => void refreshList()}
               >
-                {entry.kind === 'dir' ? (
-                  <Folder className="h-4 w-4 shrink-0 text-brand-600" />
-                ) : (
-                  <FileText className="h-4 w-4 shrink-0 text-content-muted" />
-                )}
-                <button
-                  type="button"
-                  className="min-w-0 flex-1 truncate text-left text-content-primary hover:underline disabled:no-underline"
-                  disabled={busy}
-                  onClick={() =>
-                    void (entry.kind === 'dir' ? openDir(entry.name) : openFile(entry.name))
-                  }
-                >
-                  {entry.name}
-                </button>
-                <span className="shrink-0 text-caption text-content-muted">
-                  {entry.kind === 'dir' ? 'dir' : formatBytes(entry.size)}
+                <RefreshCw className="h-4 w-4" />
+                List
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busy || path === 'SD:/' || path === 'SD:'}
+                onClick={() => {
+                  const parent = parentSdPath(path);
+                  setPath(parent.endsWith('/') ? parent : `${parent}/`);
+                  void refreshList(parent);
+                }}
+              >
+                <ChevronUp className="h-4 w-4" />
+                Up
+              </Button>
+            </div>
+
+            <p className="text-caption text-content-muted">
+              Remote SD access (mini-DWS). Commands run after the next device heartbeat.
+              Text/small files only (max 32KB). Big packages use OTA. Reboot after changing
+              <span className="font-mono">autorun.brs</span>.
+              {sdFs?.pending ? ` Pending: ${sdFs.pending.action}.` : ''}
+              {status ? ` ${status}` : ''}
+            </p>
+
+            {error ? <p className="text-caption text-status-danger">{error}</p> : null}
+
+            <div className="max-h-56 overflow-auto rounded-md border border-surface-border bg-surface-base">
+              {sortedEntries.length === 0 ? (
+                <p className="p-3 text-caption text-content-muted">
+                  {awaitingCommandId || sdFs?.pending
+                    ? 'Waiting for device heartbeat to return SD listing…'
+                    : 'No listing yet — expand and click List (device must be online).'}
+                </p>
+              ) : (
+                <ul className="divide-y divide-surface-border">
+                  {sortedEntries.map((entry) => (
+                    <li
+                      key={`${entry.kind}:${entry.name}`}
+                      className="flex items-center gap-2 px-3 py-2 text-body-sm"
+                    >
+                      {entry.kind === 'dir' ? (
+                        <Folder className="h-4 w-4 shrink-0 text-brand-600" />
+                      ) : (
+                        <FileText className="h-4 w-4 shrink-0 text-content-muted" />
+                      )}
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 truncate text-left text-content-primary hover:underline disabled:no-underline"
+                        disabled={busy}
+                        onClick={() =>
+                          void (entry.kind === 'dir' ? openDir(entry.name) : openFile(entry.name))
+                        }
+                      >
+                        {entry.name}
+                      </button>
+                      <span className="shrink-0 text-caption text-content-muted">
+                        {entry.kind === 'dir' ? 'dir' : formatBytes(entry.size)}
+                      </span>
+                      {entry.kind === 'file' ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          disabled={busy}
+                          onClick={() => setDeletePath(joinSdPath(path, entry.name))}
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="space-y-2 rounded-md border border-surface-border p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-caption text-content-secondary">
+                  {filePath ? (
+                    <>
+                      Editing <span className="font-mono text-content-primary">{filePath}</span>
+                      {fileEncoding === 'base64' ? ' (base64)' : ''}
+                    </>
+                  ) : (
+                    'Open a file to read, or write a new name below'
+                  )}
                 </span>
-                {entry.kind === 'file' ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2"
-                    disabled={busy}
-                    onClick={() => setDeletePath(joinSdPath(path, entry.name))}
-                    title="Delete"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
+                {filePath ? (
+                  <Button type="button" size="sm" disabled={busy} onClick={() => void saveFile()}>
+                    <Save className="h-4 w-4" />
+                    Save
                   </Button>
                 ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="space-y-2 rounded-md border border-surface-border p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-caption text-content-secondary">
-            {filePath ? (
-              <>
-                Editing <span className="font-mono text-content-primary">{filePath}</span>
-                {fileEncoding === 'base64' ? ' (base64)' : ''}
-              </>
-            ) : (
-              'Open a file to read, or write a new name below'
-            )}
-          </span>
-          {filePath ? (
-            <Button type="button" size="sm" disabled={busy} onClick={() => void saveFile()}>
-              <Save className="h-4 w-4" />
-              Save
-            </Button>
-          ) : null}
-        </div>
-        <textarea
-          className="min-h-[8rem] w-full rounded-md border border-surface-border bg-surface-base p-2 font-mono text-xs text-content-primary"
-          value={fileContent}
-          onChange={(e) => setFileContent(e.target.value)}
-          disabled={busy}
-          spellCheck={false}
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <Input
-            value={writeName}
-            onChange={(e) => setWriteName(e.target.value)}
-            placeholder="new-file.brs"
-            className="max-w-[14rem] font-mono text-xs"
-            disabled={busy}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={() => void createOrOverwrite()}
-          >
-            Write as new name
-          </Button>
-        </div>
+              </div>
+              <textarea
+                className="min-h-[8rem] w-full rounded-md border border-surface-border bg-surface-base p-2 font-mono text-xs text-content-primary"
+                value={fileContent}
+                onChange={(e) => setFileContent(e.target.value)}
+                disabled={busy}
+                spellCheck={false}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={writeName}
+                  onChange={(e) => setWriteName(e.target.value)}
+                  placeholder="new-file.brs"
+                  className="max-w-[14rem] font-mono text-xs"
+                  disabled={busy}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void createOrOverwrite()}
+                >
+                  Write as new name
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <ConfirmModal

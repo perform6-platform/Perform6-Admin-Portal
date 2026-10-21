@@ -14,7 +14,10 @@ function relativeTime(iso: string | null | undefined): string {
   return formatDistanceToNow(date, { addSuffix: true });
 }
 
-function storagePercent(used?: string, capacity?: string): number {
+function storagePercent(
+  used?: string | null,
+  capacity?: string | null,
+): number {
   const usedBytes = Number(used ?? 0);
   const capacityBytes = Number(capacity ?? 0);
   if (!capacityBytes || Number.isNaN(usedBytes) || Number.isNaN(capacityBytes)) return 0;
@@ -175,7 +178,11 @@ export function mapInventoryItem(item: DeviceInventoryItem): Device {
     macAddress: resolveMacAddress(item),
     ipAddress: item.ipAddress ?? item.lanIpAddress ?? null,
     uptime: '—',
-    storageUsed: 0,
+    storageUsed: storagePercent(item.storageUsedBytes, item.storageCapacityBytes),
+    storageUsedBytes: item.storageUsedBytes ?? null,
+    storageCapacityBytes: item.storageCapacityBytes ?? null,
+    rotationStartDate: item.rotationStartDate ?? null,
+    effectiveRotationStartDate: item.effectiveRotationStartDate ?? null,
     deviceId: item.deviceId,
     pairingId: item.pairingId,
     deploymentId: item.deploymentId,
@@ -230,7 +237,7 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
   return {
     id: device.id,
     name: device.deviceName || device.serialNumber || deploymentName || device.id.slice(0, 8),
-    location: '—',
+    location: device.location?.trim() || '—',
     status: online ? 'online' : 'offline',
     currentDay: apiRotationDay ? `Day ${apiRotationDay}` : '—',
     brightSignStatus: online ? 'connected' : 'disconnected',
@@ -268,6 +275,8 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
     ),
     storageUsedBytes: device.health?.storageUsedBytes ?? device.storageUsed ?? null,
     storageCapacityBytes: device.health?.storageCapacityBytes ?? null,
+    rotationStartDate: device.rotationStartDate ?? null,
+    effectiveRotationStartDate: device.effectiveRotationStartDate ?? null,
     deviceId: device.id,
     deploymentId: device.deploymentId,
     deploymentName: deploymentName ?? null,

@@ -1,9 +1,5 @@
 import type { ApiResponse } from '../types/api';
-import type {
-  StartupFileInfo,
-  StartupManifest,
-  StartupProfileId,
-} from '../types/startupFiles';
+import type { StartupFileInfo, StartupProfileId } from '../types/startupFiles';
 import axios from 'axios';
 import { apiClient } from './axios';
 
@@ -30,99 +26,47 @@ export async function getStartupFiles(): Promise<StartupFileInfo[]> {
   return data.data;
 }
 
-/** GET /startup-files/:profile/manifest */
-async function getStartupManifest(profile: StartupProfileId): Promise<StartupManifest> {
-  const { data } = await apiClient.get<ApiResponse<StartupManifest>>(
-    `/startup-files/${profile}/manifest`,
-  );
-  return data.data;
-}
-
-/** Fetch one package file — prefers public R2 URL when present. */
-async function downloadStartupPackageFile(
-  profile: StartupProfileId,
-  file: { path: string; url?: string },
-): Promise<Blob> {
-  if (file.url) {
-    const response = await fetch(file.url);
-    if (!response.ok) {
-      throw new Error(`Failed to download ${file.path} from R2 (${response.status})`);
-    }
-    return response.blob();
-  }
-
-  try {
-    const response = await apiClient.get<Blob>(`/startup-files/${profile}/file`, {
-      params: { path: file.path },
-      responseType: 'blob',
-    });
-    return response.data;
-  } catch (error) {
-    return rethrowBlobApiError(error);
-  }
-}
-
-async function writeBlobToDirectory(
-  root: FileSystemDirectoryHandle,
-  relativePath: string,
-  blob: Blob,
-): Promise<void> {
-  const parts = relativePath.replace(/\\/g, '/').split('/').filter(Boolean);
-  if (parts.length === 0) {
-    throw new Error('Empty file path');
-  }
-
-  let dir = root;
-  for (let i = 0; i < parts.length - 1; i += 1) {
-    dir = await dir.getDirectoryHandle(parts[i], { create: true });
-  }
-
-  const fileHandle = await dir.getFileHandle(parts[parts.length - 1], { create: true });
-  const writable = await fileHandle.createWritable();
-  try {
-    await writable.write(blob);
-  } finally {
-    await writable.close();
-  }
-}
-
 export type DownloadStartupFolderResult = {
   packageName: string;
   fileCount: number;
   source: 'r2' | 'local';
 };
 
+function fileNameFromDisposition(disposition: unknown, fallback: string): string {
+  if (typeof disposition !== 'string') return fallback;
+  const match = disposition.match(/filename="([^"]+)"/i);
+  return match?.[1]?.trim() || fallback;
+}
+
 /**
- * Saves extracted folder (e.g. perform6-xt2145-0.1.0).
- * Files come from R2 public URLs when STORAGE_DRIVER=r2.
+ * Downloads the startup package ZIP. A normal file download does not ask Chrome
+ * for permission to edit a folder.
  */
 export async function downloadStartupPackage(
   profile: StartupProfileId,
 ): Promise<DownloadStartupFolderResult> {
-  if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function') {
-    throw new Error(
-      'Folder download needs Chrome or Edge. Safari/Firefox cannot save a folder without a ZIP.',
+  try {
+    const response = await apiClient.get<Blob>(`/startup-files/${profile}/download`, {
+      responseType: 'blob',
+    });
+    const fileName = fileNameFromDisposition(
+      response.headers['content-disposition'],
+      `perform6-${profile}.zip`,
     );
+    const url = URL.createObjectURL(response.data);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    return {
+      packageName: fileName.replace(/\.zip$/i, ''),
+      fileCount: 0,
+      source: 'r2',
+    };
+  } catch (error) {
+    return rethrowBlobApiError(error);
   }
-
-  const manifest = await getStartupManifest(profile);
-  if (!manifest.files.length) {
-    throw new Error('Package folder is empty. Rebuild with npm run release:zip for this profile.');
-  }
-
-  const parent = await window.showDirectoryPicker({ mode: 'readwrite' });
-  const packageDir = await parent.getDirectoryHandle(manifest.packageName, {
-    create: true,
-  });
-
-  for (const file of manifest.files) {
-    const blob = await downloadStartupPackageFile(profile, file);
-    await writeBlobToDirectory(packageDir, file.path, blob);
-  }
-
-  return {
-    packageName: manifest.packageName,
-    fileCount: manifest.files.length,
-    source: manifest.source,
-  };
 }

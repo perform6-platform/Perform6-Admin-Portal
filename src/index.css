@@ -479,3 +479,8 @@
     box-shadow: 0 0 0 2px rgba(17, 85, 204, 0.2);
   }
 }
+
+/* Hide native video overflow (⋮) menu — Chrome/Edge */
+.video-no-overflow::-webkit-media-controls-overflow-button {
+  display: none !important;
+}

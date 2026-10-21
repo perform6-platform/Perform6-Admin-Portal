@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useDeviceLivePlayback } from '../../hooks/useMonitoring';
 import { resolveStorageUrl } from '../../lib/libraryType';
+import { resolveScreenOutputLabel } from '../../lib/screenOutputLabels';
 import { Badge, Modal, ModalBody } from '../ui';
 
 const SOFT_RESYNC_DRIFT_SEC = 8;
@@ -14,6 +16,7 @@ export interface LiveSyncPreviewModalProps {
   screenKey: string;
   fallbackTitle?: string;
   fallbackThumbnail?: string;
+  deviceModel?: string | null;
 }
 
 function formatClock(seconds: number): string {
@@ -25,13 +28,46 @@ function formatClock(seconds: number): string {
 
 /**
  * Estimate device playhead, compensating for age of the last telemetry sample.
+ * When duration is known, wrap within the media length so looped playback
+ * does not display cumulative wall-clock time past the video end.
  */
-function estimateSeekSeconds(positionMs: number, updatedAt: string | null | undefined): number {
-  const base = Math.max(0, positionMs) / 1000;
-  if (!updatedAt) return base;
-  const ageSec = (Date.now() - new Date(updatedAt).getTime()) / 1000;
-  if (!Number.isFinite(ageSec) || ageSec < 0) return base;
-  return base + ageSec;
+function estimateSeekSeconds(
+  positionMs: number,
+  updatedAt: string | null | undefined,
+  durationMs?: number | null,
+): number {
+  let base = Math.max(0, positionMs) / 1000;
+  if (updatedAt) {
+    const ageSec = (Date.now() - new Date(updatedAt).getTime()) / 1000;
+    if (Number.isFinite(ageSec) && ageSec > 0) {
+      base += ageSec;
+    }
+  }
+  if (durationMs != null && durationMs > 0) {
+    const durationSec = durationMs / 1000;
+    if (durationSec > 0) {
+      base = base % durationSec;
+    }
+  }
+  return base;
+}
+
+function resolvePreviewCopy(screenKey: string, source: string | null | undefined) {
+  const key = screenKey.toUpperCase();
+  if (source === 'HTML_UI' || key === 'SCREEN_1' || key === 'XT_HDMI_1') {
+    return {
+      title: 'Touchscreen Background',
+      description: 'Background Video Only (UI Not Shown)',
+      output: 'Bluefin · HDMI-1',
+      contentLabel: null as string | null,
+    };
+  }
+  return {
+    title: 'Main Display',
+    description: null as string | null,
+    output: 'LED · HDMI-2',
+    contentLabel: 'Now Playing',
+  };
 }
 
 export function LiveSyncPreviewModal({
@@ -42,9 +78,11 @@ export function LiveSyncPreviewModal({
   screenKey,
   fallbackTitle,
   fallbackThumbnail,
+  deviceModel,
 }: LiveSyncPreviewModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastSeekKeyRef = useRef<string>('');
+  const [techOpen, setTechOpen] = useState(false);
 
   const { data, isLoading, isError, isFetching } = useDeviceLivePlayback(deviceId, {
     enabled: open && Boolean(deviceId),
@@ -62,25 +100,50 @@ export function LiveSyncPreviewModal({
     screen?.thumbnailUrl ??
     fallbackThumbnail ??
     null;
-  const title = screen?.title || fallbackTitle || screenKey;
+  const mediaTitle = screen?.title || fallbackTitle || screenKey;
   const isLive = Boolean(data?.isLive && screen && fileUrl);
+  const copy = resolvePreviewCopy(screenKey, screen?.source);
+  const outputLabel =
+    screen?.output ||
+    resolveScreenOutputLabel(screenKey, deviceModel) ||
+    copy.output;
+  const positionSec = screen
+    ? estimateSeekSeconds(screen.positionMs, data?.updatedAt, screen.durationMs)
+    : 0;
+  const durationSec =
+    screen?.durationMs != null && screen.durationMs > 0
+      ? screen.durationMs / 1000
+      : null;
+  const playbackStatus = screen
+    ? screen.isPlaying
+      ? 'Playing'
+      : 'Paused'
+    : 'Stopped';
 
   useEffect(() => {
     if (!open) {
       lastSeekKeyRef.current = '';
+      setTechOpen(false);
       return;
     }
     const video = videoRef.current;
     if (!video || !fileUrl || !screen) return;
 
-    const target = estimateSeekSeconds(screen.positionMs, data?.updatedAt);
+    const target = estimateSeekSeconds(
+      screen.positionMs,
+      data?.updatedAt,
+      screen.durationMs,
+    );
     const seekKey = `${fileUrl}:${Math.round(target / SOFT_RESYNC_DRIFT_SEC)}`;
 
     const applySeek = () => {
       if (!Number.isFinite(target)) return;
-      const duration = Number.isFinite(video.duration) ? video.duration : null;
+      const htmlDuration = Number.isFinite(video.duration) ? video.duration : null;
+      const mediaDuration = durationSec ?? htmlDuration;
       const clamped =
-        duration && duration > 0 ? Math.min(Math.max(0, target), Math.max(0, duration - 0.25)) : Math.max(0, target);
+        mediaDuration && mediaDuration > 0
+          ? Math.min(Math.max(0, target), Math.max(0, mediaDuration - 0.25))
+          : Math.max(0, target);
 
       const drift = Math.abs(video.currentTime - clamped);
       const mediaChanged = lastSeekKeyRef.current.split(':')[0] !== fileUrl;
@@ -98,20 +161,22 @@ export function LiveSyncPreviewModal({
       video.addEventListener('loadedmetadata', onMeta, { once: true });
       return () => video.removeEventListener('loadedmetadata', onMeta);
     }
-  }, [open, fileUrl, screen, data?.updatedAt]);
+  }, [open, fileUrl, screen, data?.updatedAt, durationSec]);
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Live sync preview"
-      description={`${deviceName} · ${screenKey.replace(/_/g, ' ')}`}
+      title="Live Sync Preview"
+      description={`${deviceName} · ${outputLabel}${
+        copy.description?.includes('Background') ? ' (Background Only)' : ' (Main Display)'
+      }`}
       size="lg"
     >
       <ModalBody className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           {isLive ? (
-            <Badge variant="success">Live · ±{SOFT_RESYNC_DRIFT_SEC}s sync</Badge>
+            <Badge variant="success">Live Sync · ±{SOFT_RESYNC_DRIFT_SEC}s</Badge>
           ) : (
             <Badge variant="warning">Waiting for device telemetry</Badge>
           )}
@@ -125,6 +190,20 @@ export function LiveSyncPreviewModal({
             </span>
           ) : null}
         </div>
+
+        {copy.contentLabel ? (
+          <p className="text-body-sm text-content-secondary">
+            {copy.contentLabel}:{' '}
+            <span className="font-medium text-content-primary">{mediaTitle}</span>
+          </p>
+        ) : (
+          <div>
+            <p className="text-body-sm font-medium text-content-primary">{copy.title}</p>
+            {copy.description ? (
+              <p className="text-caption text-content-secondary">{copy.description}</p>
+            ) : null}
+          </div>
+        )}
 
         <div className="overflow-hidden rounded-lg border border-surface-border bg-black">
           {isLoading ? (
@@ -140,8 +219,10 @@ export function LiveSyncPreviewModal({
               ref={videoRef}
               key={fileUrl}
               src={fileUrl}
-              className="aspect-video w-full bg-black object-contain"
+              className="video-no-overflow aspect-video w-full bg-black object-contain"
               controls
+              controlsList="nodownload noremoteplayback noplaybackrate"
+              disablePictureInPicture
               playsInline
               muted
               autoPlay={screen?.isPlaying ?? true}
@@ -154,31 +235,101 @@ export function LiveSyncPreviewModal({
               ) : null}
               <p className="text-body-sm text-content-muted">
                 {data?.isLive && data.screens.length > 0
-                  ? 'Not currently playing. Open the card for the active program shown above.'
+                  ? 'Not currently playing on this output.'
                   : 'No live playhead yet. Keep the device online and playing — telemetry updates about every 8 seconds.'}
               </p>
-              <p className="text-caption text-content-secondary">{title}</p>
+              <p className="text-caption text-content-secondary">{mediaTitle}</p>
             </div>
           )}
         </div>
 
-        <div className="rounded-lg border border-surface-border bg-surface-muted/40 px-4 py-2">
-          <p className="truncate text-body-sm font-medium text-content-primary">{title}</p>
-          <p className="mt-0.5 text-caption text-content-secondary">
-            {screen
-              ? `Device position ~${formatClock(estimateSeekSeconds(screen.positionMs, data?.updatedAt))} · ${
-                  screen.isPlaying ? 'Playing' : 'Paused'
-                }`
-              : 'Open this preview while the BrightSign player is active to sync from the same moment.'}
+        <div className="rounded-lg border border-surface-border bg-surface-muted/40 px-4 py-3">
+          <p className="text-caption font-medium uppercase tracking-wide text-content-muted">
+            Primary playback
           </p>
-          {screen?.source === 'NATIVE_HDMI' ? (
-            <div className="mt-2 space-y-0.5 text-caption text-content-secondary">
+          <dl className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div>
+              <dt className="text-caption text-content-secondary">Video title</dt>
+              <dd className="truncate text-body-sm font-medium text-content-primary">
+                {mediaTitle}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-caption text-content-secondary">Playback status</dt>
+              <dd className="text-body-sm font-medium text-content-primary">{playbackStatus}</dd>
+            </div>
+            <div>
+              <dt className="text-caption text-content-secondary">Playback position</dt>
+              <dd className="text-body-sm font-medium text-content-primary">
+                {formatClock(positionSec)}
+                {durationSec != null ? ` / ${formatClock(durationSec)}` : ''}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-caption text-content-secondary">Output</dt>
+              <dd className="text-body-sm font-medium text-content-primary">{outputLabel}</dd>
+            </div>
+            <div>
+              <dt className="text-caption text-content-secondary">Playback source</dt>
+              <dd className="text-body-sm font-medium text-content-primary">Local SD Card</dd>
+            </div>
+            {screen?.stage ? (
+              <div>
+                <dt className="text-caption text-content-secondary">Player stage</dt>
+                <dd className="text-body-sm font-medium text-content-primary">{screen.stage}</dd>
+              </div>
+            ) : null}
+          </dl>
+          {durationSec == null && screen ? (
+            <p className="mt-2 text-caption text-content-muted">
+              Duration not reported by the player yet — position is shown within the known media
+              length when available, and otherwise may reflect elapsed wall time until firmware
+              reports duration.
+            </p>
+          ) : null}
+        </div>
+
+        <div className="rounded-lg border border-surface-border">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left"
+            onClick={() => setTechOpen((open) => !open)}
+            aria-expanded={techOpen}
+          >
+            <span className="flex items-center gap-2 text-body-sm font-medium text-content-primary">
+              {techOpen ? (
+                <ChevronDown className="h-4 w-4 text-content-muted" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-content-muted" />
+              )}
+              Technical details
+            </span>
+          </button>
+          {techOpen ? (
+            <div className="space-y-1 border-t border-surface-border px-4 py-3 text-caption text-content-secondary">
               <p>
-                {screen.output ?? 'HDMI-2'} native state: {screen.stage ?? 'unknown'}
+                Sync request ID:{' '}
+                <span className="font-mono text-content-primary">
+                  {screen?.requestId ?? '—'}
+                </span>
               </p>
-              {screen.error ? <p className="text-status-error">{screen.error}</p> : null}
-              {screen.requestId ? <p className="truncate">Request: {screen.requestId}</p> : null}
-              {screen.path ? <p className="truncate">Local media: {screen.path}</p> : null}
+              <p className="truncate">
+                Local media path:{' '}
+                <span className="font-mono text-content-primary">{screen?.path ?? '—'}</span>
+              </p>
+              <p>
+                Source:{' '}
+                <span className="text-content-primary">{screen?.source ?? '—'}</span>
+              </p>
+              {screen?.error ? (
+                <p className="text-status-error">Error: {screen.error}</p>
+              ) : null}
+              <p>
+                Raw position sample:{' '}
+                <span className="text-content-primary">
+                  {screen ? `${Math.round(screen.positionMs / 1000)}s` : '—'}
+                </span>
+              </p>
             </div>
           ) : null}
         </div>

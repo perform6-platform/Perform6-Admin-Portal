@@ -25,9 +25,79 @@ export function formatEnumLabel(value: string | null | undefined): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+/** Portal deployment type labels (enum values unchanged). */
+export function formatDeploymentTypeLabel(type: string | null | undefined): string {
+  const value = (type ?? '').toUpperCase();
+  if (value.includes('TOUCHSCREEN')) return 'Touchscreen';
+  if (value.includes('DEFAULT')) return 'Custom';
+  return formatEnumLabel(type);
+}
+
+export function formatBrandingModeLabel(
+  mode: string | null | undefined,
+  config?: Record<string, unknown>,
+): string {
+  const resolved =
+    mode ??
+    (typeof config?.brandingMode === 'string' ? String(config.brandingMode) : undefined);
+  if (resolved === 'CUSTOM') return 'Custom';
+  if (resolved === 'NONE') return 'None';
+  // PLATFORM_DEFAULT and legacy missing mode → Perform6
+  return 'Perform6';
+}
+
+/** ISO / Date → `1 Sep 2026` (portal style). */
+export function formatPortalDate(value: string | Date | null | undefined): string {
+  if (!value) return '—';
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return '—';
+    return value.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+  const isoMatch = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const date = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
+  }
+  return String(value);
+}
+
+export function formatRotationScheduleLabel(
+  mode: string | null | undefined,
+): 'Global Rotation' | 'Custom Rotation' {
+  return (mode ?? '').toUpperCase() === 'GLOBAL' ? 'Global Rotation' : 'Custom Rotation';
+}
+
+/** Prefer GLOBAL if any linked device is global; else first device mode; else —. */
+export function resolveDeploymentRotationMode(
+  deployment: DeploymentEntity | null | undefined,
+): string | null {
+  const devices = deployment?.devices ?? [];
+  if (devices.length === 0) return null;
+  if (devices.some((device) => device.rotationMode === 'GLOBAL')) return 'GLOBAL';
+  const first = devices[0]?.rotationMode;
+  return typeof first === 'string' ? first : 'DEVICE';
+}
+
+const ZONE_KEY_LABELS: Record<string, string> = {
+  A: 'Zone 1',
+  B: 'Zone 2',
+  C: 'Zone 3',
+  D: 'Zone 4',
+};
+
 export function formatPlaylistKeyLabel(playlistKey: string | null | undefined): string {
   if (!playlistKey) return '';
-  return `Program ${playlistKey}`;
+  return ZONE_KEY_LABELS[playlistKey] ?? `Program ${playlistKey}`;
 }
 
 export function formatCategoryShortLabel(

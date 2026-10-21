@@ -1,8 +1,18 @@
 import { useMemo, useState } from 'react';
-import { Dropdown, PageTitle } from '../components/ui';
+import { Download } from 'lucide-react';
+import { Button, Dropdown, PageTitle } from '../components/ui';
+import { useToast } from '../context/ToastContext';
 import { useDeviceLogs } from '../hooks/useDeviceLogs';
 import { useDevices } from '../hooks/useDevices';
-import type { DeviceLogLevel, DeviceLogSource } from '../services/deviceLogs.api';
+import { getApiErrorMessage } from '../services/axios';
+import {
+  getDeviceLogsInWindow,
+  type DeviceLogLevel,
+  type DeviceLogRow,
+  type DeviceLogSource,
+} from '../services/deviceLogs.api';
+
+const LOG_EXPORT_WINDOW_MS = 20 * 60 * 1000;
 
 const levelOptions = [
   { value: '', label: 'All levels' },
@@ -23,11 +33,31 @@ function levelClass(level: DeviceLogLevel): string {
   return 'text-slate-600';
 }
 
+async function downloadLogsExcel(rows: DeviceLogRow[]): Promise<void> {
+  const XLSX = await import('xlsx');
+  const sheet = XLSX.utils.json_to_sheet(
+    rows.map((row) => ({
+      Time: new Date(row.createdAt).toLocaleString(),
+      Device: row.deviceName || row.deviceId || row.pairingId || '',
+      Serial: row.serialNumber || '',
+      Level: row.level,
+      Source: row.source,
+      Message: row.message,
+    })),
+  );
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, sheet, 'Logs');
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+  XLSX.writeFile(book, `perform6-device-logs-${stamp}.xlsx`);
+}
+
 export default function DeviceLogs() {
+  const { showToast } = useToast();
   const [deviceId, setDeviceId] = useState('');
   const [level, setLevel] = useState('');
   const [source, setSource] = useState('');
   const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   const { data: devicesData } = useDevices({ state: 'registered', page: 1, limit: 100 });
   const deviceOptions = useMemo(() => {
@@ -55,28 +85,80 @@ export default function DeviceLogs() {
   const { data, isLoading, isFetching } = useDeviceLogs(query);
   const rows = data?.items ?? [];
 
+  const handleDownload = async () => {
+    if (exporting) return;
+    const until = new Date();
+    const since = new Date(until.getTime() - LOG_EXPORT_WINDOW_MS);
+    setExporting(true);
+    try {
+      const logs = await getDeviceLogsInWindow(
+        {
+          deviceId: deviceId || undefined,
+          level: (level || undefined) as DeviceLogLevel | undefined,
+          source: (source || undefined) as DeviceLogSource | undefined,
+          search: search.trim() || undefined,
+        },
+        since.toISOString(),
+        until.toISOString(),
+      );
+      if (logs.length === 0) {
+        showToast({ title: 'No logs in the last 20 minutes', variant: 'info' });
+        return;
+      }
+      await downloadLogsExcel(logs);
+      showToast({
+        title: 'Device logs downloaded',
+        message: `${logs.length} rows from the last 20 minutes`,
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Could not download logs'),
+        variant: 'error',
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <PageTitle>Device Logs</PageTitle>
-        <p className="text-sm text-slate-500">
-          Remote player logs (`[Perform6]` JS console + `perform6-led.log` autorun tail). OTA lines
-          include file path and byte progress — search <code className="rounded bg-slate-100 px-1">OTA</code>.
-          Refreshes every 3s.
-          {isFetching && !isLoading ? ' Updating…' : ''}
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <PageTitle>Device Logs</PageTitle>
+          <p className="text-sm text-slate-500">
+            Remote player logs (`[Perform6]` JS console + `perform6-led.log` autorun tail). OTA lines
+            include file path and byte progress — search{' '}
+            <code className="rounded bg-slate-100 px-1">OTA</code>. Refreshes every 3s. Download
+            saves the last 20 minutes from the database as Excel.
+            {isFetching && !isLoading ? ' Updating…' : ''}
+          </p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="shrink-0 self-start"
+          disabled={exporting}
+          onClick={() => void handleDownload()}
+        >
+          <Download className="h-3.5 w-3.5" />
+          {exporting ? 'Downloading…' : 'Download'}
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Dropdown options={deviceOptions} value={deviceId} onChange={setDeviceId} />
-        <Dropdown options={levelOptions} value={level} onChange={setLevel} />
-        <Dropdown options={sourceOptions} value={source} onChange={setSource} />
+      <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <Dropdown options={deviceOptions} value={deviceId} onChange={setDeviceId} />
+          <Dropdown options={levelOptions} value={level} onChange={setLevel} />
+          <Dropdown options={sourceOptions} value={source} onChange={setSource} />
+        </div>
         <input
           type="search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search e.g. OTA, manifest, prefetch"
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:w-72"
         />
       </div>
 

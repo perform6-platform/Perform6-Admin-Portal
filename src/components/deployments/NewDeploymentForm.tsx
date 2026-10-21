@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { BrandingLogoUpload } from './BrandingLogoUpload';
 import { DeploymentStepper } from './DeploymentStepper';
 import {
   Badge,
@@ -12,7 +11,6 @@ import {
   SectionLabel,
 } from '../ui';
 import { useToast } from '../../context/ToastContext';
-import { useCreateBranding, usePlatformDefaultBranding } from '../../hooks/useBranding';
 import { useCategories } from '../../hooks/useCategories';
 import {
   useCategoryVariants,
@@ -40,6 +38,7 @@ import {
   isHdModel,
   isTouchscreenDeployment,
   isXcModel,
+  isXtModel,
   paletteLabel,
   playlistOptionsForCategory,
   touchscreenCategoryIds,
@@ -47,11 +46,13 @@ import {
 } from '../../lib/deploymentWizard';
 import { cn } from '../../lib/cn';
 import { createId } from '../../lib/createId';
-import { formatDateLabel } from '../../lib/formatDateLabel';
+import {
+  formatDeploymentTypeLabel,
+  formatPortalDate,
+} from '../../lib/deploymentDisplay';
 import { getApiErrorMessage } from '../../services/axios';
 import type { DeviceInventoryItem } from '../../types/devices';
 import type {
-  BrandingMode,
   RegisterClusterPayload,
   RegisterSinglePayload,
   RotationMode,
@@ -59,14 +60,7 @@ import type {
 
 const TOTAL_STEPS = 4;
 
-type BrandingUiMode = 'none' | 'platform' | 'custom';
 type DeviceHardwareKind = 'XC' | 'HD' | '';
-
-const brandingOptions = [
-  { value: 'none', label: 'None' },
-  { value: 'platform', label: 'Platform default' },
-  { value: 'custom', label: 'Custom' },
-] as const;
 
 type ScreenRoute = { categoryId: string; playlistKey?: string };
 
@@ -104,7 +98,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   const [paletteIds, setPaletteIds] = useState<string[]>([]);
   const [fieldCategory, setFieldCategory] = useState('');
   const [exerciseVariant, setExerciseVariant] = useState('');
-  const [rotationMode, setRotationMode] = useState<RotationMode>('DEVICE');
+  const [rotationMode, setRotationMode] = useState<RotationMode>('GLOBAL');
   const [rotationStartDate, setRotationStartDate] = useState<Date | undefined>(new Date());
 
   const [deviceKind, setDeviceKind] = useState<DeviceHardwareKind>('');
@@ -117,15 +111,13 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   });
   const [hdRows, setHdRows] = useState<HdPlayerRow[]>([createHdRow()]);
 
-  const [brandingUiMode, setBrandingUiMode] = useState<BrandingUiMode>('none');
-  const [companyName, setCompanyName] = useState('');
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [siteAddress, setSiteAddress] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Apply Start Here / Phase 1 / Phase 2 defaults once per Custom session — not when user clears all. */
+  const paletteDefaultsAppliedRef = useRef(false);
 
   const { data: types = [], isLoading: typesLoading } = useDeploymentTypes();
   const { data: fieldOptions = [], isLoading: fieldLoading } = useDeploymentCategories();
@@ -135,8 +127,6 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   const { data: contentCategories = [], isLoading: contentCategoriesLoading } = useCategories();
 
   const { data: claimedInventory } = useInventoryDevices({ state: 'claimed', limit: 100 });
-  const { data: platformBranding } = usePlatformDefaultBranding();
-  const { mutateAsync: createBranding } = useCreateBranding();
   const { mutateAsync: registerDeployment } = useRegisterDeployment();
   const { data: globalRotationSettings } = useGlobalRotationSettings();
 
@@ -176,13 +166,25 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
     [selectedPaletteCategories],
   );
 
+  // Custom → XC4055 / HD226 only. Touchscreen → XT2145 only.
   const xcDevices = useMemo(
-    () => claimedDevices.filter((device) => isXcModel(device.model)),
+    () =>
+      claimedDevices.filter(
+        (device) => isXcModel(device.model) && !isXtModel(device.model),
+      ),
     [claimedDevices],
   );
 
   const hdDevices = useMemo(
-    () => claimedDevices.filter((device) => isHdModel(device.model)),
+    () =>
+      claimedDevices.filter(
+        (device) => isHdModel(device.model) && !isXtModel(device.model),
+      ),
+    [claimedDevices],
+  );
+
+  const xtDevices = useMemo(
+    () => claimedDevices.filter((device) => isXtModel(device.model)),
     [claimedDevices],
   );
 
@@ -191,9 +193,18 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
     [xcDevices, xcPairingId],
   );
 
+  const selectedXtDevice = useMemo(
+    () => xtDevices.find((device) => device.pairingId === xcPairingId),
+    [xtDevices, xcPairingId],
+  );
+
   const selectedClaimedDevice = useMemo(
-    () => claimedDevices.find((device) => device.pairingId === xcPairingId),
-    [claimedDevices, xcPairingId],
+    () =>
+      isTouchscreen
+        ? selectedXtDevice
+        : selectedXcDevice ??
+          hdDevices.find((device) => device.pairingId === xcPairingId),
+    [isTouchscreen, selectedXtDevice, selectedXcDevice, hdDevices, xcPairingId],
   );
 
   const screenCategoryPayload = useMemo(() => {
@@ -287,14 +298,37 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
     }
   }, [types, deploymentType]);
 
+  // Touchscreen deployments are locked to Global Rotation.
   useEffect(() => {
-    if (!isDefault) return;
-    if (!contentCategories.length || paletteIds.length > 0) return;
+    if (isTouchscreen) {
+      setRotationMode('GLOBAL');
+    }
+  }, [isTouchscreen]);
+
+  // Clear device picks when switching Custom ↔ Touchscreen so lists stay type-safe.
+  useEffect(() => {
+    setXcPairingId('');
+    setXcDeviceName('');
+    setHdRows([createHdRow()]);
+    if (isDefault) {
+      setDeviceKind((current) => current || 'XC');
+    } else {
+      setDeviceKind('');
+    }
+  }, [deploymentType, isDefault]);
+
+  useEffect(() => {
+    if (!isDefault) {
+      paletteDefaultsAppliedRef.current = false;
+      return;
+    }
+    if (paletteDefaultsAppliedRef.current || !contentCategories.length) return;
     const defaults = ['start-here', 'phase-1', 'phase-2']
       .map((slug) => contentCategories.find((category) => category.slug === slug)?.id)
       .filter((id): id is string => Boolean(id));
+    paletteDefaultsAppliedRef.current = true;
     if (defaults.length > 0) setPaletteIds(defaults);
-  }, [isDefault, contentCategories, paletteIds.length]);
+  }, [isDefault, contentCategories]);
 
   useEffect(() => {
     if (!needsField) {
@@ -320,18 +354,20 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   }, [needsVariant, variants, exerciseVariant]);
 
   useEffect(() => {
-    if (isDefault) {
-      if (!deviceKind) setDeviceKind('XC');
-      return;
-    }
-    setDeviceKind('');
-  }, [isDefault, deviceKind]);
-
-  useEffect(() => {
     if (selectedXcDevice?.deviceName && !xcDeviceName) {
       setXcDeviceName(selectedXcDevice.deviceName);
     }
   }, [selectedXcDevice, xcDeviceName]);
+
+  // Switching XC ↔ HD within Custom clears the other path's device selection.
+  useEffect(() => {
+    if (!isDefault) return;
+    setXcPairingId('');
+    setXcDeviceName('');
+    if (deviceKind === 'HD') {
+      setHdRows((rows) => (rows.length > 0 ? rows : [createHdRow()]));
+    }
+  }, [deviceKind, isDefault]);
 
   useEffect(() => {
     setXcScreens((current) => {
@@ -418,11 +454,14 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
   function step2Valid(): boolean {
     if (!isDefault) {
-      return Boolean(xcPairingId);
+      // Touchscreen: must be a claimed XT2145 (not XC/HD).
+      return Boolean(xcPairingId && xtDevices.some((device) => device.pairingId === xcPairingId));
     }
 
     if (deviceKind === 'XC') {
-      if (!xcPairingId) return false;
+      if (!xcPairingId || !xcDevices.some((device) => device.pairingId === xcPairingId)) {
+        return false;
+      }
       return XC_SCREEN_KEYS.every((screenKey) => {
         const route = xcScreens[screenKey];
         return routeValid(route?.categoryId ?? '', route?.playlistKey);
@@ -434,6 +473,8 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       const pairingIds = hdRows.map((row) => row.pairingId);
       if (pairingIds.some((id) => !id)) return false;
       if (new Set(pairingIds).size !== pairingIds.length) return false;
+      const hdPairingSet = new Set(hdDevices.map((device) => device.pairingId));
+      if (pairingIds.some((id) => !hdPairingSet.has(id))) return false;
       return hdRows.every((row) => routeValid(row.categoryId, row.playlistKey));
     }
 
@@ -464,10 +505,11 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
   function resetForm() {
     setStep(1);
+    paletteDefaultsAppliedRef.current = false;
     setPaletteIds([]);
     setFieldCategory('');
     setExerciseVariant('');
-    setRotationMode('DEVICE');
+    setRotationMode('GLOBAL');
     setRotationStartDate(new Date());
     setDeviceKind('XC');
     setXcPairingId('');
@@ -478,20 +520,10 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       SCREEN_3: { categoryId: '' },
     });
     setHdRows([createHdRow()]);
-    setBrandingUiMode('none');
-    setCompanyName('');
-    setLogoFile(null);
-    setLogoPreviewUrl(null);
     setOwnerName('');
     setOwnerEmail('');
     setSiteAddress('');
     setOwnerPhone('');
-  }
-
-  function toApiBrandingMode(mode: BrandingUiMode): BrandingMode {
-    if (mode === 'platform') return 'PLATFORM_DEFAULT';
-    if (mode === 'custom') return 'CUSTOM';
-    return 'NONE';
   }
 
   async function handleDeploy() {
@@ -511,29 +543,10 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       rotationMode === 'DEVICE' && rotationStartDate
         ? format(rotationStartDate, 'yyyy-MM-dd')
         : undefined;
-    const brandingMode = toApiBrandingMode(brandingUiMode);
     const siteContact = buildSiteContact();
 
     setIsSubmitting(true);
     try {
-      let brandingId: string | undefined;
-
-      if (brandingMode === 'CUSTOM') {
-        if (!logoFile && !companyName.trim()) {
-          showToast({
-            title: 'Custom branding requires a brand name or logo',
-            variant: 'error',
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        const branding = await createBranding({
-          brandName: companyName.trim() || undefined,
-          logo: logoFile ?? undefined,
-        });
-        brandingId = branding.id;
-      }
-
       if (isDefault && deviceKind === 'HD') {
         const screens = buildDeploymentScreens(hdRows.length);
         const members = hdRows.map((row, index) => {
@@ -553,8 +566,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
           ...(exerciseVariant ? { exerciseVariant } : {}),
           rotationMode,
           ...(dateStr ? { rotationStartDate: dateStr } : {}),
-          brandingMode,
-          brandingId,
+          brandingMode: 'NONE',
           screenCategories: screenCategoryPayload,
           siteContact,
         };
@@ -587,8 +599,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
           : (selectedClaimedDevice?.deviceName ?? undefined),
         hardwareProfile:
           selectedClaimedDevice?.model ?? (isDefault ? 'XC4055' : 'XT2145'),
-        brandingMode,
-        brandingId,
+        brandingMode: 'NONE',
         screenCategories: isDefault ? screenCategoryPayload : undefined,
         siteContact,
       };
@@ -672,14 +683,20 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
           {isDefault ? (
             <>
+              <p className="rounded-lg border border-surface-border bg-surface-muted/20 p-4 text-body-sm text-content-secondary">
+                Custom deployments allow you to select Content Categories, configure playlist
+                assignments, and customize Rotation Schedule settings to meet the requirements of
+                each installation.
+              </p>
               <div className="space-y-2 rounded-lg border border-surface-border p-4">
                 <div>
                   <p className="text-body-sm font-medium text-content-primary">
                     Content categories for this deployment
                   </p>
                   <p className="text-caption text-content-secondary">
-                    Check the categories you want available. Field / Variant appear only when a
-                    selected category needs them (e.g. Phase 1).
+                    Start Here, Phase 1, and Phase 2 are selected by default. You may clear all and
+                    pick any categories — at least one is required before Next. Content Type /
+                    Environment appear when a selected category needs them (e.g. Phase 1).
                   </p>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -706,6 +723,11 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                     );
                   })}
                 </div>
+                {paletteIds.length === 0 && (
+                  <p className="text-caption text-status-warning">
+                    Select at least one content category to continue.
+                  </p>
+                )}
                 {contentCategoriesLoading && (
                   <p className="text-caption text-content-muted">Loading categories…</p>
                 )}
@@ -713,15 +735,16 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             </>
           ) : (
             <div className="rounded-lg border border-surface-border bg-surface-muted/20 p-4 text-body-sm text-content-secondary">
-              Touchscreen deployments use the fixed system categories (Default, Start Here, Phase
-              1, Phase 2, Full Program). Choose Field and Variant below so Fitness/Golf playlists
-              resolve to the correct videos.
+              Touchscreen deployments use the fixed Content Categories (Default, Start Here, Phase
+              1, Phase 2, Full Program). Select Content Type (Fitness/Golf) and Environment
+              (Wall/No Wall) below to determine the appropriate programming. Content Category
+              selections and Rotation Schedule are locked to Global Rotation.
             </div>
           )}
 
           {needsField && (
             <div>
-              <p className="mb-1 text-xs font-medium text-content-muted">Field category</p>
+              <p className="mb-1 text-xs font-medium text-content-muted">Content Type</p>
               <Dropdown
                 options={fieldOptions.map((option) => ({
                   value: option.value,
@@ -740,7 +763,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
           {needsVariant && (
             <div>
-              <p className="mb-1 text-xs font-medium text-content-muted">Exercise variant</p>
+              <p className="mb-1 text-xs font-medium text-content-muted">Environment</p>
               <Dropdown
                 options={variants.map((variant) => ({
                   value: variant.value,
@@ -756,77 +779,85 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
           <div className="space-y-3">
             <p className="text-xs font-medium text-content-muted">Rotation schedule</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <label
-                className={cn(
-                  'flex cursor-pointer flex-col gap-1 rounded-lg border px-4 py-2 text-body-sm',
-                  rotationMode === 'DEVICE'
-                    ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
-                    : 'border-surface-border bg-surface-muted/20 text-content-secondary',
-                )}
-              >
-                <span className="flex items-center gap-2 font-medium">
-                  <input
-                    type="radio"
-                    name="rotationMode"
-                    className="accent-brand-600"
-                    checked={rotationMode === 'DEVICE'}
-                    onChange={() => setRotationMode('DEVICE')}
-                  />
-                  Custom rotation schedule
-                </span>
-                <span className="pl-6 text-caption text-content-secondary">
-                  Week-aligned download from this device&apos;s own Day 1.
-                </span>
-              </label>
-              <label
-                className={cn(
-                  'flex cursor-pointer flex-col gap-1 rounded-lg border px-4 py-2 text-body-sm',
-                  rotationMode === 'GLOBAL'
-                    ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
-                    : 'border-surface-border bg-surface-muted/20 text-content-secondary',
-                )}
-              >
-                <span className="flex items-center gap-2 font-medium">
-                  <input
-                    type="radio"
-                    name="rotationMode"
-                    className="accent-brand-600"
-                    checked={rotationMode === 'GLOBAL'}
-                    onChange={() => setRotationMode('GLOBAL')}
-                  />
-                  Join global rotation
-                </span>
-                <span className="pl-6 text-caption text-content-secondary">
-                  Rolling 7-day download from the portal global calendar.
-                </span>
-              </label>
-            </div>
+            {isTouchscreen ? (
+              <div className="rounded-lg border border-brand-500/40 bg-brand-500/10 px-4 py-3 text-body-sm text-brand-700 dark:text-brand-300">
+                <p className="font-medium">Join Global Rotation</p>
+                <p className="mt-1 text-caption text-content-secondary">
+                  Synchronize with the Portal&apos;s global 36-day rotation using a rolling 7-day
+                  content cache. Touchscreen deployments cannot use a custom rotation schedule.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label
+                  className={cn(
+                    'flex cursor-pointer flex-col gap-1 rounded-lg border px-4 py-2 text-body-sm',
+                    rotationMode === 'GLOBAL'
+                      ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
+                      : 'border-surface-border bg-surface-muted/20 text-content-secondary',
+                  )}
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <input
+                      type="radio"
+                      name="rotationMode"
+                      className="accent-brand-600"
+                      checked={rotationMode === 'GLOBAL'}
+                      onChange={() => setRotationMode('GLOBAL')}
+                    />
+                    Global Rotation
+                  </span>
+                  <span className="pl-6 text-caption text-content-secondary">
+                    Deployment follows the synchronized Perform6 global rotation.
+                  </span>
+                </label>
+                <label
+                  className={cn(
+                    'flex cursor-pointer flex-col gap-1 rounded-lg border px-4 py-2 text-body-sm',
+                    rotationMode === 'DEVICE'
+                      ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
+                      : 'border-surface-border bg-surface-muted/20 text-content-secondary',
+                  )}
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <input
+                      type="radio"
+                      name="rotationMode"
+                      className="accent-brand-600"
+                      checked={rotationMode === 'DEVICE'}
+                      onChange={() => setRotationMode('DEVICE')}
+                    />
+                    Custom Rotation
+                  </span>
+                  <span className="pl-6 text-caption text-content-secondary">
+                  Deployment follows an independent rotation based on its configured start date.
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
 
-          {rotationMode === 'DEVICE' ? (
+          {rotationMode === 'DEVICE' && !isTouchscreen ? (
             <div>
               <p className="mb-1 text-xs font-medium text-content-muted">Rotation start date</p>
               <DatePicker value={rotationStartDate} onChange={setRotationStartDate} />
-              {rotationStartDate && (
-                <p className="mt-1 text-caption text-content-secondary">
-                  {formatDateLabel(rotationStartDate)}
-                </p>
-              )}
+              <p className="mt-1 text-caption text-content-secondary">
+                This date establishes Day 1 for this deployment.
+              </p>
             </div>
           ) : (
             <div className="rounded-lg border border-surface-border bg-surface-muted/20 p-4 text-body-sm text-content-secondary">
               {globalRotationStartDate ? (
                 <>
                   <p>
-                    Global Day 1:{' '}
+                    Global Day 1 :{' '}
                     <span className="font-medium text-content-primary">
-                      {globalRotationStartDate}
+                      {formatPortalDate(globalRotationStartDate)}
                     </span>
                   </p>
                   {globalRotationSettings?.currentRotationDay != null && (
                     <p className="mt-1">
-                      Current platform day: Day {globalRotationSettings.currentRotationDay}
+                      Current platform day : Day {globalRotationSettings.currentRotationDay} of 36
                     </p>
                   )}
                 </>
@@ -845,8 +876,9 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-6')}>
           <SectionLabel className="block">Step 2 — Device</SectionLabel>
           <p className="text-body-sm text-content-secondary">
-            Assign claimed (not yet deployed) devices and map each output to a category from Step
-            1.
+            {isDefault
+              ? 'Assign claimed BrightSign players and map each output to a category from Step 1.'
+              : 'Select a claimed BrightSign player for this deployment.'}
           </p>
 
           {isDefault ? (
@@ -862,6 +894,9 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                   onChange={(value) => setDeviceKind(value as DeviceHardwareKind)}
                   fullWidth
                 />
+                <p className="mt-1 text-caption text-content-muted">
+                  Custom deployments list claimed XC4055 or HD226 players only (not XT2145).
+                </p>
               </div>
 
               {deviceKind === 'XC' && (
@@ -872,7 +907,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                     </p>
                     <Dropdown
                       options={[
-                        { value: '', label: 'Select claimed XC device…' },
+                        { value: '', label: 'Select claimed XC4055…' },
                         ...xcDevices.map((device) => ({
                           value: device.pairingId ?? '',
                           label: deviceOptionLabel(device),
@@ -1019,22 +1054,26 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
           ) : (
             <div className="space-y-4 rounded-lg border border-surface-border p-4">
               <p className="text-body-sm text-content-secondary">
-                Touchscreen deployments use a single claimed XT2145 device.
+                Touchscreen Deployments require one BrightSign XT2145 player. Only claimed XT2145
+                devices are listed.
               </p>
               <Dropdown
                 options={[
-                  { value: '', label: 'Select claimed device…' },
-                  ...claimedDevices
-                    .filter((device) => (device.model ?? '').toUpperCase().includes('XT2145'))
-                    .map((device) => ({
-                      value: device.pairingId ?? '',
-                      label: deviceOptionLabel(device),
-                    })),
+                  { value: '', label: 'Select claimed XT2145…' },
+                  ...xtDevices.map((device) => ({
+                    value: device.pairingId ?? '',
+                    label: deviceOptionLabel(device),
+                  })),
                 ]}
                 value={xcPairingId}
                 onChange={setXcPairingId}
                 fullWidth
               />
+              {xtDevices.length === 0 && (
+                <p className="text-caption text-status-warning">
+                  No claimed XT2145 devices available.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -1123,42 +1162,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-6')}>
           <SectionLabel className="block">Step 4 — Finalize deployment</SectionLabel>
 
-          <div>
-            <p className="mb-1 text-xs font-medium text-content-muted">Branding mode</p>
-            <Dropdown
-              options={[...brandingOptions]}
-              value={brandingUiMode}
-              onChange={(value) => setBrandingUiMode(value as BrandingUiMode)}
-              fullWidth
-            />
-          </div>
-
-          {brandingUiMode === 'platform' && platformBranding && (
-            <p className="text-body-sm text-content-secondary">
-              Using platform default: {platformBranding.brandName}
-            </p>
-          )}
-
-          {brandingUiMode === 'custom' && (
-            <>
-              <Input
-                label="Brand name"
-                placeholder="Acme Fitness"
-                value={companyName}
-                onChange={(event) => setCompanyName(event.target.value)}
-              />
-              <BrandingLogoUpload
-                previewUrl={logoPreviewUrl}
-                companyName={companyName}
-                onChange={(file, preview) => {
-                  setLogoFile(file);
-                  setLogoPreviewUrl(preview);
-                }}
-              />
-            </>
-          )}
-
-          <div className="space-y-4 border-t border-surface-border pt-4">
+          <div className="space-y-4">
             <p className="text-xs font-medium text-content-muted">
               Site owner (offline alerts)
             </p>
@@ -1198,7 +1202,8 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
           <div className="space-y-2 rounded-lg border border-surface-border bg-surface-muted/20 p-4 text-body-sm text-content-secondary">
             <p>
-              <span className="font-medium text-content-primary">Type:</span> {deploymentType}
+              <span className="font-medium text-content-primary">Deployment Type:</span>{' '}
+              {formatDeploymentTypeLabel(deploymentType)}
             </p>
             <p>
               <span className="font-medium text-content-primary">Categories:</span>{' '}
@@ -1210,16 +1215,20 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             </p>
             {((isDefault || isTouchscreen) && (needsField || needsVariant)) && (
               <p>
-                <span className="font-medium text-content-primary">Field / Variant:</span>{' '}
+                <span className="font-medium text-content-primary">Content Type / Environment:</span>{' '}
                 {fieldCategory || '—'} / {exerciseVariant || '—'}
               </p>
             )}
             <p>
-              <span className="font-medium text-content-primary">Rotation:</span>{' '}
+              <span className="font-medium text-content-primary">Rotation Schedule:</span>{' '}
               {rotationMode === 'GLOBAL'
-                ? `Global${globalRotationStartDate ? ` · Day 1 ${globalRotationStartDate}` : ''}`
+                ? `Global Rotation${
+                    globalRotationStartDate
+                      ? ` · ${formatPortalDate(globalRotationStartDate)}`
+                      : ''
+                  }`
                 : rotationStartDate
-                  ? format(rotationStartDate, 'yyyy-MM-dd')
+                  ? `Custom Rotation · ${formatPortalDate(rotationStartDate)}`
                   : '—'}
             </p>
             <p>

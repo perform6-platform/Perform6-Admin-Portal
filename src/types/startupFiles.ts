@@ -1,4 +1,9 @@
-export type StartupProfileId = 'xt2145' | 'xc4055' | 'hd226';
+export type StartupProfileId =
+  | 'xt2145'
+  | 'xt2145-fitness'
+  | 'xt2145-golf'
+  | 'xc4055'
+  | 'hd226';
 
 export type StartupPackageKind = 'folder' | 'zip';
 

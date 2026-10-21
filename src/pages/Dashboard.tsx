@@ -56,7 +56,8 @@ export default function Dashboard() {
       return;
     }
     if (label === 'Upload New Content') {
-      navigate('/content-library', { state: { openUpload: true } });
+      // Land on Content Library so the admin can pick any category before uploading.
+      navigate('/content-library');
       return;
     }
     if (label === 'Create New Schedule') {
