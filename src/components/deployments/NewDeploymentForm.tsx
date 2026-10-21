@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { BrandingLogoUpload } from './BrandingLogoUpload';
 import { DeploymentStepper } from './DeploymentStepper';
 import {
   Badge,
@@ -12,7 +11,6 @@ import {
   SectionLabel,
 } from '../ui';
 import { useToast } from '../../context/ToastContext';
-import { useCreateBranding, usePlatformDefaultBranding } from '../../hooks/useBranding';
 import { useCategories } from '../../hooks/useCategories';
 import {
   useCategoryVariants,
@@ -55,7 +53,6 @@ import {
 import { getApiErrorMessage } from '../../services/axios';
 import type { DeviceInventoryItem } from '../../types/devices';
 import type {
-  BrandingMode,
   RegisterClusterPayload,
   RegisterSinglePayload,
   RotationMode,
@@ -63,14 +60,7 @@ import type {
 
 const TOTAL_STEPS = 4;
 
-type BrandingUiMode = 'none' | 'platform' | 'custom';
 type DeviceHardwareKind = 'XC' | 'HD' | '';
-
-const brandingOptions = [
-  { value: 'none', label: 'None' },
-  { value: 'platform', label: 'Perform6' },
-  { value: 'custom', label: 'Custom' },
-] as const;
 
 type ScreenRoute = { categoryId: string; playlistKey?: string };
 
@@ -121,10 +111,6 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   });
   const [hdRows, setHdRows] = useState<HdPlayerRow[]>([createHdRow()]);
 
-  const [brandingUiMode, setBrandingUiMode] = useState<BrandingUiMode>('none');
-  const [companyName, setCompanyName] = useState('');
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [siteAddress, setSiteAddress] = useState('');
@@ -141,8 +127,6 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   const { data: contentCategories = [], isLoading: contentCategoriesLoading } = useCategories();
 
   const { data: claimedInventory } = useInventoryDevices({ state: 'claimed', limit: 100 });
-  const { data: platformBranding } = usePlatformDefaultBranding();
-  const { mutateAsync: createBranding } = useCreateBranding();
   const { mutateAsync: registerDeployment } = useRegisterDeployment();
   const { data: globalRotationSettings } = useGlobalRotationSettings();
 
@@ -536,20 +520,10 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       SCREEN_3: { categoryId: '' },
     });
     setHdRows([createHdRow()]);
-    setBrandingUiMode('none');
-    setCompanyName('');
-    setLogoFile(null);
-    setLogoPreviewUrl(null);
     setOwnerName('');
     setOwnerEmail('');
     setSiteAddress('');
     setOwnerPhone('');
-  }
-
-  function toApiBrandingMode(mode: BrandingUiMode): BrandingMode {
-    if (mode === 'platform') return 'PLATFORM_DEFAULT';
-    if (mode === 'custom') return 'CUSTOM';
-    return 'NONE';
   }
 
   async function handleDeploy() {
@@ -569,29 +543,10 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       rotationMode === 'DEVICE' && rotationStartDate
         ? format(rotationStartDate, 'yyyy-MM-dd')
         : undefined;
-    const brandingMode = toApiBrandingMode(brandingUiMode);
     const siteContact = buildSiteContact();
 
     setIsSubmitting(true);
     try {
-      let brandingId: string | undefined;
-
-      if (brandingMode === 'CUSTOM') {
-        if (!logoFile && !companyName.trim()) {
-          showToast({
-            title: 'Custom branding requires a brand name or logo',
-            variant: 'error',
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        const branding = await createBranding({
-          brandName: companyName.trim() || undefined,
-          logo: logoFile ?? undefined,
-        });
-        brandingId = branding.id;
-      }
-
       if (isDefault && deviceKind === 'HD') {
         const screens = buildDeploymentScreens(hdRows.length);
         const members = hdRows.map((row, index) => {
@@ -611,8 +566,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
           ...(exerciseVariant ? { exerciseVariant } : {}),
           rotationMode,
           ...(dateStr ? { rotationStartDate: dateStr } : {}),
-          brandingMode,
-          brandingId,
+          brandingMode: 'NONE',
           screenCategories: screenCategoryPayload,
           siteContact,
         };
@@ -645,8 +599,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
           : (selectedClaimedDevice?.deviceName ?? undefined),
         hardwareProfile:
           selectedClaimedDevice?.model ?? (isDefault ? 'XC4055' : 'XT2145'),
-        brandingMode,
-        brandingId,
+        brandingMode: 'NONE',
         screenCategories: isDefault ? screenCategoryPayload : undefined,
         siteContact,
       };
@@ -1209,42 +1162,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-6')}>
           <SectionLabel className="block">Step 4 — Finalize deployment</SectionLabel>
 
-          <div>
-            <p className="mb-1 text-xs font-medium text-content-muted">Branding mode</p>
-            <Dropdown
-              options={[...brandingOptions]}
-              value={brandingUiMode}
-              onChange={(value) => setBrandingUiMode(value as BrandingUiMode)}
-              fullWidth
-            />
-          </div>
-
-          {brandingUiMode === 'platform' && platformBranding && (
-            <p className="text-body-sm text-content-secondary">
-              Using platform default: {platformBranding.brandName}
-            </p>
-          )}
-
-          {brandingUiMode === 'custom' && (
-            <>
-              <Input
-                label="Brand name"
-                placeholder="Acme Fitness"
-                value={companyName}
-                onChange={(event) => setCompanyName(event.target.value)}
-              />
-              <BrandingLogoUpload
-                previewUrl={logoPreviewUrl}
-                companyName={companyName}
-                onChange={(file, preview) => {
-                  setLogoFile(file);
-                  setLogoPreviewUrl(preview);
-                }}
-              />
-            </>
-          )}
-
-          <div className="space-y-4 border-t border-surface-border pt-4">
+          <div className="space-y-4">
             <p className="text-xs font-medium text-content-muted">
               Site owner (offline alerts)
             </p>

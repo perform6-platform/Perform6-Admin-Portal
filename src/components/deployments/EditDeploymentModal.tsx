@@ -21,7 +21,6 @@ import {
 } from '../../lib/deploymentWizard';
 import { getApiErrorMessage } from '../../services/axios';
 import type {
-  BrandingMode,
   DeploymentEntity,
   UpdateDeploymentPayload,
 } from '../../types/deployments';
@@ -35,12 +34,6 @@ export interface EditDeploymentModalProps {
 }
 
 type ScreenRoute = { categoryId: string; playlistKey?: string };
-
-const brandingOptions = [
-  { value: 'NONE', label: 'None' },
-  { value: 'PLATFORM_DEFAULT', label: 'Perform6' },
-  { value: 'CUSTOM', label: 'Custom' },
-];
 
 function isDefaultDeployment(type: string | undefined): boolean {
   return (type ?? '').toUpperCase().includes('DEFAULT');
@@ -75,8 +68,6 @@ export function EditDeploymentModal({
   const [description, setDescription] = useState('');
   const [fieldCategory, setFieldCategory] = useState('');
   const [exerciseVariant, setExerciseVariant] = useState('');
-  const [brandingMode, setBrandingMode] = useState<BrandingMode>('PLATFORM_DEFAULT');
-  const [brandingId, setBrandingId] = useState('');
   const [screenRoutes, setScreenRoutes] = useState<Record<string, ScreenRoute>>({});
 
   const source = detail ?? deployment;
@@ -138,14 +129,6 @@ export function EditDeploymentModal({
     );
     setFieldCategory(source.fieldCategory ?? '');
     setExerciseVariant(source.exerciseVariant ?? '');
-    const mode = source.config?.brandingMode;
-    setBrandingMode(
-      mode === 'CUSTOM' || mode === 'NONE' || mode === 'PLATFORM_DEFAULT'
-        ? mode
-        : 'PLATFORM_DEFAULT',
-    );
-    const linkedBrandingId = source.branding?.[0]?.id;
-    setBrandingId(typeof linkedBrandingId === 'string' ? linkedBrandingId : '');
 
     const screens = resolveDeploymentScreens(source);
     const nextRoutes: Record<string, ScreenRoute> = {};
@@ -192,11 +175,6 @@ export function EditDeploymentModal({
     const payload: UpdateDeploymentPayload = {
       name: name.trim() || undefined,
       description: description.trim() || undefined,
-      brandingMode,
-      brandingId:
-        brandingMode === 'CUSTOM' && brandingId.trim()
-          ? brandingId.trim()
-          : undefined,
     };
 
     if (needsField && fieldCategory) {
@@ -243,7 +221,7 @@ export function EditDeploymentModal({
       open={open}
       onClose={onClose}
       title="Edit deployment"
-      description="Update content, branding, screens, or display name."
+      description="Update content, screens, or display name."
       size="lg"
       footer={
         <>
@@ -323,27 +301,6 @@ export function EditDeploymentModal({
                 }
               />
             </div>
-          )}
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-content-muted">
-              Branding
-            </label>
-            <Dropdown
-              fullWidth
-              value={brandingMode}
-              onChange={(value) => setBrandingMode(value as BrandingMode)}
-              options={brandingOptions}
-            />
-          </div>
-
-          {brandingMode === 'CUSTOM' && (
-            <Input
-              label="Branding ID"
-              value={brandingId}
-              onChange={(event) => setBrandingId(event.target.value)}
-              placeholder="UUID from branding upload"
-            />
           )}
 
           {showScreenEditor && (

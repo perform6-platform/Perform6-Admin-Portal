@@ -22,7 +22,8 @@ import {
 import { useToast } from '../context/ToastContext';
 
 const profileOptions = [
-  { value: 'xt2145', label: 'XT2145 (touch + LED)' },
+  { value: 'xt2145-fitness', label: 'XT2145 Fitness' },
+  { value: 'xt2145-golf', label: 'XT2145 Golf' },
   { value: 'xc4055', label: 'XC4055 (triple HDMI)' },
   { value: 'hd226', label: 'HD226 (cluster)' },
 ];
@@ -157,14 +158,14 @@ export default function OtaReleases() {
   const retryOtaMutation = useRetryDeviceOta();
 
   const [version, setVersion] = useState('');
-  const [profile, setProfile] = useState<StartupProfileId>('xt2145');
+  const [profile, setProfile] = useState<StartupProfileId>('xt2145-golf');
   const [releaseNotes, setReleaseNotes] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [publishNow, setPublishNow] = useState(true);
   const [publishingId, setPublishingId] = useState<string | null>(null);
 
-  const activeRelease = useMemo(
-    () => (releases ?? []).find((release) => release.isActive) ?? null,
+  const activeReleases = useMemo(
+    () => (releases ?? []).filter((release) => release.isActive),
     [releases],
   );
 
@@ -267,16 +268,20 @@ export default function OtaReleases() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {activeRelease ? (
-              <>
-                <p className="text-2xl font-semibold text-content-primary">
-                  v{activeRelease.version}
-                </p>
-                <p className="text-body-sm text-content-muted">
-                  Model: {activeRelease.model ?? 'All profiles'} · Published{' '}
-                  {formatDate(activeRelease.createdAt)}
-                </p>
-              </>
+            {activeReleases.length > 0 ? (
+              <div className="space-y-3">
+                {activeReleases.map((release) => (
+                  <div key={release.id}>
+                    <p className="text-2xl font-semibold text-content-primary">
+                      v{release.version}
+                    </p>
+                    <p className="text-body-sm text-content-muted">
+                      Model: {release.model ?? 'All profiles'} · Published{' '}
+                      {formatDate(release.createdAt)}
+                    </p>
+                  </div>
+                ))}
+              </div>
             ) : (
               <p className="text-body-sm text-content-muted">No live release yet.</p>
             )}
@@ -315,7 +320,7 @@ export default function OtaReleases() {
             <>
               <div className="flex flex-wrap gap-3 text-body-sm text-content-muted">
                 <span>
-                  Live: <strong className="text-content-primary">v{otaFleet.liveVersion ?? '—'}</strong>
+                  Live: <strong className="text-content-primary">{otaFleet.liveVersion ?? '—'}</strong>
                 </span>
                 <span>{otaFleet.summary.upToDate} up to date</span>
                 <span>{otaFleet.summary.updatePending} pending</span>

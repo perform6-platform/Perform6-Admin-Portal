@@ -1,9 +1,18 @@
 import { useMemo, useState } from 'react';
 import { Download } from 'lucide-react';
 import { Button, Dropdown, PageTitle } from '../components/ui';
+import { useToast } from '../context/ToastContext';
 import { useDeviceLogs } from '../hooks/useDeviceLogs';
 import { useDevices } from '../hooks/useDevices';
-import type { DeviceLogLevel, DeviceLogRow, DeviceLogSource } from '../services/deviceLogs.api';
+import { getApiErrorMessage } from '../services/axios';
+import {
+  getDeviceLogsInWindow,
+  type DeviceLogLevel,
+  type DeviceLogRow,
+  type DeviceLogSource,
+} from '../services/deviceLogs.api';
+
+const LOG_EXPORT_WINDOW_MS = 20 * 60 * 1000;
 
 const levelOptions = [
   { value: '', label: 'All levels' },
@@ -24,40 +33,31 @@ function levelClass(level: DeviceLogLevel): string {
   return 'text-slate-600';
 }
 
-function csvEscape(value: string): string {
-  return `"${value.replace(/"/g, '""')}"`;
-}
-
-function downloadCurrentLogsCsv(rows: DeviceLogRow[]): void {
-  const headers = ['Time', 'Device', 'Serial', 'Level', 'Source', 'Message'];
-  const lines = rows.map((row) =>
-    [
-      new Date(row.createdAt).toISOString(),
-      row.deviceName || row.deviceId || row.pairingId || '',
-      row.serialNumber || '',
-      row.level,
-      row.source,
-      row.message,
-    ]
-      .map((cell) => csvEscape(String(cell)))
-      .join(','),
+async function downloadLogsExcel(rows: DeviceLogRow[]): Promise<void> {
+  const XLSX = await import('xlsx');
+  const sheet = XLSX.utils.json_to_sheet(
+    rows.map((row) => ({
+      Time: new Date(row.createdAt).toLocaleString(),
+      Device: row.deviceName || row.deviceId || row.pairingId || '',
+      Serial: row.serialNumber || '',
+      Level: row.level,
+      Source: row.source,
+      Message: row.message,
+    })),
   );
-  const csv = [headers.join(','), ...lines].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, sheet, 'Logs');
   const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  link.href = url;
-  link.download = `perform6-device-logs-${stamp}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
+  XLSX.writeFile(book, `perform6-device-logs-${stamp}.xlsx`);
 }
 
 export default function DeviceLogs() {
+  const { showToast } = useToast();
   const [deviceId, setDeviceId] = useState('');
   const [level, setLevel] = useState('');
   const [source, setSource] = useState('');
   const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   const { data: devicesData } = useDevices({ state: 'registered', page: 1, limit: 100 });
   const deviceOptions = useMemo(() => {
@@ -85,6 +85,42 @@ export default function DeviceLogs() {
   const { data, isLoading, isFetching } = useDeviceLogs(query);
   const rows = data?.items ?? [];
 
+  const handleDownload = async () => {
+    if (exporting) return;
+    const until = new Date();
+    const since = new Date(until.getTime() - LOG_EXPORT_WINDOW_MS);
+    setExporting(true);
+    try {
+      const logs = await getDeviceLogsInWindow(
+        {
+          deviceId: deviceId || undefined,
+          level: (level || undefined) as DeviceLogLevel | undefined,
+          source: (source || undefined) as DeviceLogSource | undefined,
+          search: search.trim() || undefined,
+        },
+        since.toISOString(),
+        until.toISOString(),
+      );
+      if (logs.length === 0) {
+        showToast({ title: 'No logs in the last 20 minutes', variant: 'info' });
+        return;
+      }
+      await downloadLogsExcel(logs);
+      showToast({
+        title: 'Device logs downloaded',
+        message: `${logs.length} rows from the last 20 minutes`,
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Could not download logs'),
+        variant: 'error',
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -93,7 +129,8 @@ export default function DeviceLogs() {
           <p className="text-sm text-slate-500">
             Remote player logs (`[Perform6]` JS console + `perform6-led.log` autorun tail). OTA lines
             include file path and byte progress — search{' '}
-            <code className="rounded bg-slate-100 px-1">OTA</code>. Refreshes every 3s.
+            <code className="rounded bg-slate-100 px-1">OTA</code>. Refreshes every 3s. Download
+            saves the last 20 minutes from the database as Excel.
             {isFetching && !isLoading ? ' Updating…' : ''}
           </p>
         </div>
@@ -102,11 +139,11 @@ export default function DeviceLogs() {
           size="sm"
           variant="outline"
           className="shrink-0 self-start"
-          disabled={rows.length === 0 || isLoading}
-          onClick={() => downloadCurrentLogsCsv(rows)}
+          disabled={exporting}
+          onClick={() => void handleDownload()}
         >
           <Download className="h-3.5 w-3.5" />
-          Download
+          {exporting ? 'Downloading…' : 'Download'}
         </Button>
       </div>
 

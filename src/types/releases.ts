@@ -1,3 +1,5 @@
+import type { StartupProfileId } from './startupFiles';
+
 export interface AppRelease {
   id: string;
   version: string;
@@ -19,7 +21,7 @@ export interface CreateReleasePayload {
 
 export interface DeployReleasePayload {
   version: string;
-  profile: 'xt2145' | 'xc4055' | 'hd226';
+  profile: StartupProfileId;
   model?: string;
   releaseNotes?: string;
   publish?: boolean;
