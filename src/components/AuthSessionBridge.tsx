@@ -5,14 +5,18 @@ import {
   AUTH_LOGOUT_EVENT,
   type AuthLogoutDetail,
 } from '../lib/authSession';
+import { startSessionRefreshLifecycle } from '../services/sessionRefresh';
 
 /**
- * Listens for forced logout (refresh failure / invalid session) and
- * clears React Query cache + navigates to /login.
+ * Session bridge for the admin CMS:
+ * - Silent access-token refresh before expiry (no 401 wave)
+ * - Forced logout → clear cache + navigate to /login
  */
 export default function AuthSessionBridge({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  useEffect(() => startSessionRefreshLifecycle(), []);
 
   useEffect(() => {
     const onLogout = (event: Event) => {
