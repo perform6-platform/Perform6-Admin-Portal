@@ -33,6 +33,8 @@ interface PlayingEntry {
   group: string;
   label: string;
   video: string;
+  /** Raw playing name for the preview modal. Card description may prefix "Now Playing:". */
+  previewTitle?: string;
   thumbnail?: string;
 }
 
@@ -134,17 +136,14 @@ function xtOutputEntries(
       key: 'XT_HDMI_2',
       previewScreenKey: nativeScreen?.screenKey ?? 'SCREEN_2',
       group: 'LED · HDMI-2',
-      // Now Playing must reflect native LED playback, not a pending touch selection.
-      label: nativePlaying
-        ? `Now Playing: ${playingCategory ?? 'Main Display'}`
-        : selectedLabel && !isSessionPlaying
-          ? `Selected (not playing): ${selectedLabel}`
-          : 'Main Display',
+      // Title stays the output name. The playing category is only the description.
+      label: 'Main Display',
       video: nativePlaying
-        ? (nativePlaying.title || playingCategory || 'Playing')
+        ? `Now Playing: ${playingCategory || 'Main Display'}`
         : selectedLabel && !isSessionPlaying
           ? `Pending selection · ${selectedLabel}`
           : 'Awaiting Main Display playback',
+      previewTitle: playingCategory || undefined,
       thumbnail: resolveStorageUrl(activeAssignment?.thumbnail) ?? undefined,
     },
   ];
@@ -376,7 +375,7 @@ export function DeviceMonitoringPanel({
                     setPreview({
                       screenKey:
                         entry.previewScreenKey ?? (hasFleetScreens ? entry.key : 'SCREEN_1'),
-                      title: entry.video,
+                      title: entry.previewTitle ?? entry.video,
                       thumbnail: entry.thumbnail,
                     })
                   }

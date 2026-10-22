@@ -102,7 +102,7 @@ export function ScheduleDayDetailsModal({
                         <p
                           className={cn(
                             'whitespace-nowrap text-body-sm font-medium',
-                            entry.assigned ? 'text-content-primary' : 'italic text-content-muted',
+                            entry.assigned ? 'text-content-primary' : 'text-content-muted',
                           )}
                           title={entry.video}
                         >

@@ -60,6 +60,8 @@ export interface LivePlaybackScreen {
   durationMs: number | null;
   isPlaying: boolean;
   output: string | null;
+  resolution?: string | null;
+  frameRate?: number | null;
   source: string | null;
   requestId: string | null;
   stage: string | null;
