@@ -17,6 +17,7 @@ import {
   useDeleteCategory,
   useUpdateCategory,
 } from '../hooks/useCategories';
+import { sortCategories } from '../lib/contentCategoryGroups';
 import {
   categoryDisplayName,
   configurationColumnText,
@@ -45,18 +46,17 @@ export default function Categories() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ContentCategory | null>(null);
 
+  const sortedCategories = useMemo(() => sortCategories(categories), [categories]);
+
   const columns = useMemo<TableColumn<ContentCategory>[]>(
     () => [
       {
         key: 'name',
         header: 'Category',
         render: (row) => (
-          <div>
-            <p className="text-content-primary">
-              {categoryDisplayName(row.slug, row.name)}
-            </p>
-            <p className="text-caption text-content-muted">{row.slug}</p>
-          </div>
+          <p className="text-content-primary">
+            {categoryDisplayName(row.slug, row.name)}
+          </p>
         ),
       },
       {
@@ -241,7 +241,7 @@ export default function Categories() {
       ) : (
         <Table
           columns={columns}
-          data={categories}
+          data={sortedCategories}
           rowKey={(row) => row.id}
           emptyMessage="No categories yet — create your first category."
         />
