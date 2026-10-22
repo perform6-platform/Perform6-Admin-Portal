@@ -297,7 +297,7 @@ export function RotationScheduleTable({
                       <td
                         key={column.key}
                         className={cn(
-                          'px-4 py-2',
+                          'min-w-[20rem] px-4 py-2',
                           isHighlightedCell && 'bg-brand-50',
                         )}
                       >

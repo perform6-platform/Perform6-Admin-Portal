@@ -324,18 +324,16 @@ function normalizeCell(raw: unknown): DeploymentScheduleTableCell {
   const cell = raw as Record<string, unknown>;
   const title = asString(cell.title ?? cell.video ?? cell.name);
   const thumbnail = asString(cell.thumbnail ?? cell.thumbnailUrl) || null;
-  const assigned =
-    cell.assigned === false
-      ? false
-      : cell.assigned === true
-        ? true
-        : Boolean(title);
+  const mediaVersionId = asString(cell.mediaVersionId) || null;
+  // A day session can exist with a playlist placeholder title and no video.
+  // That is unassigned content, not a scheduled title.
+  const assigned = cell.assigned === false ? false : Boolean(mediaVersionId);
 
   return {
     title: title || null,
     thumbnail,
     assigned,
-    mediaVersionId: asString(cell.mediaVersionId) || null,
+    mediaVersionId,
   };
 }
 
@@ -436,7 +434,7 @@ export function isScheduleCellAssigned(
 ): boolean {
   if (!cell) return false;
   if (cell.assigned === false) return false;
-  return Boolean(asString(cell.title));
+  return Boolean(asString(cell.mediaVersionId));
 }
 
 export function getScheduleCellTitle(

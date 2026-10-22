@@ -52,6 +52,24 @@ function estimateSeekSeconds(
   return base;
 }
 
+function formatPlaybackResolution(
+  resolution: string | null | undefined,
+  frameRate: number | null | undefined,
+  output: string | null | undefined,
+): string {
+  const source = `${resolution ?? ''} ${output ?? ''}`;
+  const dims = source.match(/(\d{3,5})\s*[x×]\s*(\d{3,5})/i);
+  if (!dims) return '—';
+  const fpsFromRate =
+    frameRate != null && Number.isFinite(frameRate) && frameRate > 0
+      ? Math.round(frameRate)
+      : null;
+  const fpsFromText = source.match(/[x×]\s*\d{3,5}\s*[x×]\s*(\d{2,3})\s*p/i)?.[1];
+  const fps = fpsFromRate ?? (fpsFromText ? Number(fpsFromText) : null);
+  const size = `${Number(dims[1])} × ${Number(dims[2])}`;
+  return fps ? `${size} · ${fps}p` : size;
+}
+
 function resolvePreviewCopy(screenKey: string, source: string | null | undefined) {
   const key = screenKey.toUpperCase();
   if (source === 'HTML_UI' || key === 'SCREEN_1' || key === 'XT_HDMI_1') {
@@ -107,6 +125,16 @@ export function LiveSyncPreviewModal({
     screen?.output ||
     resolveScreenOutputLabel(screenKey, deviceModel) ||
     copy.output;
+  const isXt = (deviceModel ?? '').toUpperCase() === 'XT2145';
+  const isHdmi1 =
+    screen?.source === 'HTML_UI' ||
+    screenKey.toUpperCase() === 'SCREEN_1' ||
+    screenKey.toUpperCase() === 'XT_HDMI_1';
+  const previewSubheading = isXt
+    ? `${deviceName} · ${isHdmi1 ? 'HDMI-1 (Background Only)' : 'HDMI-2 (Main Display)'}`
+    : `${deviceName} · ${outputLabel}${
+        copy.description?.includes('Background') ? ' (Background Only)' : ' (Main Display)'
+      }`;
   const positionSec = screen
     ? estimateSeekSeconds(screen.positionMs, data?.updatedAt, screen.durationMs)
     : 0;
@@ -168,9 +196,7 @@ export function LiveSyncPreviewModal({
       open={open}
       onClose={onClose}
       title="Live Sync Preview"
-      description={`${deviceName} · ${outputLabel}${
-        copy.description?.includes('Background') ? ' (Background Only)' : ' (Main Display)'
-      }`}
+      description={previewSubheading}
       size="lg"
     >
       <ModalBody className="space-y-4">
@@ -266,8 +292,10 @@ export function LiveSyncPreviewModal({
               </dd>
             </div>
             <div>
-              <dt className="text-caption text-content-secondary">Output</dt>
-              <dd className="text-body-sm font-medium text-content-primary">{outputLabel}</dd>
+              <dt className="text-caption text-content-secondary">Resolution</dt>
+              <dd className="text-body-sm font-medium text-content-primary">
+                {formatPlaybackResolution(screen?.resolution, screen?.frameRate, screen?.output)}
+              </dd>
             </div>
             <div>
               <dt className="text-caption text-content-secondary">Playback source</dt>

@@ -26,7 +26,7 @@ export function ScheduleTableCell({
   const thumbnailUrl = resolveStorageUrl(cell?.thumbnail);
 
   return (
-    <div className={cn('flex min-w-0 items-center gap-2', compact ? 'max-w-[180px]' : 'max-w-[240px]')}>
+    <div className={cn('flex items-center gap-2 whitespace-nowrap', compact ? 'min-w-[12rem]' : 'min-w-[18.5rem]')}>
       <div
         className={cn(
           'relative shrink-0 overflow-hidden rounded-md border border-surface-border bg-gradient-to-br from-p6-gray-300 to-p6-gray-400 dark:from-p6-gray-700 dark:to-p6-gray-900',
@@ -41,16 +41,16 @@ export function ScheduleTableCell({
           </div>
         )}
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="shrink-0">
         {showPlaylistLabel && playlistLabel ? (
-          <Badge variant="brand" className="mb-0.5 max-w-full truncate">
+          <Badge variant="brand" className="mb-0.5 whitespace-nowrap">
             {playlistLabel}
           </Badge>
         ) : null}
         <span
           className={cn(
-            'block min-w-0 text-body-sm',
-            assigned ? 'truncate text-content-secondary' : 'italic text-content-muted',
+            'block whitespace-nowrap text-body-sm',
+            assigned ? 'text-content-secondary' : 'text-content-muted',
           )}
           title={title}
         >
