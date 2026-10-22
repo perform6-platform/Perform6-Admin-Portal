@@ -8,6 +8,10 @@ export interface TableColumn<T> {
   className?: string;
   headerClassName?: string;
   hideOnMobile?: boolean;
+  /** Display-only header sort. Does not change the source row order. */
+  sortable?: boolean;
+  sortDirection?: 'asc' | 'desc' | null;
+  onSort?: () => void;
   render: (row: T, index: number) => ReactNode;
 }
 
@@ -63,13 +67,37 @@ export function Table<T>({
                     {columns.map((column) => (
                       <th
                         key={column.key}
+                        aria-sort={
+                          column.sortDirection === 'asc'
+                            ? 'ascending'
+                            : column.sortDirection === 'desc'
+                              ? 'descending'
+                              : 'none'
+                        }
                         className={cn(
                           'whitespace-nowrap px-4 py-4 text-table-header uppercase text-content-secondary',
                           column.hideOnMobile && 'hidden md:table-cell',
                           column.headerClassName,
                         )}
                       >
-                        {column.header}
+                        {column.sortable && column.onSort ? (
+                          <button
+                            type="button"
+                            onClick={column.onSort}
+                            className="inline-flex items-center gap-1 uppercase hover:text-content-primary"
+                          >
+                            {column.header}
+                            <span aria-hidden="true" className="text-[10px]">
+                              {column.sortDirection === 'asc'
+                                ? '↑'
+                                : column.sortDirection === 'desc'
+                                  ? '↓'
+                                  : '↕'}
+                            </span>
+                          </button>
+                        ) : (
+                          column.header
+                        )}
                       </th>
                     ))}
                   </tr>

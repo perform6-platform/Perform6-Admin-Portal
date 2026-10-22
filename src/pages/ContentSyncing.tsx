@@ -128,10 +128,86 @@ function ProgressBar({ percent, label }: { percent: number; label?: string }) {
   );
 }
 
+type RequiredMediaSortKey = 'title' | 'rotationDay' | 'fileSize' | 'downloadStatus' | 'progress';
+
+const MEDIA_STATUS_RANK: Record<RequiredMediaRow['downloadStatus'], number> = {
+  MISSING: 0,
+  QUEUED: 1,
+  DOWNLOADING: 2,
+  FAILED: 3,
+  CACHED: 4,
+};
+
+function mediaProgressValue(row: RequiredMediaRow): number {
+  if (row.downloadStatus === 'CACHED') return 100;
+  if (row.downloadStatus === 'QUEUED') return 0;
+  const pct = downloadPercent(row.bytesDownloaded, row.totalBytes ?? row.fileSize);
+  return pct ?? -1;
+}
+
+function compareRequiredMedia(
+  a: RequiredMediaRow,
+  b: RequiredMediaRow,
+  key: RequiredMediaSortKey,
+  direction: 'asc' | 'desc',
+): number {
+  const factor = direction === 'asc' ? 1 : -1;
+  let primary = 0;
+
+  if (key === 'title') {
+    primary = (a.title ?? '').localeCompare(b.title ?? '', undefined, { sensitivity: 'base' }) * factor;
+  } else if (key === 'rotationDay') {
+    if (a.rotationDay == null && b.rotationDay == null) primary = 0;
+    else if (a.rotationDay == null) return 1;
+    else if (b.rotationDay == null) return -1;
+    else primary = (a.rotationDay - b.rotationDay) * factor;
+  } else if (key === 'fileSize') {
+    const sizeA = Number(a.fileSize);
+    const sizeB = Number(b.fileSize);
+    const left = Number.isFinite(sizeA) ? sizeA : -1;
+    const right = Number.isFinite(sizeB) ? sizeB : -1;
+    primary = (left - right) * factor;
+  } else if (key === 'downloadStatus') {
+    primary = (MEDIA_STATUS_RANK[a.downloadStatus] - MEDIA_STATUS_RANK[b.downloadStatus]) * factor;
+  } else {
+    primary = (mediaProgressValue(a) - mediaProgressValue(b)) * factor;
+  }
+
+  if (primary !== 0) return primary;
+  const dayA = a.rotationDay ?? Number.POSITIVE_INFINITY;
+  const dayB = b.rotationDay ?? Number.POSITIVE_INFINITY;
+  if (dayA !== dayB) return dayA - dayB;
+  return (a.title ?? '').localeCompare(b.title ?? '', undefined, { sensitivity: 'base' });
+}
+
+function sortRequiredMedia(
+  rows: RequiredMediaRow[],
+  sort: { key: RequiredMediaSortKey; direction: 'asc' | 'desc' },
+): RequiredMediaRow[] {
+  return [...rows].sort((a, b) => compareRequiredMedia(a, b, sort.key, sort.direction));
+}
+
 function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
   const { data, isLoading, isError, refetch } = useSyncDeviceDetail(deviceId);
   const retryMedia = useRetryDeviceMedia();
   const [retryNote, setRetryNote] = useState<string | null>(null);
+  const [mediaSort, setMediaSort] = useState<{
+    key: RequiredMediaSortKey;
+    direction: 'asc' | 'desc';
+  }>({ key: 'rotationDay', direction: 'asc' });
+
+  const requiredMedia = useMemo(
+    () => sortRequiredMedia(data?.requiredMedia ?? [], mediaSort),
+    [data?.requiredMedia, mediaSort],
+  );
+
+  function toggleMediaSort(key: RequiredMediaSortKey) {
+    setMediaSort((current) =>
+      current.key === key
+        ? { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: 'asc' },
+    );
+  }
 
   if (isLoading) {
     return (
@@ -150,7 +226,6 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
   }
 
   const device = data.device;
-  const requiredMedia = data.requiredMedia ?? [];
   const failedDownloads = data.failedDownloads ?? [];
   const needsRetry = requiredMedia.some(
     (row) => row.downloadStatus === 'FAILED' || row.downloadStatus === 'MISSING',
@@ -179,6 +254,9 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
     {
       key: 'title',
       header: 'Title',
+      sortable: true,
+      sortDirection: mediaSort.key === 'title' ? mediaSort.direction : null,
+      onSort: () => toggleMediaSort('title'),
       render: (row) => row.title ?? row.mediaVersionId?.slice(0, 8) ?? '—',
     },
     {
@@ -189,12 +267,25 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
     {
       key: 'rotationDay',
       header: 'Rotation Day',
+      sortable: true,
+      sortDirection: mediaSort.key === 'rotationDay' ? mediaSort.direction : null,
+      onSort: () => toggleMediaSort('rotationDay'),
       render: (row) => (row.rotationDay != null ? `Day ${row.rotationDay}` : '—'),
     },
-    { key: 'fileSize', header: 'Size', render: (row) => formatBytes(row.fileSize) },
+    {
+      key: 'fileSize',
+      header: 'Size',
+      sortable: true,
+      sortDirection: mediaSort.key === 'fileSize' ? mediaSort.direction : null,
+      onSort: () => toggleMediaSort('fileSize'),
+      render: (row) => formatBytes(row.fileSize),
+    },
     {
       key: 'downloadStatus',
       header: 'Status',
+      sortable: true,
+      sortDirection: mediaSort.key === 'downloadStatus' ? mediaSort.direction : null,
+      onSort: () => toggleMediaSort('downloadStatus'),
       render: (row) => (
         <Badge variant={mediaStatusVariant(row.downloadStatus)}>
           {row.downloadStatus ?? 'MISSING'}
@@ -204,6 +295,9 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
     {
       key: 'progress',
       header: 'Progress',
+      sortable: true,
+      sortDirection: mediaSort.key === 'progress' ? mediaSort.direction : null,
+      onSort: () => toggleMediaSort('progress'),
       render: (row) => {
         if (row.downloadStatus === 'CACHED') {
           return <ProgressBar percent={100} label="100%" />;
