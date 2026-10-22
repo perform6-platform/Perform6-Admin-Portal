@@ -395,9 +395,9 @@ export function DeviceMonitoringPanel({
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-body-sm font-medium text-content-primary">
-                      {entry.video}
+                      {entry.label}
                     </p>
-                    <p className="truncate text-caption text-content-secondary">{entry.label}</p>
+                    <p className="truncate text-caption text-content-secondary">{entry.video}</p>
                   </div>
                   <Badge variant="neutral" className="shrink-0">
                     {entry.group}

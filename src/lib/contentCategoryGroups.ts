@@ -20,6 +20,7 @@ const SYSTEM_SLUG_ORDER = [
   'phase-2',
   'full-program',
   '15-minutes',
+  'warm-up',
 ] as const;
 
 /** Named playlists A–D under Full Program (4-Zone) — keep keys stable; labels are display-only. */
@@ -72,11 +73,13 @@ function playlistChildId(playlist: CategoryPlaylist): ContentCategoryId {
   return playlist.id as ContentCategoryId;
 }
 
-function sortCategories(categories: ContentCategory[]): ContentCategory[] {
+export function sortCategories(categories: ContentCategory[]): ContentCategory[] {
   return [...categories].sort((a, b) => {
     const aIdx = SYSTEM_SLUG_ORDER.indexOf(a.slug as (typeof SYSTEM_SLUG_ORDER)[number]);
     const bIdx = SYSTEM_SLUG_ORDER.indexOf(b.slug as (typeof SYSTEM_SLUG_ORDER)[number]);
-    if (a.isSystem && b.isSystem && aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+    if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+    if (aIdx !== -1) return -1;
+    if (bIdx !== -1) return 1;
     if (a.isSystem !== b.isSystem) return a.isSystem ? -1 : 1;
     return a.name.localeCompare(b.name);
   });
