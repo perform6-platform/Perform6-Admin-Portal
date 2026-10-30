@@ -15,7 +15,7 @@ import { useToast } from '../context/ToastContext';
 import { useLogin } from '../hooks/useLogin';
 import { isAuthenticated } from '../lib/authStorage';
 import { getApiErrorMessage } from '../services/axios';
-import loginBg from '../assets/login-bg.png';
+import loginBg from '../assets/login-bg.jpg';
 
 const FEATURES = [
   {
