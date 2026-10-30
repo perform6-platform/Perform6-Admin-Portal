@@ -289,11 +289,16 @@ export default function RotationSchedule() {
 
       <p className="flex items-center gap-2 text-body-sm text-content-secondary">
         <CheckCircle2 className="h-4 w-4 shrink-0 text-status-success" />
-        To change daily video assignments, go to{' '}
-        <Link to="/rotation" className="font-medium text-brand-600 hover:underline dark:text-brand-400">
-          Rotation
-        </Link>
-        .
+        <span>
+          To change daily video assignments, go to{' '}
+          <Link
+            to="/rotation"
+            className="font-medium text-brand-600 hover:underline dark:text-brand-400"
+          >
+            Rotation
+          </Link>
+          .
+        </span>
       </p>
     </div>
   );

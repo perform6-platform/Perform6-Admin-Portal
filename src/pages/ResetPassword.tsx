@@ -3,10 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
+  CalendarDays,
   Cloud,
   Eye,
   EyeOff,
-  LineChart,
   Lock,
   Monitor,
 } from 'lucide-react';
@@ -15,23 +15,24 @@ import { Button, Input } from '../components/ui';
 import { useToast } from '../context/ToastContext';
 import { resetPasswordRequest } from '../services/auth.api';
 import { getApiErrorMessage } from '../services/axios';
-import loginBg from '../assets/login-bg.png';
+import loginBg from '../assets/login-bg.jpg';
 
 const FEATURES = [
   {
     icon: Monitor,
-    title: 'Centralized Control',
-    description: 'Manage all your BrightSign devices from one powerful dashboard.',
+    title: 'Device Management',
+    description: 'Configure and manage Perform6 players and deployments.',
   },
   {
     icon: Cloud,
-    title: 'Offline First',
-    description: 'Reliable playback and content delivery even without an internet connection.',
+    title: 'Offline Playback',
+    description:
+      'Scheduled content remains available locally when internet connectivity is interrupted.',
   },
   {
-    icon: LineChart,
-    title: 'Powerful Analytics',
-    description: 'Real-time insights and reports to optimize performance.',
+    icon: CalendarDays,
+    title: 'Content Scheduling',
+    description: 'Manage daily programming and scheduled content delivery.',
   },
 ] as const;
 
@@ -111,14 +112,11 @@ export default function ResetPassword() {
           <div className="flex flex-1 items-center">
             <div className="max-w-md">
               <h1 className="text-4xl font-bold leading-tight text-white">
-                Smart Fitness.
+                Perform6 Management Portal
               </h1>
-              <p className="mt-1 text-4xl font-bold leading-tight text-white">
-                Seamless Management.
-              </p>
               <p className="mt-4 text-sm leading-relaxed text-white/75">
-                Perform6 is an interactive touchscreen fitness platform built for reliability,
-                offline performance and centralized control.
+                Manage Perform6 devices, content, schedules and deployments from one centralized
+                portal.
               </p>
 
               <ul className="mt-8 space-y-4">
@@ -137,7 +135,7 @@ export default function ResetPassword() {
             </div>
           </div>
 
-          <p className="shrink-0 text-xs text-white/45">© 2024 Perform6. All rights reserved.</p>
+          <p className="shrink-0 text-xs text-white/45">© 2026 Perform6. All rights reserved.</p>
         </div>
       </div>
 
