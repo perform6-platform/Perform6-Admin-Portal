@@ -10,6 +10,11 @@ import {
   configurationScopeHelp,
   configurationScopeLabel,
   configurationScopePlaylistCount,
+  dualCustomPlaybackLabel,
+  dualCustomPlaybackText,
+  dualTouchscreenPlaybackLabel,
+  dualTouchscreenPlaybackText,
+  hasDualDeploymentPlayback,
   systemCategoryDescription,
   systemConfigurationDetail,
   systemPlaybackSupportingText,
@@ -134,7 +139,7 @@ export function CategoryFormModal({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Recovery Flow"
+              placeholder="Enter category name"
             />
           )}
         </div>
@@ -142,14 +147,37 @@ export function CategoryFormModal({
         <div>
           <p className="mb-2 text-xs font-medium text-content-muted">Playback</p>
           {isView && category ? (
-            <div className="rounded-lg border border-surface-border bg-surface-muted/40 p-4">
-              <p className="text-body-sm font-medium text-content-primary">
-                {dayPlaybackMode === 'LOOP' ? 'Loop all day' : 'Play once'}
-              </p>
-              <p className="mt-1 text-caption text-content-secondary">
-                {systemPlaybackSupportingText(category.slug, dayPlaybackMode)}
-              </p>
-            </div>
+            hasDualDeploymentPlayback(category.slug) ? (
+              <div className="space-y-2">
+                <div className="rounded-lg border border-surface-border bg-surface-muted/40 p-4">
+                  <p className="text-caption font-medium text-content-muted">Touchscreen</p>
+                  <p className="mt-1 text-body-sm font-medium text-content-primary">
+                    {dualTouchscreenPlaybackLabel(category.slug)}
+                  </p>
+                  <p className="mt-1 text-caption text-content-secondary">
+                    {dualTouchscreenPlaybackText(category.slug)}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-surface-border bg-surface-muted/40 p-4">
+                  <p className="text-caption font-medium text-content-muted">Custom</p>
+                  <p className="mt-1 text-body-sm font-medium text-content-primary">
+                    {dualCustomPlaybackLabel(category.slug)}
+                  </p>
+                  <p className="mt-1 text-caption text-content-secondary">
+                    {dualCustomPlaybackText(category.slug)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-surface-border bg-surface-muted/40 p-4">
+                <p className="text-body-sm font-medium text-content-primary">
+                  {dayPlaybackMode === 'LOOP' ? 'Loop all day' : 'Play once'}
+                </p>
+                <p className="mt-1 text-caption text-content-secondary">
+                  {systemPlaybackSupportingText(category.slug, dayPlaybackMode)}
+                </p>
+              </div>
+            )
           ) : (
             <div className="space-y-2">
               <label className="flex cursor-pointer items-start gap-4 rounded-lg border border-surface-border p-4 hover:bg-surface-muted/40">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Monitor, Smartphone } from 'lucide-react';
 import type { Device } from '../../constants/devices';
 import { useDevicePlayback } from '../../hooks/useRotation';
@@ -149,15 +149,72 @@ function xtOutputEntries(
   ];
 }
 
-function formatSessionElapsed(sessionStartedAt?: number | null): string | null {
-  if (!sessionStartedAt) return null;
-  const elapsedSec = Math.max(0, Math.floor((Date.now() - sessionStartedAt) / 1000));
+function formatElapsedClock(totalSec: number): string {
+  const elapsedSec = Math.max(0, Math.floor(totalSec));
   const minutes = Math.floor(elapsedSec / 60);
   const seconds = elapsedSec % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+interface ElapsedLatch {
+  sessionKey: string;
+  heldSec: number | null;
+}
+
+/**
+ * Played time. A reported sessionElapsedMs already excludes pause.
+ * While playing, the age of that sample is added. While paused, the value stays put.
+ * Older runtimes that only send sessionStartedAt are frozen at the pause transition.
+ */
+function formatSessionElapsed(
+  touchUi: TouchUiSnapshot,
+  nowMs: number,
+  latch: ElapsedLatch,
+): string | null {
+  const content = touchUi.currentContent;
+  if (!content) return null;
+  const playing = touchUi.playbackState === 'PLAYING';
+  const reported = content.sessionElapsedMs;
+  const sessionKey = String(content.sessionStartedAt ?? '');
+
+  if (sessionKey !== latch.sessionKey) {
+    latch.sessionKey = sessionKey;
+    latch.heldSec = null;
+  }
+
+  if (typeof reported === 'number' && Number.isFinite(reported)) {
+    let sec = Math.max(0, reported) / 1000;
+    if (playing && touchUi.updatedAt) {
+      const age = (nowMs - new Date(touchUi.updatedAt).getTime()) / 1000;
+      if (Number.isFinite(age) && age > 0 && age < 30) sec += age;
+    }
+    latch.heldSec = sec;
+    return formatElapsedClock(sec);
+  }
+
+  if (!content.sessionStartedAt) return null;
+  if (playing) {
+    const sec = Math.max(0, (nowMs - content.sessionStartedAt) / 1000);
+    latch.heldSec = sec;
+    return formatElapsedClock(sec);
+  }
+  if (latch.heldSec == null) {
+    latch.heldSec = Math.max(0, (nowMs - content.sessionStartedAt) / 1000);
+  }
+  return formatElapsedClock(latch.heldSec);
+}
+
 function TouchUiStatus({ touchUi }: { touchUi: TouchUiSnapshot | null | undefined }) {
+  const playing = touchUi?.playbackState === 'PLAYING';
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const latchRef = useRef<ElapsedLatch>({ sessionKey: '', heldSec: null });
+
+  useEffect(() => {
+    if (!playing) return;
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [playing]);
+
   if (!touchUi?.currentContent) {
     return (
       <p className="text-body-sm text-content-muted">
@@ -168,7 +225,7 @@ function TouchUiStatus({ touchUi }: { touchUi: TouchUiSnapshot | null | undefine
 
   const slotLabel = formatTouchSlotLabel(touchUi.currentContent.slot);
   const stateLabel = formatTouchPlaybackState(touchUi.playbackState);
-  const elapsed = formatSessionElapsed(touchUi.currentContent.sessionStartedAt);
+  const elapsed = formatSessionElapsed(touchUi, nowMs, latchRef.current);
 
   return (
     <div className="space-y-1">

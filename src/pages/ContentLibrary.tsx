@@ -91,7 +91,6 @@ export default function ContentLibrary() {
 
   const [activeTab, setActiveTab] = useState<ContentTypeFilter>('all');
   const [activeCategory, setActiveCategory] = useState<ContentCategoryId>('default-fitness');
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadSessionTick, setUploadSessionTick] = useState(0);
@@ -487,12 +486,8 @@ export default function ContentLibrary() {
       result = result.filter((item) => item.mediaType === typeMap[activeTab]);
     }
 
-    if (categoryFilter !== 'all') {
-      result = result.filter((item) => item.categoryId === categoryFilter);
-    }
-
     return result;
-  }, [items, activeTab, activeCategory, categoryFilter]);
+  }, [items, activeTab, activeCategory]);
 
   async function handleUpload(payload: UploadContentPayload) {
     finishingRef.current = false;
@@ -656,8 +651,6 @@ export default function ContentLibrary() {
             <ContentLibraryToolbar
               activeTab={activeTab}
               onTabChange={setActiveTab}
-              categoryFilter={categoryFilter}
-              onCategoryFilterChange={setCategoryFilter}
             />
           </div>
 

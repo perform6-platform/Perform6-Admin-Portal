@@ -10,7 +10,11 @@ import type { ContentCategoryId } from '../constants/contentPlayback';
 import { useDeployments } from '../context/DeploymentsContext';
 import { useDeploymentScheduleTable } from '../hooks/useDeployments';
 import { useDevice, useRegisteredDevices } from '../hooks/useDevices';
-import { getDeviceRotationDay, getLatestDeploymentForDevice } from '../lib/deviceSchedule';
+import {
+  formatScheduleInstant,
+  getDeviceRotationDay,
+  getLatestDeploymentForDevice,
+} from '../lib/deviceSchedule';
 import { mapInventoryItem } from '../lib/deviceMapper';
 import { getDeviceScheduleExportFilename } from '../lib/exportRotationSchedule';
 import { exportScheduleTableCsv } from '../lib/scheduleTable';
@@ -190,6 +194,17 @@ export default function RotationSchedule() {
                 <strong className="font-medium text-content-primary">{selectedDevice.name}</strong> is on{' '}
                 <strong className="font-medium text-content-primary">Day {deviceRotationDay}</strong> of the
                 rotation.
+                {selectedDevice.scheduleTimeZone ? (
+                  <>
+                    {' '}
+                    Schedule timezone: {selectedDevice.scheduleTimeZone}. Next rotation:{' '}
+                    {formatScheduleInstant(
+                      selectedDevice.nextRotationAt,
+                      selectedDevice.scheduleTimeZone,
+                    ) ?? '12:00 AM local'}
+                    .
+                  </>
+                ) : null}
               </>
             ) : scheduleTable ? (
               <>
@@ -289,11 +304,16 @@ export default function RotationSchedule() {
 
       <p className="flex items-center gap-2 text-body-sm text-content-secondary">
         <CheckCircle2 className="h-4 w-4 shrink-0 text-status-success" />
-        To change daily video assignments, go to{' '}
-        <Link to="/rotation" className="font-medium text-brand-600 hover:underline dark:text-brand-400">
-          Rotation
-        </Link>
-        .
+        <span>
+          To change daily video assignments, go to{' '}
+          <Link
+            to="/rotation"
+            className="font-medium text-brand-600 hover:underline dark:text-brand-400"
+          >
+            Rotation
+          </Link>
+          .
+        </span>
       </p>
     </div>
   );

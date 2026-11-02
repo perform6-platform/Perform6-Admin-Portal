@@ -28,12 +28,13 @@ export const HD226_MAX_PLAYERS = 10;
 
 export const XC_SCREEN_KEYS = ['SCREEN_1', 'SCREEN_2', 'SCREEN_3'] as const;
 
+/** 3-col grid (row-major): Left Default/Start Here · Center Phase 1/2 · Right Full Program / 4-Zone */
 export const PALETTE_SLUG_ORDER = [
-  'start-here',
   'default',
   'phase-1',
-  'phase-2',
   'full-program',
+  'start-here',
+  'phase-2',
   '15-minutes',
 ] as const;
 

@@ -26,30 +26,83 @@ function formatClock(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+interface PreviewLatch {
+  mediaKey: string;
+  pauseOffsetSec: number;
+  /** Unwrapped playhead, used so resume can subtract pause time. */
+  frozenSec: number | null;
+  /** Position shown in the preview. Held still while the device reports paused. */
+  displaySec: number | null;
+  wasPlaying: boolean;
+}
+
+function previewMediaKey(screen: {
+  mediaVersionId?: string | null;
+  path?: string | null;
+  requestId?: string | null;
+}): string {
+  return `${screen.mediaVersionId ?? ''}|${screen.path ?? ''}|${screen.requestId ?? ''}`;
+}
+
 /**
- * Estimate device playhead, compensating for age of the last telemetry sample.
- * When duration is known, wrap within the media length so looped playback
- * does not display cumulative wall-clock time past the video end.
+ * Playhead for the preview. While the device is playing, sample age is added and
+ * a known duration wraps the displayed time. While paused, the last playhead is
+ * held: later samples are ignored, so a wall-clock position cannot walk or loop.
+ * Pause time observed while this preview is open is removed on resume.
  */
-function estimateSeekSeconds(
-  positionMs: number,
+function stepPreviewPlayhead(
+  latch: PreviewLatch,
+  sample: {
+    positionMs: number;
+    isPlaying: boolean;
+    durationMs?: number | null;
+    mediaVersionId?: string | null;
+    path?: string | null;
+    requestId?: string | null;
+  },
   updatedAt: string | null | undefined,
-  durationMs?: number | null,
+  nowMs: number,
 ): number {
-  let base = Math.max(0, positionMs) / 1000;
-  if (updatedAt) {
-    const ageSec = (Date.now() - new Date(updatedAt).getTime()) / 1000;
-    if (Number.isFinite(ageSec) && ageSec > 0) {
-      base += ageSec;
-    }
+  const key = previewMediaKey(sample);
+  if (latch.mediaKey !== key) {
+    latch.mediaKey = key;
+    latch.pauseOffsetSec = 0;
+    latch.frozenSec = null;
+    latch.displaySec = null;
+    latch.wasPlaying = false;
   }
-  if (durationMs != null && durationMs > 0) {
-    const durationSec = durationMs / 1000;
-    if (durationSec > 0) {
-      base = base % durationSec;
-    }
+
+  const positionSec = Math.max(0, sample.positionMs) / 1000;
+  let ageSec = 0;
+  if (sample.isPlaying && updatedAt) {
+    const age = (nowMs - new Date(updatedAt).getTime()) / 1000;
+    if (Number.isFinite(age) && age > 0 && age < 30) ageSec = age;
   }
-  return base;
+  const durationSec =
+    sample.durationMs != null && sample.durationMs > 0 ? sample.durationMs / 1000 : null;
+
+  const wrap = (value: number) =>
+    durationSec && durationSec > 0 ? value % durationSec : value;
+
+  if (!sample.isPlaying) {
+    if (latch.displaySec == null) {
+      const base = Math.max(0, positionSec - latch.pauseOffsetSec);
+      latch.frozenSec = base;
+      latch.displaySec = wrap(base);
+    }
+    latch.wasPlaying = false;
+    return latch.displaySec;
+  }
+
+  if (!latch.wasPlaying && latch.frozenSec != null) {
+    latch.pauseOffsetSec = positionSec + ageSec - latch.frozenSec;
+  }
+  let unwrapped = positionSec + ageSec - latch.pauseOffsetSec;
+  if (!Number.isFinite(unwrapped) || unwrapped < 0) unwrapped = 0;
+  latch.frozenSec = unwrapped;
+  latch.wasPlaying = true;
+  latch.displaySec = wrap(unwrapped);
+  return latch.displaySec;
 }
 
 function formatPlaybackResolution(
@@ -100,12 +153,35 @@ export function LiveSyncPreviewModal({
 }: LiveSyncPreviewModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastSeekKeyRef = useRef<string>('');
+  const latchRef = useRef<PreviewLatch>({
+    mediaKey: '',
+    pauseOffsetSec: 0,
+    frozenSec: null,
+    displaySec: null,
+    wasPlaying: false,
+  });
   const [techOpen, setTechOpen] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const { data, isLoading, isError, isFetching } = useDeviceLivePlayback(deviceId, {
     enabled: open && Boolean(deviceId),
     refetchInterval: open ? POLL_MS : false,
   });
+
+  useEffect(() => {
+    if (!open) {
+      latchRef.current = {
+        mediaKey: '',
+        pauseOffsetSec: 0,
+        frozenSec: null,
+        displaySec: null,
+        wasPlaying: false,
+      };
+      return;
+    }
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [open]);
 
   const screen = useMemo(
     () => data?.screens.find((entry) => entry.screenKey === screenKey) ?? null,
@@ -136,7 +212,7 @@ export function LiveSyncPreviewModal({
         copy.description?.includes('Background') ? ' (Background Only)' : ' (Main Display)'
       }`;
   const positionSec = screen
-    ? estimateSeekSeconds(screen.positionMs, data?.updatedAt, screen.durationMs)
+    ? stepPreviewPlayhead(latchRef.current, screen, data?.updatedAt, nowMs)
     : 0;
   const durationSec =
     screen?.durationMs != null && screen.durationMs > 0
@@ -149,6 +225,12 @@ export function LiveSyncPreviewModal({
     : 'Stopped';
 
   useEffect(() => {
+    const video = videoRef.current;
+    if (!open || !video || screen?.isPlaying !== false) return;
+    video.pause();
+  }, [open, screen, nowMs]);
+
+  useEffect(() => {
     if (!open) {
       lastSeekKeyRef.current = '';
       setTechOpen(false);
@@ -157,11 +239,7 @@ export function LiveSyncPreviewModal({
     const video = videoRef.current;
     if (!video || !fileUrl || !screen) return;
 
-    const target = estimateSeekSeconds(
-      screen.positionMs,
-      data?.updatedAt,
-      screen.durationMs,
-    );
+    const target = positionSec;
     const seekKey = `${fileUrl}:${Math.round(target / SOFT_RESYNC_DRIFT_SEC)}`;
 
     const applySeek = () => {
@@ -189,7 +267,7 @@ export function LiveSyncPreviewModal({
       video.addEventListener('loadedmetadata', onMeta, { once: true });
       return () => video.removeEventListener('loadedmetadata', onMeta);
     }
-  }, [open, fileUrl, screen, data?.updatedAt, durationSec]);
+  }, [open, fileUrl, screen, data?.updatedAt, durationSec, positionSec]);
 
   return (
     <Modal
@@ -251,7 +329,7 @@ export function LiveSyncPreviewModal({
               disablePictureInPicture
               playsInline
               muted
-              autoPlay={screen?.isPlaying ?? true}
+              autoPlay={screen?.isPlaying === true}
               poster={thumbnail ?? undefined}
             />
           ) : (

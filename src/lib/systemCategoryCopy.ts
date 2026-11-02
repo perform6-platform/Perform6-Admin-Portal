@@ -95,7 +95,7 @@ export function systemCategoryDescription(slug: string): string {
     case 'default':
       return 'Background video for the touchscreen interface and default content that plays continuously on the main display until another experience is selected.';
     case 'start-here':
-      return 'Perform6 introduction, Safety Check and pre-training preparation for Fitness and Golf.';
+      return 'Perform6 introduction, Safety Check, and pre-training preparation for Fitness and Golf. Start Here does not participate in the 36-day rotation.';
     case 'phase-1':
       return 'Mobility, Stability and Power training with Fitness (Wall/No Wall) and Golf (Wall/No Wall) configurations. 36-day rotation.';
     case 'phase-2':
@@ -117,7 +117,7 @@ export function systemPlaybackSupportingText(slug: string, mode: DayPlaybackMode
     case 'default':
       return 'The assigned Default video repeats continuously until another experience begins.';
     case 'start-here':
-      return 'The assigned video repeats continuously for up to 45 minutes, then returns to Home if no other selection is made.';
+      return 'When selected, the assigned video repeats continuously for up to 45 minutes, then returns to Home if no other selection is made.';
     case 'phase-1':
     case 'phase-2':
       return 'The assigned daily video repeats continuously for up to 45 minutes, then returns to Home if no other selection is made.';
@@ -125,6 +125,57 @@ export function systemPlaybackSupportingText(slug: string, mode: DayPlaybackMode
       return 'The assigned daily video repeats independently in each zone until the next rotation day.';
     default:
       return 'The assigned video repeats continuously until the next scheduled content change.';
+  }
+}
+
+/** System categories that show separate Touchscreen / Custom playback in details. */
+export function hasDualDeploymentPlayback(slug: string): boolean {
+  return slug === 'start-here' || slug === 'phase-1' || slug === 'phase-2';
+}
+
+export function dualTouchscreenPlaybackLabel(slug: string): string {
+  switch (slug) {
+    case 'start-here':
+    case 'phase-1':
+    case 'phase-2':
+      return 'Loop up to 45 minutes';
+    default:
+      return 'Loop up to 45 minutes';
+  }
+}
+
+export function dualTouchscreenPlaybackText(slug: string): string {
+  switch (slug) {
+    case 'start-here':
+      return 'When selected, the assigned video repeats continuously for up to 45 minutes, then returns to Home if no other selection is made.';
+    case 'phase-1':
+    case 'phase-2':
+      return 'When selected, the assigned daily video repeats continuously for up to 45 minutes, then returns to Home if no other selection is made.';
+    default:
+      return '';
+  }
+}
+
+export function dualCustomPlaybackLabel(slug: string): string {
+  switch (slug) {
+    case 'start-here':
+    case 'phase-1':
+    case 'phase-2':
+      return 'Loop all day';
+    default:
+      return 'Loop all day';
+  }
+}
+
+export function dualCustomPlaybackText(slug: string): string {
+  switch (slug) {
+    case 'start-here':
+      return 'The assigned video repeats continuously.';
+    case 'phase-1':
+    case 'phase-2':
+      return 'The assigned daily video repeats continuously until the next rotation day.';
+    default:
+      return '';
   }
 }
 

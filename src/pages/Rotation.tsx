@@ -159,7 +159,11 @@ export default function Rotation() {
         }
 
         // One video per rotation day within a playlist.
-        if (next.included && usesRotationCategory(categoryId, categoryGroups)) {
+        if (
+          next.included &&
+          next.day != null &&
+          usesRotationCategory(categoryId, categoryGroups)
+        ) {
           Object.keys(updated).forEach((assignmentKey) => {
             if (!assignmentKey.startsWith(`${categoryId}::`) || assignmentKey === key) return;
             const other = updated[assignmentKey];

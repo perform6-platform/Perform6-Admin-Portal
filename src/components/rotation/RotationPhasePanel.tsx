@@ -74,16 +74,15 @@ export function RotationPhasePanel({
         const videos = [...getVideosByCategory(category.id)].sort((a, b) => {
           const keyA = getVideoAssignmentKey(category.id, a.title);
           const keyB = getVideoAssignmentKey(category.id, b.title);
-          const dayA = assignments[keyA]?.included
-            ? (assignments[keyA]?.day ?? Number.POSITIVE_INFINITY)
-            : Number.POSITIVE_INFINITY;
-          const dayB = assignments[keyB]?.included
-            ? (assignments[keyB]?.day ?? Number.POSITIVE_INFINITY)
-            : Number.POSITIVE_INFINITY;
+          const dayA =
+            assignments[keyA]?.included && assignments[keyA]?.day != null
+              ? assignments[keyA]!.day!
+              : Number.POSITIVE_INFINITY;
+          const dayB =
+            assignments[keyB]?.included && assignments[keyB]?.day != null
+              ? assignments[keyB]!.day!
+              : Number.POSITIVE_INFINITY;
           if (dayA !== dayB) return dayA - dayB;
-          const fallbackA = a.rotationDay ?? Number.POSITIVE_INFINITY;
-          const fallbackB = b.rotationDay ?? Number.POSITIVE_INFINITY;
-          if (fallbackA !== fallbackB) return fallbackA - fallbackB;
           return a.title.localeCompare(b.title);
         });
         return { category, videos };
@@ -231,7 +230,7 @@ export function RotationPhasePanel({
                     const key = getVideoAssignmentKey(category.id, video.title);
                     const assignment = assignments[key] ?? {
                       included: false,
-                      day: video.rotationDay ?? 1,
+                      day: null,
                     };
 
                     return (

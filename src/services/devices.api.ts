@@ -104,6 +104,31 @@ export async function getFleetOverview(): Promise<DeviceInventoryResult> {
   return getDevices({ state: 'all', page: 1, limit: 100 });
 }
 
+/** PATCH /devices/:id/schedule-timezone — admin confirms the gym IANA zone. */
+export async function updateScheduleTimezone(
+  deviceId: string,
+  timezone: string,
+): Promise<{
+  deviceId: string;
+  timezone: string;
+  rotationDay: number;
+  scheduleTimeZone: string;
+  scheduleToday: string;
+  nextRotationAt: string;
+}> {
+  const { data } = await apiClient.patch<
+    ApiResponse<{
+      deviceId: string;
+      timezone: string;
+      rotationDay: number;
+      scheduleTimeZone: string;
+      scheduleToday: string;
+      nextRotationAt: string;
+    }>
+  >(`/devices/${deviceId}/schedule-timezone`, { timezone });
+  return data.data;
+}
+
 /** GET /devices/:id — registered device detail. */
 export async function getDeviceById(id: string): Promise<RegisteredDevice> {
   const { data } = await apiClient.get<ApiResponse<RegisteredDevice>>(`/devices/${id}`);

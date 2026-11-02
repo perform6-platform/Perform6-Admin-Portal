@@ -121,6 +121,9 @@ export interface DeviceInventoryItem {
   rotationStartDate?: string | null;
   effectiveRotationStartDate?: string | null;
   rotationDay?: number | null;
+  scheduleTimeZone?: string | null;
+  scheduleToday?: string | null;
+  nextRotationAt?: string | null;
   /** Site owner contact (scheduled offline prefetch emails). */
   ownerName?: string | null;
   ownerEmail?: string | null;
@@ -210,6 +213,9 @@ export interface RegisteredDevice {
   health?: DeviceHealthEntity | null;
   /** Enriched by GET /monitoring/fleet/status — today's content per screen */
   rotationDay?: number | null;
+  scheduleTimeZone?: string | null;
+  scheduleToday?: string | null;
+  nextRotationAt?: string | null;
   screens?: Array<{
     screenKey: string;
     categoryId: string | null;
@@ -225,6 +231,7 @@ export interface RegisteredDevice {
       mediaVersionId?: string | null;
       screenKey?: string | null;
       sessionStartedAt?: number | null;
+      sessionElapsedMs?: number | null;
     } | null;
     updatedAt: string | null;
   } | null;

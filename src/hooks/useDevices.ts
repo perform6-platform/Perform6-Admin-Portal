@@ -17,6 +17,7 @@ import {
   restoreDevice,
   retryDeviceOta,
   retryDeviceMedia,
+  updateScheduleTimezone,
 } from '../services/devices.api';
 import type {
   ClaimPairingPayload,
@@ -173,6 +174,17 @@ export function useRetryDeviceMedia() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.sync.fleet });
       void queryClient.invalidateQueries({ queryKey: ['sync'] });
+      invalidateDeviceQueries(queryClient);
+    },
+  });
+}
+
+export function useUpdateScheduleTimezone() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { deviceId: string; timezone: string }) =>
+      updateScheduleTimezone(vars.deviceId, vars.timezone),
+    onSuccess: () => {
       invalidateDeviceQueries(queryClient);
     },
   });
