@@ -92,10 +92,15 @@ function buildRotatingLibraryPayload(
       libraryType: categoryToLibraryType(categoryId),
       // Full desired set for this library (may be []). Backend clears days not listed.
       assignments: sectionAssignments
-        .filter((assignment) => assignment.categoryId === categoryId && assignment.included)
+        .filter(
+          (assignment) =>
+            assignment.categoryId === categoryId &&
+            assignment.included &&
+            assignment.day != null,
+        )
         .map((assignment) => {
           const mediaVersionId = findMediaVersionId(items, categoryId, assignment.videoTitle);
-          if (!mediaVersionId) return null;
+          if (!mediaVersionId || assignment.day == null) return null;
           return { dayNumber: assignment.day, mediaVersionId };
         })
         .filter((entry): entry is { dayNumber: number; mediaVersionId: string } => entry !== null),
@@ -137,10 +142,15 @@ export function buildCustomProgramRotationPayload(
   items: ContentItem[],
 ): { assignments: Array<{ dayNumber: number; mediaVersionId: string }> } {
   const dayAssignments = assignments
-    .filter((assignment) => assignment.categoryId === categoryId && assignment.included)
+    .filter(
+      (assignment) =>
+        assignment.categoryId === categoryId &&
+        assignment.included &&
+        assignment.day != null,
+    )
     .map((assignment) => {
       const mediaVersionId = findMediaVersionId(items, categoryId, assignment.videoTitle);
-      if (!mediaVersionId) return null;
+      if (!mediaVersionId || assignment.day == null) return null;
       return { dayNumber: assignment.day, mediaVersionId };
     })
     .filter((entry): entry is { dayNumber: number; mediaVersionId: string } => entry !== null);

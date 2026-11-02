@@ -42,6 +42,12 @@ export interface Device {
   inventoryState?: 'pending' | 'claimed' | 'registered';
   pairingCode?: string | null;
   timezone?: string | null;
+  /** IANA zone that selects this gym's rotation day. */
+  scheduleTimeZone?: string | null;
+  /** YYYY-MM-DD in the schedule timezone. */
+  scheduleToday?: string | null;
+  /** ISO instant of the next local midnight. */
+  nextRotationAt?: string | null;
   rotationMode?: 'DEVICE' | 'GLOBAL';
   rotationDay?: number | null;
   screens?: Array<{
@@ -61,6 +67,7 @@ export interface Device {
       mediaVersionId?: string | null;
       screenKey?: string | null;
       sessionStartedAt?: number | null;
+      sessionElapsedMs?: number | null;
     } | null;
     updatedAt: string | null;
   } | null;

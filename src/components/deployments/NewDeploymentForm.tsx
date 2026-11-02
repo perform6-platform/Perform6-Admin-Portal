@@ -166,7 +166,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
     [selectedPaletteCategories],
   );
 
-  // Custom → XC4055 / HD226 only. Touchscreen → XT2145 only.
+  // Custom → claimed HD226 only. Touchscreen → XT2145 only.
   const xcDevices = useMemo(
     () =>
       claimedDevices.filter(
@@ -311,7 +311,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
     setXcDeviceName('');
     setHdRows([createHdRow()]);
     if (isDefault) {
-      setDeviceKind((current) => current || 'XC');
+      setDeviceKind('HD');
     } else {
       setDeviceKind('');
     }
@@ -395,16 +395,6 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         ? current.filter((id) => id !== categoryId)
         : [...current, categoryId],
     );
-  }
-
-  function updateXcScreen(screenKey: string, patch: Partial<ScreenRoute>) {
-    setXcScreens((current) => ({
-      ...current,
-      [screenKey]: {
-        ...(current[screenKey] ?? { categoryId: '' }),
-        ...patch,
-      },
-    }));
   }
 
   function updateHdRow(id: string, patch: Partial<HdPlayerRow>) {
@@ -511,7 +501,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
     setExerciseVariant('');
     setRotationMode('GLOBAL');
     setRotationStartDate(new Date());
-    setDeviceKind('XC');
+    setDeviceKind('HD');
     setXcPairingId('');
     setXcDeviceName('');
     setXcScreens({
@@ -597,8 +587,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         deviceName: xcDeviceName.trim()
           ? xcDeviceName.trim()
           : (selectedClaimedDevice?.deviceName ?? undefined),
-        hardwareProfile:
-          selectedClaimedDevice?.model ?? (isDefault ? 'XC4055' : 'XT2145'),
+        hardwareProfile: selectedClaimedDevice?.model ?? 'XT2145',
         brandingMode: 'NONE',
         screenCategories: isDefault ? screenCategoryPayload : undefined,
         siteContact,
@@ -883,82 +872,11 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
           {isDefault ? (
             <>
-              <div>
-                <p className="mb-1 text-xs font-medium text-content-muted">Device type</p>
-                <Dropdown
-                  options={[
-                    { value: 'XC', label: 'XC4055 (1 player · 3 LEDs)' },
-                    { value: 'HD', label: 'HD226 (1 player per LED)' },
-                  ]}
-                  value={deviceKind}
-                  onChange={(value) => setDeviceKind(value as DeviceHardwareKind)}
-                  fullWidth
-                />
-                <p className="mt-1 text-caption text-content-muted">
-                  Custom deployments list claimed XC4055 or HD226 players only (not XT2145).
-                </p>
-              </div>
+              <p className="text-caption text-content-muted">
+                Custom deployments list claimed HD226 players only.
+              </p>
 
-              {deviceKind === 'XC' && (
-                <div className="space-y-4 rounded-lg border border-surface-border p-4">
-                  <div>
-                    <p className="mb-1 text-xs font-medium text-content-muted">
-                      XC4055 device (single player drives HDMI-1/2/3)
-                    </p>
-                    <Dropdown
-                      options={[
-                        { value: '', label: 'Select claimed XC4055…' },
-                        ...xcDevices.map((device) => ({
-                          value: device.pairingId ?? '',
-                          label: deviceOptionLabel(device),
-                        })),
-                      ]}
-                      value={xcPairingId}
-                      onChange={(value) => {
-                        setXcPairingId(value);
-                        setXcDeviceName('');
-                      }}
-                      fullWidth
-                    />
-                    {xcDevices.length === 0 && (
-                      <p className="mt-1 text-caption text-status-warning">
-                        No claimed XC4055 devices available.
-                      </p>
-                    )}
-                  </div>
-
-                  {selectedXcDevice && (
-                    <Input
-                      label="Device name (optional)"
-                      placeholder={selectedXcDevice.deviceName ?? 'Gym Screen'}
-                      value={xcDeviceName}
-                      onChange={(event) => setXcDeviceName(event.target.value)}
-                    />
-                  )}
-
-                  {XC_SCREEN_KEYS.map((screenKey, index) => (
-                    <div key={screenKey} className="space-y-2 rounded-md border border-surface-border/70 p-2">
-                      <p className="text-xs font-medium text-content-muted">
-                        Screen {index + 1}
-                      </p>
-                      {renderCategoryProgramPickers({
-                        categoryId: xcScreens[screenKey]?.categoryId ?? '',
-                        playlistKey: xcScreens[screenKey]?.playlistKey,
-                        onCategoryChange: (categoryId) =>
-                          updateXcScreen(screenKey, {
-                            categoryId,
-                            playlistKey: undefined,
-                          }),
-                        onPlaylistChange: (playlistKey) =>
-                          updateXcScreen(screenKey, { playlistKey }),
-                      })}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {deviceKind === 'HD' && (
-                <div className="space-y-4">
+              <div className="space-y-4">
                   {hdRows.map((row, index) => {
                     const usedPairingIds = new Set(
                       hdRows
@@ -1049,7 +967,6 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                     </p>
                   )}
                 </div>
-              )}
             </>
           ) : (
             <div className="space-y-4 rounded-lg border border-surface-border p-4">
@@ -1169,7 +1086,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             <p className="text-body-sm text-content-secondary">
               Stored on the device record — not a login. Used for scheduled offline
               reminders before next week&apos;s content download opens (1 day, 6 hours,
-              and 45 minutes before midnight UTC) — not on every offline event.
+              and 45 minutes before local midnight in the gym timezone) — not on every offline event.
             </p>
             <Input
               label="Owner name"
@@ -1234,41 +1151,11 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             <p>
               <span className="font-medium text-content-primary">Hardware:</span>{' '}
               {isDefault
-                ? deviceKind === 'HD'
-                  ? `HD226 · ${hdRows.length} player${hdRows.length === 1 ? '' : 's'}`
-                  : 'XC4055 · 3 screens'
+                ? `HD226 · ${hdRows.length} player${hdRows.length === 1 ? '' : 's'}`
                 : 'XT2145'}
             </p>
 
-            {isDefault && deviceKind === 'XC' && (
-              <div className="mt-2 space-y-1 border-t border-surface-border pt-2">
-                <p>
-                  <span className="font-medium text-content-primary">Device:</span>{' '}
-                  {selectedXcDevice?.deviceName || selectedXcDevice?.serialNumber || '—'}
-                </p>
-                {XC_SCREEN_KEYS.map((screenKey, index) => {
-                  const route = xcScreens[screenKey];
-                  const category = findCategoryById(contentCategories, route?.categoryId ?? '');
-                  const program =
-                    route?.playlistKey && category
-                      ? category.playlists.find(
-                          (playlist) => playlist.playlistKey === route.playlistKey,
-                        )?.name
-                      : null;
-                  return (
-                    <p key={screenKey}>
-                      <span className="font-medium text-content-primary">
-                        Screen {index + 1}:
-                      </span>{' '}
-                      {category ? paletteLabel(category) : '—'}
-                      {program ? ` · ${program}` : ''}
-                    </p>
-                  );
-                })}
-              </div>
-            )}
-
-            {isDefault && deviceKind === 'HD' && (
+            {isDefault && (
               <div className="mt-2 space-y-1 border-t border-surface-border pt-2">
                 {hdRows.map((row, index) => {
                   const device = hdDevices.find((entry) => entry.pairingId === row.pairingId);

@@ -9,6 +9,7 @@ import {
   useRestoreDevice,
 } from '../../hooks/useDevices';
 import { cn } from '../../lib/cn';
+import { formatScheduleInstant } from '../../lib/deviceSchedule';
 import { formatDeviceContentAxes } from '../../lib/deploymentDisplay';
 import { getDeviceScheduleExportFilename } from '../../lib/exportRotationSchedule';
 import { exportScheduleTableCsv } from '../../lib/scheduleTable';
@@ -260,7 +261,19 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
           }
         />
         {device.pairingCode ? <DetailRow label="Pairing Code" value={device.pairingCode} /> : null}
-        <DetailRow label="Timezone" value={device.timezone?.trim() || '—'} />
+        <DetailRow
+          label="Schedule timezone"
+          value={device.scheduleTimeZone ?? device.timezone ?? 'UTC'}
+        />
+        {device.scheduleTimeZone && device.nextRotationAt ? (
+          <DetailRow
+            label="Next rotation"
+            value={
+              formatScheduleInstant(device.nextRotationAt, device.scheduleTimeZone) ??
+              '12:00 AM local'
+            }
+          />
+        ) : null}
         <DetailRow label="Last Seen" value={device.lastSync} />
         <DetailRow label="Last Boot" value={device.lastBoot?.trim() || '—'} />
         <DetailRow

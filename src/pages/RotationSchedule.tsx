@@ -10,7 +10,11 @@ import type { ContentCategoryId } from '../constants/contentPlayback';
 import { useDeployments } from '../context/DeploymentsContext';
 import { useDeploymentScheduleTable } from '../hooks/useDeployments';
 import { useDevice, useRegisteredDevices } from '../hooks/useDevices';
-import { getDeviceRotationDay, getLatestDeploymentForDevice } from '../lib/deviceSchedule';
+import {
+  formatScheduleInstant,
+  getDeviceRotationDay,
+  getLatestDeploymentForDevice,
+} from '../lib/deviceSchedule';
 import { mapInventoryItem } from '../lib/deviceMapper';
 import { getDeviceScheduleExportFilename } from '../lib/exportRotationSchedule';
 import { exportScheduleTableCsv } from '../lib/scheduleTable';
@@ -190,6 +194,17 @@ export default function RotationSchedule() {
                 <strong className="font-medium text-content-primary">{selectedDevice.name}</strong> is on{' '}
                 <strong className="font-medium text-content-primary">Day {deviceRotationDay}</strong> of the
                 rotation.
+                {selectedDevice.scheduleTimeZone ? (
+                  <>
+                    {' '}
+                    Schedule timezone: {selectedDevice.scheduleTimeZone}. Next rotation:{' '}
+                    {formatScheduleInstant(
+                      selectedDevice.nextRotationAt,
+                      selectedDevice.scheduleTimeZone,
+                    ) ?? '12:00 AM local'}
+                    .
+                  </>
+                ) : null}
               </>
             ) : scheduleTable ? (
               <>

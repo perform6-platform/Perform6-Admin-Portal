@@ -35,10 +35,35 @@ export function getLatestDeploymentForDevice(
 }
 
 export function getDeviceRotationDay(device: Device, deployment?: Deployment | null): number {
+  if (typeof device.rotationDay === 'number' && device.rotationDay >= 1) {
+    return device.rotationDay;
+  }
   if (deployment?.connectionStartDate) {
     return getRotationDayFromConnectionStart(deployment.connectionStartDate);
   }
   return parseDeviceCurrentDay(device);
+}
+
+export function formatScheduleInstant(
+  iso: string | null | undefined,
+  timeZone: string | null | undefined,
+): string | null {
+  if (!iso || !timeZone) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    }).format(date);
+  } catch {
+    return null;
+  }
 }
 
 export interface DeviceScheduleVideo {

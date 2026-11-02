@@ -92,6 +92,7 @@ export interface TouchUiSnapshot {
     mediaVersionId?: string | null;
     screenKey?: string | null;
     sessionStartedAt?: number | null;
+    sessionElapsedMs?: number | null;
   } | null;
   updatedAt: string | null;
 }

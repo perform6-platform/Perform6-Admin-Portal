@@ -15,12 +15,13 @@ export interface VideoAssignment {
   categoryId: ContentCategoryId;
   videoTitle: string;
   included: boolean;
-  day: number;
+  day: number | null;
 }
 
 export interface VideoAssignmentState {
   included: boolean;
-  day: number;
+  /** Null until the user picks a day. Not an assignment yet. */
+  day: number | null;
 }
 
 const columnCategoryMap: Record<RotationScheduleColumnKey, ContentCategoryId> = {
@@ -100,7 +101,7 @@ export function buildVideoAssignmentsFromPrograms(
     getVideosByCategory(categoryId).forEach((video) => {
       assignments[getVideoAssignmentKey(categoryId, video.title)] = {
         included: false,
-        day: video.rotationDay ?? 1,
+        day: null,
       };
     });
   });
@@ -117,7 +118,7 @@ export function buildVideoAssignmentsFromPrograms(
       if (!assignments[key]) {
         assignments[key] = {
           included: false,
-          day: video.rotationDay ?? 1,
+          day: null,
         };
       }
     });
@@ -172,7 +173,7 @@ export function buildVideoAssignmentsFromSchedule(
       if (usesRotation) {
         assignments[key] = {
           included: scheduledDay !== undefined,
-          day: scheduledDay ?? video.rotationDay ?? 1,
+          day: scheduledDay ?? null,
         };
       } else {
         const staticValue = rows[0] ? toScheduleVideoName(String(rows[0][column])) : '';
@@ -220,7 +221,7 @@ export function applyVideoAssignmentsToSchedule(
     }));
 
     categoryAssignments
-      .filter((assignment) => assignment.included)
+      .filter((assignment) => assignment.included && assignment.day != null)
       .forEach((assignment) => {
         const videoName = toScheduleVideoName(assignment.videoTitle);
         nextRows = nextRows.map((row) =>

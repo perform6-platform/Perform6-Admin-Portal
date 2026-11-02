@@ -55,27 +55,39 @@ export function RotationVideoCard({
       <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
         {usesRotation ? (
           <>
-            <label className="flex cursor-pointer items-center gap-2 text-body-sm text-content-secondary">
+            <label
+              className={cn(
+                'flex items-center gap-2 text-body-sm text-content-secondary',
+                assignment.day == null && 'cursor-not-allowed opacity-60',
+              )}
+            >
               <input
                 type="checkbox"
                 checked={assignment.included}
+                disabled={assignment.day == null}
                 onChange={(event) =>
                   onChange({ ...assignment, included: event.target.checked })
                 }
-                className="h-4 w-4 rounded border-surface-border text-brand-600 focus:ring-brand-500"
+                className="h-4 w-4 rounded border-surface-border text-brand-600 focus:ring-brand-500 disabled:cursor-not-allowed"
               />
               Include
             </label>
             <label className="flex items-center gap-2 text-body-sm text-content-secondary">
               <CalendarDays className="h-3.5 w-3.5" />
               <select
-                value={assignment.day ?? 1}
-                disabled={!assignment.included}
-                onChange={(event) =>
-                  onChange({ ...assignment, day: Number(event.target.value) })
-                }
-                className="h-8 rounded-md border border-surface-border bg-surface px-2 text-body-sm text-content-primary disabled:opacity-50"
+                value={assignment.day ?? ''}
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  const day = raw === '' ? null : Number(raw);
+                  onChange({
+                    ...assignment,
+                    day,
+                    included: day == null ? false : assignment.included,
+                  });
+                }}
+                className="h-8 rounded-md border border-surface-border bg-surface px-2 text-body-sm text-content-primary"
               >
+                <option value="">Select Day</option>
                 {dayOptions.map((day) => (
                   <option key={day} value={day}>
                     Day {day}
