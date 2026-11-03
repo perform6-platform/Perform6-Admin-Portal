@@ -39,11 +39,13 @@ import {
   isTouchscreenDeployment,
   isXcModel,
   isXtModel,
+  orderCategoriesForDropdown,
   paletteLabel,
   playlistOptionsForCategory,
   touchscreenCategoryIds,
   XC_SCREEN_KEYS,
 } from '../../lib/deploymentWizard';
+import { namedPlaylistDisplayLabel } from '../../lib/contentCategoryGroups';
 import { cn } from '../../lib/cn';
 import { createId } from '../../lib/createId';
 import {
@@ -159,7 +161,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
   const paletteOptions = useMemo(
     () =>
-      selectedPaletteCategories.map((category) => ({
+      orderCategoriesForDropdown(selectedPaletteCategories).map((category) => ({
         value: category.id,
         label: paletteLabel(category),
       })),
@@ -639,7 +641,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         {showProgram && (
           <Dropdown
             options={[
-              { value: '', label: 'Select program…' },
+              { value: '', label: 'Select zone…' },
               ...programOptions,
             ]}
             value={args.playlistKey ?? ''}
@@ -1160,12 +1162,20 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                 {hdRows.map((row, index) => {
                   const device = hdDevices.find((entry) => entry.pairingId === row.pairingId);
                   const category = findCategoryById(contentCategories, row.categoryId);
-                  const program =
+                  const matchedPlaylist =
                     row.playlistKey && category
                       ? category.playlists.find(
                           (playlist) => playlist.playlistKey === row.playlistKey,
-                        )?.name
-                      : null;
+                        )
+                      : undefined;
+                  const program = row.playlistKey
+                    ? namedPlaylistDisplayLabel(
+                        matchedPlaylist ?? {
+                          name: row.playlistKey,
+                          playlistKey: row.playlistKey,
+                        },
+                      )
+                    : null;
                   const screen = buildDeploymentScreens(hdRows.length)[index];
                   return (
                     <p key={row.id}>

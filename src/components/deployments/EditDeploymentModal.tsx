@@ -341,7 +341,7 @@ export function EditDeploymentModal({
                     {showProgram && (
                       <Dropdown
                         options={[
-                          { value: '', label: 'Select program…' },
+                          { value: '', label: 'Select zone…' },
                           ...programOptions,
                         ]}
                         value={route.playlistKey ?? ''}
