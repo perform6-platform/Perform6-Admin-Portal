@@ -59,6 +59,18 @@ export function playlistAxisDescription(playlistKey?: string | null): string | u
   return ZONE_PLAYLIST_META[playlistKey]?.description;
 }
 
+/** Content Library section title for a named zone. The playlist key itself is unchanged. */
+export function namedPlaylistDisplayLabel(playlist: {
+  name: string;
+  playlistKey?: string | null;
+}): string {
+  const key = playlist.playlistKey?.trim().toUpperCase();
+  if (!key) return playlist.name;
+  const zone = ZONE_PLAYLIST_META[key];
+  if (!zone) return playlist.name;
+  return zone.description ? `${zone.label} (${zone.description})` : zone.label;
+}
+
 function categoryGroupDisplayLabel(category: ContentCategory): string {
   return categoryDisplayName(category.slug, category.name);
 }

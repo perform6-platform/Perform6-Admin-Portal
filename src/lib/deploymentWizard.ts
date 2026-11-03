@@ -1,4 +1,5 @@
 import type { CategoryScope, ContentCategory } from '../types/categories';
+import { namedPlaylistDisplayLabel } from './contentCategoryGroups';
 
 export const TOUCHSCREEN_CATEGORY_SLUGS = [
   'default',
@@ -46,6 +47,30 @@ export const PALETTE_SHORT_LABELS: Record<string, string> = {
   'full-program': 'Full Program',
   '15-minutes': 'Full Program (4-Zone)',
 };
+
+/** Player-screen dropdown order. Unselected categories are omitted by the caller. */
+export const CATEGORY_DROPDOWN_SLUG_ORDER = [
+  'default',
+  'start-here',
+  'phase-1',
+  'phase-2',
+  'full-program',
+  '15-minutes',
+] as const;
+
+export function orderCategoriesForDropdown(
+  categories: ContentCategory[],
+): ContentCategory[] {
+  const rank = new Map<string, number>(
+    CATEGORY_DROPDOWN_SLUG_ORDER.map((slug, index) => [slug, index]),
+  );
+  return [...categories].sort((left, right) => {
+    const leftRank = rank.get(left.slug) ?? Number.MAX_SAFE_INTEGER;
+    const rightRank = rank.get(right.slug) ?? Number.MAX_SAFE_INTEGER;
+    if (leftRank !== rightRank) return leftRank - rightRank;
+    return left.name.localeCompare(right.name);
+  });
+}
 
 export interface DeploymentScreenDefinition {
   screenKey: string;
@@ -103,13 +128,26 @@ export function findCategoryById(
   return categories.find((category) => category.id === categoryId);
 }
 
+const NAMED_PLAYLIST_KEY_ORDER = ['A', 'B', 'C', 'D'] as const;
+
 export function playlistOptionsForCategory(category: ContentCategory | undefined) {
   if (!category || category.scope !== 'BY_NAMED_PLAYLIST') return [];
   return [...(category.playlists ?? [])]
-    .sort((a, b) => (a.playlistKey ?? a.name).localeCompare(b.playlistKey ?? b.name))
+    .sort((left, right) => {
+      const leftIndex = NAMED_PLAYLIST_KEY_ORDER.indexOf(
+        (left.playlistKey ?? '').toUpperCase() as (typeof NAMED_PLAYLIST_KEY_ORDER)[number],
+      );
+      const rightIndex = NAMED_PLAYLIST_KEY_ORDER.indexOf(
+        (right.playlistKey ?? '').toUpperCase() as (typeof NAMED_PLAYLIST_KEY_ORDER)[number],
+      );
+      if (leftIndex !== -1 && rightIndex !== -1) return leftIndex - rightIndex;
+      if (leftIndex !== -1) return -1;
+      if (rightIndex !== -1) return 1;
+      return left.name.localeCompare(right.name);
+    })
     .map((playlist) => ({
       value: playlist.playlistKey ?? playlist.id,
-      label: playlist.name,
+      label: namedPlaylistDisplayLabel(playlist),
     }));
 }
 

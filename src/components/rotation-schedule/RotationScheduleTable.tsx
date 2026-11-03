@@ -27,6 +27,9 @@ const FIXED_COLUMNS = [
 const thBaseClass =
   'whitespace-nowrap px-4 py-2 text-center text-table-header font-semibold';
 
+/** Date and Rotation Day stay the same width. */
+const fixedMetaColumnClass = 'w-[10.5rem] min-w-[10.5rem] max-w-[10.5rem]';
+
 const thMetaClass = cn(thBaseClass, 'uppercase');
 
 function isGolfColumn(column: DeploymentScheduleTableColumn): boolean {
@@ -185,7 +188,7 @@ function RotationScheduleTableHeader({
           <th
             key={column.key}
             rowSpan={headerRowCount}
-            className={cn(thMetaClass, 'rotation-schedule-header-neutral')}
+            className={cn(thMetaClass, fixedMetaColumnClass, 'rotation-schedule-header-neutral')}
           >
             {column.label}
           </th>
@@ -283,10 +286,20 @@ export function RotationScheduleTable({
                       </IconButton>
                     </td>
                   )}
-                  <td className="px-4 py-2 text-body-sm text-content-primary">
+                  <td
+                    className={cn(
+                      fixedMetaColumnClass,
+                      'whitespace-nowrap px-4 py-2 text-body-sm text-content-primary',
+                    )}
+                  >
                     {row.dateLabel}
                   </td>
-                  <td className="px-4 py-2 text-body-sm text-content-primary">
+                  <td
+                    className={cn(
+                      fixedMetaColumnClass,
+                      'whitespace-nowrap px-4 py-2 text-body-sm text-content-primary',
+                    )}
+                  >
                     Day {row.rotationDay}
                   </td>
                   {columns.map((column) => {
