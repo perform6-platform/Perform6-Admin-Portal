@@ -595,7 +595,7 @@ export default function ContentSyncing() {
       header: 'Status',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <Badge variant={row.isOnline ? 'success' : 'neutral'}>
+          <Badge variant={row.isOnline ? 'success' : 'danger'}>
             {row.isOnline ? 'Online' : 'Offline'}
           </Badge>
           <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
@@ -649,18 +649,19 @@ export default function ContentSyncing() {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex w-full flex-nowrap items-center gap-3 lg:w-auto">
           <Dropdown
             options={[...filterOptions]}
             value={filter}
             onChange={(value) => setFilter(value as (typeof filterOptions)[number]['value'])}
-            className="w-full sm:w-auto"
+            fullWidth
+            className="min-w-0 flex-1 lg:w-auto lg:flex-none lg:[&>button]:w-auto lg:[&>button]:min-w-[160px]"
           />
           <button
             type="button"
             onClick={() => void handleManualRefresh()}
             disabled={isManualRefreshing}
-            className="min-w-[5.5rem] rounded-lg border border-surface-border px-4 py-2 text-sm text-content-secondary hover:bg-surface-muted disabled:opacity-70"
+            className="shrink-0 rounded-lg border border-surface-border px-4 py-2 text-sm text-content-secondary hover:bg-surface-muted disabled:opacity-70"
           >
             {isManualRefreshing ? 'Refreshing…' : 'Refresh'}
           </button>

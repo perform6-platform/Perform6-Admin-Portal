@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { MobileNavProvider, useMobileNav } from '../context/MobileNavContext';
 import { SidebarCollapseProvider } from '../context/SidebarCollapseContext';
+import { cn } from '../lib/cn';
 import MobileNavBar from './layout/MobileNavBar';
 import PageHeader from './layout/PageHeader';
 import Sidebar from './layout/Sidebar';
@@ -26,13 +27,21 @@ function LayoutContent() {
   }, [close]);
 
   return (
-    <div className="flex h-screen bg-page">
+    <div className="flex h-screen max-h-dvh bg-page supports-[height:100dvh]:h-dvh">
       <Sidebar />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <MobileNavBar />
-        <main className="hide-scrollbar relative z-0 min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <PageHeader />
-          <Outlet />
+        <main
+          className={cn(
+            'hide-scrollbar relative z-0 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto',
+            'pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]',
+            'pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]',
+          )}
+        >
+          <div className="mx-auto w-full max-w-full min-w-0">
+            <PageHeader />
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

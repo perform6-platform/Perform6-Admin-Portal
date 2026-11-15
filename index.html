@@ -2,8 +2,59 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=7" sizes="180x180" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <!--
+      macOS (Safari/Chrome): system Light/Dark Appearance selects favicon via
+      prefers-color-scheme. Light = black P6, dark = white P6 (16×16 + 32×32).
+    -->
+    <link
+      rel="icon"
+      href="/favicon-32x32-dark-scheme.png?v=9"
+      type="image/png"
+      sizes="32x32"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link
+      rel="icon"
+      href="/favicon-16x16-dark-scheme.png?v=9"
+      type="image/png"
+      sizes="16x16"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link
+      rel="icon"
+      href="/favicon-dark.ico?v=9"
+      type="image/x-icon"
+      sizes="any"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link
+      rel="icon"
+      href="/favicon-32x32.png?v=9"
+      type="image/png"
+      sizes="32x32"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      href="/favicon-16x16.png?v=9"
+      type="image/png"
+      sizes="16x16"
+      media="(prefers-color-scheme: light)"
+    />
+    <link
+      rel="icon"
+      href="/favicon.ico?v=9"
+      type="image/x-icon"
+      sizes="any"
+      media="(prefers-color-scheme: light)"
+    />
+    <link rel="icon" href="/favicon.svg?v=9" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=9" sizes="180x180" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,48 +65,10 @@
     <script>
       (function () {
         var stored = localStorage.getItem('perform6-theme');
-        var mq = window.matchMedia('(prefers-color-scheme: dark)');
-        if (stored === 'dark' || (!stored && mq.matches)) {
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (stored === 'dark' || (!stored && prefersDark)) {
           document.documentElement.classList.add('dark');
         }
-
-        // Favicon follows browser chrome only:
-        // light chrome → black mark, dark chrome → white mark.
-        // Recreate <link> nodes so browsers actually pick up the change.
-        function applyFavicon() {
-          var dark = mq.matches;
-          var svgHref = dark
-            ? '/favicon-dark.svg?v=7'
-            : '/favicon-light.svg?v=7';
-          var pngHref = dark
-            ? '/favicon-32x32-dark-scheme.png?v=7'
-            : '/favicon-32x32.png?v=7';
-
-          document
-            .querySelectorAll('link[data-app-favicon]')
-            .forEach(function (node) {
-              node.parentNode.removeChild(node);
-            });
-
-          var svg = document.createElement('link');
-          svg.setAttribute('data-app-favicon', 'svg');
-          svg.rel = 'icon';
-          svg.type = 'image/svg+xml';
-          svg.href = svgHref;
-          document.head.appendChild(svg);
-
-          var png = document.createElement('link');
-          png.setAttribute('data-app-favicon', 'png');
-          png.rel = 'icon';
-          png.type = 'image/png';
-          png.sizes = '32x32';
-          png.href = pngHref;
-          document.head.appendChild(png);
-        }
-
-        applyFavicon();
-        if (mq.addEventListener) mq.addEventListener('change', applyFavicon);
-        else if (mq.addListener) mq.addListener(applyFavicon);
       })();
     </script>
   </head>
