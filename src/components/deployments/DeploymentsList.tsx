@@ -15,6 +15,7 @@ import { useCategories } from '../../hooks/useCategories';
 import {
   formatBrandingModeLabel,
   formatDeploymentAxes,
+  formatDeploymentDisplayName,
   formatDeploymentTypeLabel,
   formatRotationScheduleLabel,
   resolveDeploymentRotationMode,
@@ -117,7 +118,7 @@ export function DeploymentsList() {
                       )}
                     >
                       <td className="px-4 py-4 font-medium text-content-primary">
-                        {deployment.name || deployment.id.slice(0, 8)}
+                        {formatDeploymentDisplayName(deployment)}
                       </td>
                       <td className="px-4 py-4 text-content-secondary">
                         {formatDeploymentTypeLabel(deployment.deploymentType)}
@@ -148,13 +149,13 @@ export function DeploymentsList() {
                       <td className="px-4 py-4">
                         <div className="flex justify-end gap-1">
                           <IconButton
-                            label={`View details for ${deployment.name ?? 'deployment'}`}
+                            label={`View details for ${formatDeploymentDisplayName(deployment)}`}
                             onClick={() => setViewingId(deployment.id)}
                           >
                             <Eye />
                           </IconButton>
                           <IconButton
-                            label={`Edit ${deployment.name ?? 'deployment'}`}
+                            label={`Edit ${formatDeploymentDisplayName(deployment)}`}
                             onClick={() => setEditing(deployment)}
                           >
                             <Pencil />

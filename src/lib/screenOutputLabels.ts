@@ -15,6 +15,9 @@ const HD_LABELS: Record<string, string> = {
   SCREEN_1: 'LED · HDMI',
 };
 
+/** HD226 has one dedicated HDMI output — never XT's HDMI-2 / background wording. */
+export const HD226_OUTPUT_LABEL = 'HDMI — DISPLAY';
+
 export function resolveScreenOutputLabel(
   screenKey: string,
   hardwareProfile?: string | null,
@@ -28,8 +31,8 @@ export function resolveScreenOutputLabel(
   if (profile === 'XC4055') {
     return XC_LABELS[key] ?? screenKey.replace(/_/g, ' ');
   }
-  if (profile === 'HD226') {
-    return HD_LABELS[key] ?? screenKey.replace(/_/g, ' ');
+  if (profile === 'HD226' || profile.includes('HD226')) {
+    return HD_LABELS[key] ?? 'LED · HDMI';
   }
 
   return screenKey.replace(/_/g, ' ');
@@ -39,8 +42,13 @@ export function isTouchscreenDeployment(
   deploymentType?: string | null,
   model?: string | null,
 ): boolean {
+  if ((model ?? '').toUpperCase().includes('HD226')) return false;
   if (deploymentType === 'TOUCHSCREEN_DEPLOYMENT') return true;
   return (model ?? '').toUpperCase() === 'XT2145';
+}
+
+export function isHd226Device(model?: string | null): boolean {
+  return (model ?? '').toUpperCase().includes('HD226');
 }
 
 const SLOT_LABELS: Record<string, string> = {

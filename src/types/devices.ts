@@ -79,6 +79,14 @@ export interface DeviceInventoryItem {
   model: string | null;
   location: string | null;
   timezone: string | null;
+  facilityAddress?: string | null;
+  facilityCity?: string | null;
+  facilityState?: string | null;
+  facilityZip?: string | null;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  ownerPhone?: string | null;
+  siteAddress?: string | null;
   deploymentId: string | null;
   deploymentName?: string | null;
   deploymentType?: string | null;
@@ -124,11 +132,15 @@ export interface DeviceInventoryItem {
   scheduleTimeZone?: string | null;
   scheduleToday?: string | null;
   nextRotationAt?: string | null;
-  /** Site owner contact (scheduled offline prefetch emails). */
+  /** Facility contact (scheduled offline / sync notifications). */
   ownerName?: string | null;
   ownerEmail?: string | null;
   siteAddress?: string | null;
   ownerPhone?: string | null;
+  facilityAddress?: string | null;
+  facilityCity?: string | null;
+  facilityState?: string | null;
+  facilityZip?: string | null;
 }
 
 export interface DeviceInventoryMeta {
@@ -195,9 +207,17 @@ export interface RegisteredDevice {
   ipAddress?: string | null;
   lanIpAddress?: string | null;
   macAddress?: string | null;
-  /** GeoIP location from pairing / heartbeat refresh. */
+  /** Facility display location (falls back to GeoIP when facility is empty). */
   location?: string | null;
   timezone?: string | null;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  ownerPhone?: string | null;
+  siteAddress?: string | null;
+  facilityAddress?: string | null;
+  facilityCity?: string | null;
+  facilityState?: string | null;
+  facilityZip?: string | null;
   screenCount: number;
   runtimeVersion?: string | null;
   activationStatus: DeviceActivationStatus;

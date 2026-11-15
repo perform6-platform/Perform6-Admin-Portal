@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { RefreshCw } from 'lucide-react';
 import {
@@ -108,6 +108,15 @@ function mediaStatusVariant(status: RequiredMediaRow['downloadStatus']) {
     default:
       return 'warning';
   }
+}
+
+/** Keep table rows fixed while downloads/heartbeats refresh fleet data. */
+function compareSyncFleetRows(a: SyncFleetDeviceRow, b: SyncFleetDeviceRow): number {
+  const labelA = (a.deviceName || a.serialNumber || a.deviceId || '').toLowerCase();
+  const labelB = (b.deviceName || b.serialNumber || b.deviceId || '').toLowerCase();
+  const byLabel = labelA.localeCompare(labelB, undefined, { sensitivity: 'base' });
+  if (byLabel !== 0) return byLabel;
+  return (a.deviceId || '').localeCompare(b.deviceId || '');
 }
 
 function ProgressBar({ percent, label }: { percent: number; label?: string }) {
@@ -527,7 +536,10 @@ export default function ContentSyncing() {
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const { data, isLoading, isError, refetch } = useSyncFleet();
 
-  const devices = data?.devices ?? [];
+  const devices = useMemo(() => {
+    const rows = data?.devices ?? [];
+    return [...rows].sort(compareSyncFleetRows);
+  }, [data?.devices]);
 
   const filteredDevices = useMemo(() => {
     if (filter === 'incomplete') {
@@ -538,12 +550,18 @@ export default function ContentSyncing() {
     return devices;
   }, [devices, filter]);
 
+  // Pin selection once — do not keep following filteredDevices[0] on each poll.
+  useEffect(() => {
+    if (selectedDeviceId) return;
+    const first = filteredDevices[0] ?? devices[0];
+    if (first?.deviceId) setSelectedDeviceId(first.deviceId);
+  }, [selectedDeviceId, filteredDevices, devices]);
+
+  // Resolve selection from the full fleet so filter/refetch order cannot swap the detail panel.
   const selectedDevice = useMemo(() => {
-    if (selectedDeviceId) {
-      return filteredDevices.find((d) => d.deviceId === selectedDeviceId) ?? null;
-    }
-    return filteredDevices[0] ?? null;
-  }, [filteredDevices, selectedDeviceId]);
+    if (!selectedDeviceId) return null;
+    return devices.find((d) => d.deviceId === selectedDeviceId) ?? null;
+  }, [devices, selectedDeviceId]);
 
   async function handleManualRefresh() {
     setIsManualRefreshing(true);
@@ -556,12 +574,20 @@ export default function ContentSyncing() {
 
   const columns: TableColumn<SyncFleetDeviceRow>[] = [
     {
-      key: 'serialNumber',
+      key: 'deviceName',
       header: 'Device',
       render: (row) => (
-        <span className="font-medium text-content-primary">
-          {row.serialNumber ?? row.deviceName ?? row.deviceId?.slice(0, 8) ?? '—'}
-        </span>
+        <div>
+          <span className="font-medium text-content-primary">
+            {row.deviceName?.trim() ||
+              row.serialNumber ||
+              row.deviceId?.slice(0, 8) ||
+              '—'}
+          </span>
+          {row.deviceName?.trim() && row.serialNumber ? (
+            <div className="text-caption text-content-muted">{row.serialNumber}</div>
+          ) : null}
+        </div>
       ),
     },
     {

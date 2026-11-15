@@ -7,6 +7,7 @@ import {
   useDisableDevice,
   useDisconnectDevice,
   useRestoreDevice,
+  useUpdateDeviceFacility,
 } from '../../hooks/useDevices';
 import { cn } from '../../lib/cn';
 import { formatScheduleInstant } from '../../lib/deviceSchedule';
@@ -17,6 +18,7 @@ import { getApiErrorMessage } from '../../services/axios';
 import { getDeploymentScheduleTable } from '../../services/deployments.api';
 import { AttachDeviceModal } from './AttachDeviceModal';
 import { BrightSignDeviceImage } from './BrightSignDeviceImage';
+import { EditFacilityModal } from './EditFacilityModal';
 import { DeviceRemoteOps } from '../device-monitoring/DeviceRemoteOps';
 import { DeviceStoragePanel } from '../device-monitoring/DeviceStoragePanel';
 import { Badge, Button, Card, CardTitle, ConfirmModal } from '../ui';
@@ -56,11 +58,13 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const { mutateAsync: disable, isPending: isDisabling } = useDisableDevice();
   const { mutateAsync: attach, isPending: isAttaching } = useAttachDevice();
   const { mutateAsync: restore, isPending: isRestoring } = useRestoreDevice();
+  const { mutateAsync: updateFacility, isPending: isSavingFacility } = useUpdateDeviceFacility();
 
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [facilityOpen, setFacilityOpen] = useState(false);
   const [isExportingSchedule, setIsExportingSchedule] = useState(false);
 
   if (!device) {
@@ -190,6 +194,33 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
     }
   }
 
+  async function handleFacilitySave(payload: {
+    ownerName: string;
+    ownerEmail: string;
+    ownerPhone: string | null;
+    facilityAddress: string;
+    facilityCity: string;
+    facilityState: string;
+    facilityZip: string;
+    timezone: string;
+  }) {
+    if (!registeredDeviceId) return;
+    try {
+      await updateFacility({ deviceId: registeredDeviceId, payload });
+      setFacilityOpen(false);
+      showToast({
+        title: 'Facility updated',
+        message: 'Contact, address, and timezone saved for this device.',
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Failed to update facility'),
+        variant: 'error',
+      });
+    }
+  }
+
   return (
     <Card className={cn('p-6', className)}>
       <CardTitle className="mb-4">Device Details</CardTitle>
@@ -242,6 +273,22 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
           value={device.macAddress?.trim() || '—'}
         />
         <DetailRow label="Location" value={device.location} />
+        <DetailRow label="Contact Name" value={device.ownerName?.trim() || '—'} />
+        <DetailRow label="Contact Email" value={device.ownerEmail?.trim() || '—'} />
+        <DetailRow label="Contact Phone" value={device.ownerPhone?.trim() || '—'} />
+        <DetailRow
+          label="Facility Address"
+          value={
+            [
+              device.facilityAddress,
+              [device.facilityCity, device.facilityState].filter(Boolean).join(', '),
+              device.facilityZip,
+            ]
+              .map((part) => part?.trim())
+              .filter(Boolean)
+              .join(' · ') || device.siteAddress?.trim() || '—'
+          }
+        />
         <DetailRow
           label={axes.isAxisFree ? 'Content' : 'Field'}
           value={axes.fieldLabel}
@@ -323,6 +370,28 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         </div>
         <DetailRow label="Mac Address" value={device.macAddress?.trim() || '—'} />
       </div>
+
+      {isRegistered && registeredDeviceId ? (
+        <div className="mt-4 rounded-lg border border-surface-border bg-surface-muted/30 p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-body-sm font-medium text-content-primary">
+              Facility Contact – Device Notifications
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 px-3"
+              onClick={() => setFacilityOpen(true)}
+            >
+              Edit
+            </Button>
+          </div>
+          <p className="text-caption text-content-secondary">
+            Update contact, facility address, and timezone without re-registering the deployment.
+          </p>
+        </div>
+      ) : null}
 
       {isRegistered && registeredDeviceId && !isDisabled ? (
         <div className="mt-4 rounded-lg border border-surface-border bg-surface-muted/30 p-4">
@@ -485,6 +554,16 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         onClose={() => setAttachOpen(false)}
         onSubmit={(deploymentId) => {
           void handleAttach(deploymentId);
+        }}
+      />
+
+      <EditFacilityModal
+        open={facilityOpen}
+        device={device}
+        isSaving={isSavingFacility}
+        onClose={() => setFacilityOpen(false)}
+        onSubmit={(payload) => {
+          void handleFacilitySave(payload);
         }}
       />
     </Card>

@@ -79,6 +79,12 @@ export interface DeploymentScreenDefinition {
   memberKey: string;
 }
 
+/** Custom HD226 row title: Device = BrightSign player, Screen = its display. */
+export function formatDeviceScreenLabel(index: number): string {
+  const n = index + 1;
+  return `Device ${n} · Screen ${n}`;
+}
+
 export function buildDeploymentScreens(playerCount: number): DeploymentScreenDefinition[] {
   const count = Math.max(HD226_MIN_PLAYERS, Math.min(playerCount, HD226_MAX_PLAYERS));
   return Array.from({ length: count }, (_, index) => {
@@ -86,8 +92,8 @@ export function buildDeploymentScreens(playerCount: number): DeploymentScreenDef
     const letter = String.fromCharCode(65 + index);
     return {
       screenKey: `SCREEN_${screenNumber}`,
-      label: `Screen ${screenNumber}`,
-      clusterLabel: `Player ${letter} (DEVICE_${letter})`,
+      label: formatDeviceScreenLabel(index),
+      clusterLabel: formatDeviceScreenLabel(index),
       memberKey: `DEVICE_${letter}`,
     };
   });

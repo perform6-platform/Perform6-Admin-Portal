@@ -77,6 +77,50 @@ export function formatRotationScheduleLabel(
   return (mode ?? '').toUpperCase() === 'GLOBAL' ? 'Global Rotation' : 'Custom Rotation';
 }
 
+/** Claim name for a linked deployment device (API may flatten or nest under pairing). */
+export function resolveLinkedDeviceName(device: {
+  deviceName?: unknown;
+  serialNumber?: unknown;
+  id?: string;
+  pairing?: { deviceName?: unknown; serialNumber?: unknown } | null;
+}): string {
+  const nestedName =
+    typeof device.pairing?.deviceName === 'string'
+      ? device.pairing.deviceName.trim()
+      : '';
+  const flatName =
+    typeof device.deviceName === 'string' ? device.deviceName.trim() : '';
+  const nestedSerial =
+    typeof device.pairing?.serialNumber === 'string'
+      ? device.pairing.serialNumber.trim()
+      : '';
+  const flatSerial =
+    typeof device.serialNumber === 'string' ? device.serialNumber.trim() : '';
+  return (
+    flatName ||
+    nestedName ||
+    flatSerial ||
+    nestedSerial ||
+    (device.id ? device.id.slice(0, 8) : '—')
+  );
+}
+
+/**
+ * Portal deployment title: prefer linked claim names so tables match Devices.
+ * Falls back to the stored deployment.name (legacy serial-based names).
+ */
+export function formatDeploymentDisplayName(
+  deployment: Pick<DeploymentEntity, 'id' | 'name' | 'devices'>,
+): string {
+  const names = (deployment.devices ?? [])
+    .map((device) => resolveLinkedDeviceName(device))
+    .map((name) => name.trim())
+    .filter((name) => name && name !== '—');
+  if (names.length === 1) return names[0]!;
+  if (names.length > 1) return names.join(' / ');
+  return deployment.name?.trim() || deployment.id.slice(0, 8);
+}
+
 /** Prefer GLOBAL if any linked device is global; else first device mode; else —. */
 export function resolveDeploymentRotationMode(
   deployment: DeploymentEntity | null | undefined,

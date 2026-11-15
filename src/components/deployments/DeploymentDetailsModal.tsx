@@ -5,15 +5,24 @@ import {
   formatBrandingModeLabel,
   formatCategoryShortLabel,
   formatDeploymentAxes,
+  formatDeploymentDisplayName,
   formatDeploymentTypeLabel,
   formatPlaylistKeyLabel,
   formatPortalDate,
   formatRotationScheduleLabel,
   resolveDeploymentRotationMode,
   resolveDeploymentScreens,
+  resolveLinkedDeviceName,
 } from '../../lib/deploymentDisplay';
-import { isTouchscreenDeployment } from '../../lib/deploymentWizard';
+import { cn } from '../../lib/cn';
+import {
+  CATEGORY_DROPDOWN_SLUG_ORDER,
+  formatDeviceScreenLabel,
+  isTouchscreenDeployment,
+  PALETTE_SHORT_LABELS,
+} from '../../lib/deploymentWizard';
 import { resolveStorageUrl } from '../../lib/libraryType';
+import { useCategories } from '../../hooks/useCategories';
 import { Badge, Button, Modal, ModalBody, SectionLabel } from '../ui';
 
 export interface DeploymentDetailsModalProps {
@@ -42,11 +51,30 @@ export function DeploymentDetailsModal({
     open ? deploymentId : null,
   );
   const { data: globalRotation } = useGlobalRotationSettings();
+  const { data: contentCategories = [] } = useCategories();
 
   const screens = useMemo(
     () => resolveDeploymentScreens(deployment),
     [deployment],
   );
+
+  const assignedCategoryIds = useMemo(
+    () => new Set(screens.map((screen) => screen.categoryId).filter(Boolean)),
+    [screens],
+  );
+
+  const orderedCategories = useMemo(() => {
+    const bySlug = new Map(contentCategories.map((category) => [category.slug, category]));
+    const ordered = CATEGORY_DROPDOWN_SLUG_ORDER.map((slug) => bySlug.get(slug)).filter(
+      (category): category is NonNullable<typeof category> => Boolean(category),
+    );
+    for (const category of contentCategories) {
+      if (!CATEGORY_DROPDOWN_SLUG_ORDER.includes(category.slug as (typeof CATEGORY_DROPDOWN_SLUG_ORDER)[number])) {
+        ordered.push(category);
+      }
+    }
+    return ordered;
+  }, [contentCategories]);
   const axes = useMemo(
     () => formatDeploymentAxes(deployment),
     [deployment],
@@ -83,7 +111,10 @@ export function DeploymentDetailsModal({
             <section>
               <SectionLabel className="mb-4 block">Overview</SectionLabel>
               <dl className="divide-y divide-surface-border rounded-lg border border-surface-border">
-                <DetailRow label="Name" value={deployment.name || '—'} />
+                <DetailRow
+                  label="Name"
+                  value={formatDeploymentDisplayName(deployment)}
+                />
                 <DetailRow
                   label="Deployment Type"
                   value={formatDeploymentTypeLabel(deployment.deploymentType)}
@@ -112,12 +143,52 @@ export function DeploymentDetailsModal({
                       : '—'
                   }
                 />
+                <DetailRow
+                  label="Facility Location"
+                  value={deployment.siteContact?.location?.trim() || '—'}
+                />
+                <DetailRow
+                  label="Contact Name"
+                  value={deployment.siteContact?.ownerName?.trim() || '—'}
+                />
+                <DetailRow
+                  label="Contact Email"
+                  value={deployment.siteContact?.ownerEmail?.trim() || '—'}
+                />
+                <DetailRow
+                  label="Facility Time Zone"
+                  value={deployment.siteContact?.timezone?.trim() || '—'}
+                />
               </dl>
             </section>
 
+            {orderedCategories.length > 0 ? (
+              <section>
+                <SectionLabel className="mb-4 block">Categories</SectionLabel>
+                <ul className="space-y-1 rounded-lg border border-surface-border px-4 py-3">
+                  {orderedCategories.map((category) => {
+                    const selected = assignedCategoryIds.has(category.id);
+                    return (
+                      <li
+                        key={category.id}
+                        className={cn(
+                          'text-body-sm font-medium',
+                          selected
+                            ? 'text-brand-600 dark:text-brand-400'
+                            : 'text-content-primary',
+                        )}
+                      >
+                        {PALETTE_SHORT_LABELS[category.slug] ?? category.name}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ) : null}
+
             <section>
               <SectionLabel className="mb-4 block">
-                {isTouchscreen ? 'Content Category Assignments' : 'Screen → Category'}
+                {isTouchscreen ? 'Content Category Assignments' : 'Device · Screen → Category'}
               </SectionLabel>
               {screens.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-surface-border px-4 py-6 text-center text-body-sm text-content-muted">
@@ -134,7 +205,7 @@ export function DeploymentDetailsModal({
                         <p className="text-body-sm font-medium text-content-primary">
                           {isTouchscreen
                             ? categoryAssignmentLabel(screen)
-                            : `Screen ${index + 1}`}
+                            : formatDeviceScreenLabel(index)}
                         </p>
                       </div>
                       <Badge variant="brand">
@@ -168,12 +239,7 @@ export function DeploymentDetailsModal({
                         ? device.rotationStartDate
                         : null);
                     const globalStart = globalRotation?.globalRotationStartDate ?? null;
-                    const deviceName =
-                      typeof device.deviceName === 'string' && device.deviceName.trim()
-                        ? device.deviceName
-                        : typeof device.serialNumber === 'string' && device.serialNumber.trim()
-                          ? device.serialNumber
-                          : device.id.slice(0, 8);
+                    const deviceName = resolveLinkedDeviceName(device);
                     return (
                       <li key={device.id} className="space-y-1 px-4 py-4 text-body-sm">
                         <div className="flex flex-wrap items-center gap-2">

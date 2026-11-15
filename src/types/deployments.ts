@@ -81,12 +81,19 @@ export interface Hd226ClusterMember {
   deviceName?: string;
 }
 
-/** Gym/site owner contact stored on the device for scheduled offline prefetch emails. */
+/** Facility contact + address stored on each device for notifications and location. */
 export interface DeviceSiteContact {
   ownerName: string;
   ownerEmail: string;
-  siteAddress?: string;
   ownerPhone?: string;
+  facilityAddress: string;
+  facilityCity: string;
+  facilityState: string;
+  facilityZip: string;
+  /** IANA timezone e.g. America/New_York */
+  timezone: string;
+  /** @deprecated Prefer structured facility fields */
+  siteAddress?: string;
 }
 
 /** Single-player register (XC4055 / XT2145). */
@@ -308,6 +315,8 @@ export interface DeploymentEntity {
   screenAssignments?: ScreenAssignment[];
   /** Enriched by GET /deployments/:id */
   screens?: DeploymentScreenSummary[];
+  /** Facility contact from the first linked device (GET /deployments/:id). */
+  siteContact?: DeploymentSiteContact | null;
   createdAt?: string;
   updatedAt?: string;
   [key: string]: unknown;
@@ -348,6 +357,23 @@ export interface UpdateDeploymentPayload {
     categoryId: string;
     playlistKey?: string;
   }>;
+  siteContact?: DeviceSiteContact;
+  rotationMode?: RotationMode;
+  /** YYYY-MM-DD. Sent when rotationMode is DEVICE. */
+  rotationStartDate?: string;
+}
+
+export interface DeploymentSiteContact {
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  ownerPhone?: string | null;
+  facilityAddress?: string | null;
+  facilityCity?: string | null;
+  facilityState?: string | null;
+  facilityZip?: string | null;
+  siteAddress?: string | null;
+  timezone?: string | null;
+  location?: string | null;
 }
 
 // ---------------------------------------------------------------------------

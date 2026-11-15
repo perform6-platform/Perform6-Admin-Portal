@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useDeviceLivePlayback } from '../../hooks/useMonitoring';
 import { resolveStorageUrl } from '../../lib/libraryType';
-import { resolveScreenOutputLabel } from '../../lib/screenOutputLabels';
+import {
+  HD226_OUTPUT_LABEL,
+  isHd226Device,
+  resolveScreenOutputLabel,
+} from '../../lib/screenOutputLabels';
 import { Badge, Modal, ModalBody } from '../ui';
 
 const SOFT_RESYNC_DRIFT_SEC = 8;
@@ -123,7 +127,19 @@ function formatPlaybackResolution(
   return fps ? `${size} · ${fps}p` : size;
 }
 
-function resolvePreviewCopy(screenKey: string, source: string | null | undefined) {
+function resolvePreviewCopy(
+  screenKey: string,
+  source: string | null | undefined,
+  deviceModel?: string | null,
+) {
+  if (isHd226Device(deviceModel)) {
+    return {
+      title: 'Custom display',
+      description: 'Dedicated HD226 output — assigned category content',
+      output: HD226_OUTPUT_LABEL,
+      contentLabel: 'Now Playing' as string | null,
+    };
+  }
   const key = screenKey.toUpperCase();
   if (source === 'HTML_UI' || key === 'SCREEN_1' || key === 'XT_HDMI_1') {
     return {
@@ -136,8 +152,8 @@ function resolvePreviewCopy(screenKey: string, source: string | null | undefined
   return {
     title: 'Main Display',
     description: null as string | null,
+    contentLabel: 'Now Playing' as string | null,
     output: 'LED · HDMI-2',
-    contentLabel: 'Now Playing',
   };
 }
 
@@ -153,6 +169,7 @@ export function LiveSyncPreviewModal({
 }: LiveSyncPreviewModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastSeekKeyRef = useRef<string>('');
+  const scrubbingRef = useRef(false);
   const latchRef = useRef<PreviewLatch>({
     mediaKey: '',
     pauseOffsetSec: 0,
@@ -183,10 +200,21 @@ export function LiveSyncPreviewModal({
     return () => window.clearInterval(id);
   }, [open]);
 
-  const screen = useMemo(
-    () => data?.screens.find((entry) => entry.screenKey === screenKey) ?? null,
-    [data?.screens, screenKey],
-  );
+  const isHd = isHd226Device(deviceModel);
+  const isXt = (deviceModel ?? '').toUpperCase() === 'XT2145';
+  const screen = useMemo(() => {
+    const screens = data?.screens ?? [];
+    const exact = screens.find((entry) => entry.screenKey === screenKey) ?? null;
+    if (!isHd) return exact;
+    if (exact && exact.source !== 'HTML_UI') return exact;
+    return (
+      screens.find((entry) => entry.source === 'NATIVE_HDMI') ??
+      screens.find((entry) => entry.isPlaying) ??
+      exact ??
+      screens[0] ??
+      null
+    );
+  }, [data?.screens, screenKey, isHd]);
 
   const fileUrl = resolveStorageUrl(screen?.fileUrl) ?? screen?.fileUrl ?? null;
   const thumbnail =
@@ -196,21 +224,22 @@ export function LiveSyncPreviewModal({
     null;
   const mediaTitle = screen?.title || fallbackTitle || screenKey;
   const isLive = Boolean(data?.isLive && screen && fileUrl);
-  const copy = resolvePreviewCopy(screenKey, screen?.source);
-  const outputLabel =
-    screen?.output ||
-    resolveScreenOutputLabel(screenKey, deviceModel) ||
-    copy.output;
-  const isXt = (deviceModel ?? '').toUpperCase() === 'XT2145';
+  const copy = resolvePreviewCopy(screenKey, screen?.source, deviceModel);
+  const outputLabel = isHd
+    ? HD226_OUTPUT_LABEL
+    : screen?.output ||
+      resolveScreenOutputLabel(screenKey, deviceModel) ||
+      copy.output;
   const isHdmi1 =
-    screen?.source === 'HTML_UI' ||
-    screenKey.toUpperCase() === 'SCREEN_1' ||
-    screenKey.toUpperCase() === 'XT_HDMI_1';
+    !isHd &&
+    (screen?.source === 'HTML_UI' ||
+      screenKey.toUpperCase() === 'SCREEN_1' ||
+      screenKey.toUpperCase() === 'XT_HDMI_1');
   const previewSubheading = isXt
     ? `${deviceName} · ${isHdmi1 ? 'HDMI-1 (Background Only)' : 'HDMI-2 (Main Display)'}`
-    : `${deviceName} · ${outputLabel}${
-        copy.description?.includes('Background') ? ' (Background Only)' : ' (Main Display)'
-      }`;
+    : isHd
+      ? `${deviceName} · ${HD226_OUTPUT_LABEL}`
+      : `${deviceName} · ${outputLabel}`;
   const positionSec = screen
     ? stepPreviewPlayhead(latchRef.current, screen, data?.updatedAt, nowMs)
     : 0;
@@ -227,23 +256,24 @@ export function LiveSyncPreviewModal({
   useEffect(() => {
     const video = videoRef.current;
     if (!open || !video || screen?.isPlaying !== false) return;
-    video.pause();
-  }, [open, screen, nowMs]);
+    if (!video.paused) video.pause();
+  }, [open, screen?.isPlaying]);
 
   useEffect(() => {
     if (!open) {
       lastSeekKeyRef.current = '';
+      scrubbingRef.current = false;
       setTechOpen(false);
       return;
     }
     const video = videoRef.current;
-    if (!video || !fileUrl || !screen) return;
+    if (!video || !fileUrl || !screen || scrubbingRef.current) return;
 
     const target = positionSec;
     const seekKey = `${fileUrl}:${Math.round(target / SOFT_RESYNC_DRIFT_SEC)}`;
 
     const applySeek = () => {
-      if (!Number.isFinite(target)) return;
+      if (!Number.isFinite(target) || scrubbingRef.current) return;
       const htmlDuration = Number.isFinite(video.duration) ? video.duration : null;
       const mediaDuration = durationSec ?? htmlDuration;
       const clamped =
@@ -253,12 +283,23 @@ export function LiveSyncPreviewModal({
 
       const drift = Math.abs(video.currentTime - clamped);
       const mediaChanged = lastSeekKeyRef.current.split(':')[0] !== fileUrl;
-      if (mediaChanged || drift > SOFT_RESYNC_DRIFT_SEC) {
-        video.currentTime = clamped;
-        lastSeekKeyRef.current = seekKey;
+      // Resync only on a new file or a large drift. Per-second playhead ticks must
+      // not assign currentTime — that resets the native seek bar.
+      if (screen.isPlaying) {
+        if (mediaChanged || drift > SOFT_RESYNC_DRIFT_SEC) {
+          video.currentTime = clamped;
+          lastSeekKeyRef.current = seekKey;
+        }
+        if (video.paused) void video.play().catch(() => {});
+        return;
       }
-      if (screen.isPlaying) void video.play().catch(() => {});
-      else video.pause();
+
+      // Paused: hold the reported frame. Do not play, and do not chase a moving sample.
+      if (mediaChanged || lastSeekKeyRef.current !== `${fileUrl}:paused`) {
+        video.currentTime = clamped;
+        lastSeekKeyRef.current = `${fileUrl}:paused`;
+      }
+      if (!video.paused) video.pause();
     };
 
     if (video.readyState >= 1) applySeek();
@@ -267,7 +308,9 @@ export function LiveSyncPreviewModal({
       video.addEventListener('loadedmetadata', onMeta, { once: true });
       return () => video.removeEventListener('loadedmetadata', onMeta);
     }
-  }, [open, fileUrl, screen, data?.updatedAt, durationSec, positionSec]);
+    // positionSec is read when telemetry changes; the 1s clock must not re-seek.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, fileUrl, screen?.isPlaying, screen?.mediaVersionId, screen?.requestId, data?.updatedAt, durationSec]);
 
   return (
     <Modal
@@ -331,6 +374,18 @@ export function LiveSyncPreviewModal({
               muted
               autoPlay={screen?.isPlaying === true}
               poster={thumbnail ?? undefined}
+              onPointerDown={() => {
+                scrubbingRef.current = true;
+              }}
+              onPointerUp={() => {
+                scrubbingRef.current = false;
+              }}
+              onSeeking={() => {
+                scrubbingRef.current = true;
+              }}
+              onSeeked={() => {
+                scrubbingRef.current = false;
+              }}
             />
           ) : (
             <div className="flex aspect-video flex-col items-center justify-center gap-4 px-6 text-center">
@@ -370,9 +425,13 @@ export function LiveSyncPreviewModal({
               </dd>
             </div>
             <div>
+              <dt className="text-caption text-content-secondary">Output</dt>
+              <dd className="text-body-sm font-medium text-content-primary">{outputLabel}</dd>
+            </div>
+            <div>
               <dt className="text-caption text-content-secondary">Resolution</dt>
               <dd className="text-body-sm font-medium text-content-primary">
-                {formatPlaybackResolution(screen?.resolution, screen?.frameRate, screen?.output)}
+                {formatPlaybackResolution(screen?.resolution, screen?.frameRate, isHd ? null : screen?.output)}
               </dd>
             </div>
             <div>
@@ -427,9 +486,6 @@ export function LiveSyncPreviewModal({
                 Source:{' '}
                 <span className="text-content-primary">{screen?.source ?? '—'}</span>
               </p>
-              {screen?.error ? (
-                <p className="text-status-error">Error: {screen.error}</p>
-              ) : null}
               <p>
                 Raw position sample:{' '}
                 <span className="text-content-primary">
