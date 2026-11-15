@@ -233,7 +233,7 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <Badge variant={device.status === 'online' ? 'success' : 'neutral'}>
+          <Badge variant={device.status === 'online' ? 'success' : 'danger'}>
             {device.status === 'online' ? 'Online' : 'Offline'}
           </Badge>
           {device.sdPresent === true && (

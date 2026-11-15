@@ -361,7 +361,7 @@ export default function OtaReleases() {
                             ) : null}
                           </td>
                           <td className="px-4 py-3">
-                            <Badge variant={row.isOnline ? 'success' : 'neutral'}>
+                            <Badge variant={row.isOnline ? 'success' : 'danger'}>
                               {row.isOnline ? 'Online' : 'Offline'}
                             </Badge>
                           </td>
