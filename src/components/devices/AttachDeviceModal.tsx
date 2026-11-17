@@ -38,7 +38,7 @@ export function AttachDeviceModal({
       open={open}
       onClose={onClose}
       title="Attach to deployment"
-      description={`Reconnect “${deviceName}” to an existing deployment. Same device token — no re-pair.`}
+      description={`Reconnect “${deviceName}” to an existing deployment. Same device token — no re-pair. If this HD226 left a reserved cluster slot, Attach restores that same screen and zone.`}
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>

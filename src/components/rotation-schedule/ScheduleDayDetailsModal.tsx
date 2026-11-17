@@ -65,7 +65,7 @@ export function ScheduleDayDetailsModal({
                     'rounded-full px-2 py-1 text-caption font-medium',
                     device.status === 'online'
                       ? 'bg-status-success/10 text-status-success'
-                      : 'bg-status-warning/10 text-status-warning',
+                      : 'bg-status-danger/10 text-status-danger',
                   )}
                 >
                   {device.status === 'online' ? 'Online' : 'Offline'}

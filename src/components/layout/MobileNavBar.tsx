@@ -12,7 +12,7 @@ export default function MobileNavBar() {
         'sticky top-0 z-30 shrink-0 border-b border-surface-border bg-surface lg:hidden',
       )}
     >
-      <div className="flex items-center gap-2 px-4 py-2 sm:gap-4 sm:px-4 sm:py-4">
+      <div className="flex items-center gap-2 px-[max(1rem,env(safe-area-inset-left))] py-2 pr-[max(1rem,env(safe-area-inset-right))] sm:gap-4 sm:px-6 sm:py-4">
         <button
           type="button"
           onClick={toggle}

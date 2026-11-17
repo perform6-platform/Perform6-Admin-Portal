@@ -77,6 +77,59 @@ export function formatRotationScheduleLabel(
   return (mode ?? '').toUpperCase() === 'GLOBAL' ? 'Global Rotation' : 'Custom Rotation';
 }
 
+/** Claim name for a linked deployment device (API may flatten or nest under pairing). */
+export function resolveLinkedDeviceName(device: {
+  deviceName?: unknown;
+  serialNumber?: unknown;
+  id?: string;
+  pairing?: { deviceName?: unknown; serialNumber?: unknown } | null;
+}): string {
+  const nestedName =
+    typeof device.pairing?.deviceName === 'string'
+      ? device.pairing.deviceName.trim()
+      : '';
+  const flatName =
+    typeof device.deviceName === 'string' ? device.deviceName.trim() : '';
+  const nestedSerial =
+    typeof device.pairing?.serialNumber === 'string'
+      ? device.pairing.serialNumber.trim()
+      : '';
+  const flatSerial =
+    typeof device.serialNumber === 'string' ? device.serialNumber.trim() : '';
+  return (
+    flatName ||
+    nestedName ||
+    flatSerial ||
+    nestedSerial ||
+    (device.id ? device.id.slice(0, 8) : '—')
+  );
+}
+
+/**
+ * Stored deployment identity from registration / Edit Deployment.
+ * Independent of linked device claim names.
+ */
+export function formatDeploymentDisplayName(
+  deployment: Pick<DeploymentEntity, 'id' | 'name' | 'devices'>,
+): string {
+  return deployment.name?.trim() || deployment.id.slice(0, 8);
+}
+
+/**
+ * Linked claim names for the Device Name column (Name1 / Name2 for clusters).
+ */
+export function formatLinkedDeviceNames(
+  deployment: Pick<DeploymentEntity, 'devices'>,
+): string {
+  const names = (deployment.devices ?? [])
+    .map((device) => resolveLinkedDeviceName(device))
+    .map((name) => name.trim())
+    .filter((name) => name && name !== '—');
+  if (names.length === 0) return '—';
+  if (names.length === 1) return names[0]!;
+  return names.join(' / ');
+}
+
 /** Prefer GLOBAL if any linked device is global; else first device mode; else —. */
 export function resolveDeploymentRotationMode(
   deployment: DeploymentEntity | null | undefined,

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Pencil, Search } from 'lucide-react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { DeviceDetailsPanel } from '../components/devices/DeviceDetailsPanel';
 import { AddDeviceModal } from '../components/devices/AddDeviceModal';
+import { RenameDeviceModal } from '../components/devices/RenameDeviceModal';
 import {
   Badge,
   Button,
   Dropdown,
+  IconButton,
   Input,
   PageShell,
   Pagination,
@@ -15,7 +17,11 @@ import {
 } from '../components/ui';
 import { statusOptions, type Device } from '../constants/devices';
 import { useToast } from '../context/ToastContext';
-import { useClaimPairing, useDevices } from '../hooks/useDevices';
+import {
+  useClaimPairing,
+  useDevices,
+  useUpdateDeviceName,
+} from '../hooks/useDevices';
 import { mapInventoryItem } from '../lib/deviceMapper';
 import { getApiErrorMessage } from '../services/axios';
 import type { ClaimPairingPayload, DeviceInventoryState } from '../types/devices';
@@ -59,6 +65,7 @@ export default function Devices() {
   const [searchInput, setSearchInput] = useState('');
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [addDeviceOpen, setAddDeviceOpen] = useState(false);
+  const [renamingDevice, setRenamingDevice] = useState<Device | null>(null);
 
   useEffect(() => {
     setFleetFilter(parseFleetState(searchParams.get('state')));
@@ -93,6 +100,8 @@ export default function Devices() {
   });
 
   const { mutate: claimPairing, isPending: isClaimingDevice } = useClaimPairing();
+  const { mutateAsync: renameDevice, isPending: isRenamingDevice } =
+    useUpdateDeviceName();
 
   const devices = useMemo<Device[]>(() => {
     const items = data?.items ?? [];
@@ -137,6 +146,23 @@ export default function Devices() {
         });
       },
     });
+  }
+
+  async function handleRenameDevice(payload: { id: string; deviceName: string }) {
+    try {
+      await renameDevice(payload);
+      setRenamingDevice(null);
+      showToast({
+        title: 'Device renamed',
+        message: 'Name updated across Devices, Deployments, and Content Syncing.',
+        variant: 'success',
+      });
+    } catch (renameError) {
+      showToast({
+        title: getApiErrorMessage(renameError, 'Failed to rename device'),
+        variant: 'error',
+      });
+    }
   }
 
   const columns: TableColumn<Device>[] = [
@@ -199,6 +225,24 @@ export default function Devices() {
       header: 'Model',
       hideOnMobile: true,
       render: (row) => row.model,
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div
+          className="flex justify-end"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <IconButton
+            label={`Rename ${row.name}`}
+            onClick={() => setRenamingDevice(row)}
+          >
+            <Pencil />
+          </IconButton>
+        </div>
+      ),
     },
   ];
 
@@ -280,6 +324,14 @@ export default function Devices() {
         onClose={() => setAddDeviceOpen(false)}
         onSubmit={handleAddDevice}
         isSubmitting={isClaimingDevice}
+      />
+
+      <RenameDeviceModal
+        open={Boolean(renamingDevice)}
+        device={renamingDevice}
+        isSaving={isRenamingDevice}
+        onClose={() => setRenamingDevice(null)}
+        onSubmit={(payload) => void handleRenameDevice(payload)}
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">

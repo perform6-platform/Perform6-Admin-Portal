@@ -25,6 +25,7 @@ import { resolveStorageUrl } from '../../lib/libraryType';
 import {
   formatPreviewDuration,
   parseDeploymentPreviewSlots,
+  type PreviewAssignmentLabel,
 } from '../../lib/deploymentPreview';
 import {
   buildCategoryPalette,
@@ -46,6 +47,11 @@ import {
   XC_SCREEN_KEYS,
 } from '../../lib/deploymentWizard';
 import { namedPlaylistDisplayLabel } from '../../lib/contentCategoryGroups';
+import {
+  composeSiteAddress,
+  titleCaseEnumLabel,
+} from '../../lib/facilityLocation';
+import { useFacilityTimezoneLookup } from '../../hooks/useFacilityTimezoneLookup';
 import { cn } from '../../lib/cn';
 import { createId } from '../../lib/createId';
 import {
@@ -113,10 +119,15 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   });
   const [hdRows, setHdRows] = useState<HdPlayerRow[]>([createHdRow()]);
 
+  const [deploymentName, setDeploymentName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
-  const [siteAddress, setSiteAddress] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
+  const [facilityAddress, setFacilityAddress] = useState('');
+  const [facilityCity, setFacilityCity] = useState('');
+  const [facilityState, setFacilityState] = useState('');
+  const [facilityZip, setFacilityZip] = useState('');
+  const [facilityTimezone, setFacilityTimezone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   /** Apply Start Here / Phase 1 / Phase 2 defaults once per Custom session — not when user clears all. */
   const paletteDefaultsAppliedRef = useRef(false);
@@ -292,20 +303,43 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   ]);
 
   const { data: preview, isLoading: previewLoading } = useDeploymentPreview(previewQuery);
-  const previewSlots = useMemo(() => parseDeploymentPreviewSlots(preview), [preview]);
+
+  // Same labels as Step 2: Zone 1 (Mobility / Stability), Full Program (4-Zone), etc.
+  const previewAssignmentLabels = useMemo((): PreviewAssignmentLabel[] => {
+    if (!screenCategoryPayload?.length) return [];
+    return screenCategoryPayload.map((entry) => {
+      const category = findCategoryById(contentCategories, entry.categoryId);
+      if (entry.playlistKey) {
+        const playlist = category?.playlists.find(
+          (item) => item.playlistKey === entry.playlistKey,
+        );
+        return {
+          screenKey: entry.screenKey,
+          label: namedPlaylistDisplayLabel(
+            playlist ?? {
+              name: entry.playlistKey,
+              playlistKey: entry.playlistKey,
+            },
+          ),
+        };
+      }
+      return {
+        screenKey: entry.screenKey,
+        label: category ? paletteLabel(category) : entry.screenKey,
+      };
+    });
+  }, [screenCategoryPayload, contentCategories]);
+
+  const previewSlots = useMemo(
+    () => parseDeploymentPreviewSlots(preview, previewAssignmentLabels),
+    [preview, previewAssignmentLabels],
+  );
 
   useEffect(() => {
     if (types.length > 0 && !deploymentType) {
       setDeploymentType(types[0]!.value);
     }
   }, [types, deploymentType]);
-
-  // Touchscreen deployments are locked to Global Rotation.
-  useEffect(() => {
-    if (isTouchscreen) {
-      setRotationMode('GLOBAL');
-    }
-  }, [isTouchscreen]);
 
   // Clear device picks when switching Custom ↔ Touchscreen so lists stay type-safe.
   useEffect(() => {
@@ -477,23 +511,70 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
     if (step === 1) return step1Valid();
     if (step === 2) return step2Valid();
     if (step === 3) return true;
-    return siteContactValid();
+    return Boolean(deploymentName.trim()) && siteContactValid();
   }
 
   function siteContactValid(): boolean {
     const email = ownerEmail.trim();
     if (!ownerName.trim() || !email) return false;
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return false;
+    if (
+      !facilityAddress.trim() ||
+      !facilityCity.trim() ||
+      !facilityState.trim() ||
+      !facilityZip.trim() ||
+      !facilityTimezone.trim()
+    ) {
+      return false;
+    }
+    return true;
   }
 
   function buildSiteContact() {
+    const composed = composeSiteAddress({
+      facilityAddress,
+      facilityCity,
+      facilityState,
+      facilityZip,
+    });
     return {
       ownerName: ownerName.trim(),
       ownerEmail: ownerEmail.trim(),
-      ...(siteAddress.trim() ? { siteAddress: siteAddress.trim() } : {}),
       ...(ownerPhone.trim() ? { ownerPhone: ownerPhone.trim() } : {}),
+      facilityAddress: facilityAddress.trim(),
+      facilityCity: facilityCity.trim(),
+      facilityState: facilityState.trim().toUpperCase(),
+      facilityZip: facilityZip.trim(),
+      timezone: facilityTimezone.trim(),
+      ...(composed ? { siteAddress: composed } : {}),
     };
   }
+
+  const {
+    addressComplete: facilityAddressComplete,
+    timezoneOptions,
+    suggestedZones,
+    isLookingUp: timezoneLookingUp,
+    lookupError: timezoneLookupError,
+  } = useFacilityTimezoneLookup({
+    facilityAddress,
+    facilityCity,
+    facilityState,
+    facilityZip,
+    currentTimezone: facilityTimezone,
+  });
+
+  useEffect(() => {
+    if (!facilityAddressComplete) {
+      setFacilityTimezone('');
+      return;
+    }
+    if (suggestedZones.length === 0) return;
+    setFacilityTimezone((current) => {
+      if (current && suggestedZones.includes(current)) return current;
+      return suggestedZones[0]!;
+    });
+  }, [facilityAddressComplete, suggestedZones]);
 
   function resetForm() {
     setStep(1);
@@ -512,10 +593,15 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       SCREEN_3: { categoryId: '' },
     });
     setHdRows([createHdRow()]);
+    setDeploymentName('');
     setOwnerName('');
     setOwnerEmail('');
-    setSiteAddress('');
     setOwnerPhone('');
+    setFacilityAddress('');
+    setFacilityCity('');
+    setFacilityState('');
+    setFacilityZip('');
+    setFacilityTimezone('');
   }
 
   async function handleDeploy() {
@@ -523,9 +609,16 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       showToast({ title: 'Complete configuration and device steps first', variant: 'error' });
       return;
     }
+    if (!deploymentName.trim()) {
+      showToast({
+        title: 'Deployment name is required',
+        variant: 'error',
+      });
+      return;
+    }
     if (!siteContactValid()) {
       showToast({
-        title: 'Owner name and a valid email are required',
+        title: 'Contact name, email, facility address, and timezone are required',
         variant: 'error',
       });
       return;
@@ -536,6 +629,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         ? format(rotationStartDate, 'yyyy-MM-dd')
         : undefined;
     const siteContact = buildSiteContact();
+    const trimmedDeploymentName = deploymentName.trim();
 
     setIsSubmitting(true);
     try {
@@ -553,6 +647,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         const payload: RegisterClusterPayload = {
           hardwareProfile: 'HD226',
           members,
+          name: trimmedDeploymentName,
           deploymentType,
           ...(fieldCategory ? { fieldCategory } : {}),
           ...(exerciseVariant ? { exerciseVariant } : {}),
@@ -581,6 +676,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
       const payload: RegisterSinglePayload = {
         pairingId: xcPairingId,
+        name: trimmedDeploymentName,
         deploymentType,
         ...(fieldCategory ? { fieldCategory } : {}),
         ...(exerciseVariant ? { exerciseVariant } : {}),
@@ -728,8 +824,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             <div className="rounded-lg border border-surface-border bg-surface-muted/20 p-4 text-body-sm text-content-secondary">
               Touchscreen deployments use the fixed Content Categories (Default, Start Here, Phase
               1, Phase 2, Full Program). Select Content Type (Fitness/Golf) and Environment
-              (Wall/No Wall) below to determine the appropriate programming. Content Category
-              selections and Rotation Schedule are locked to Global Rotation.
+              (Wall/No Wall) below to determine the appropriate programming.
             </div>
           )}
 
@@ -770,65 +865,55 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
           <div className="space-y-3">
             <p className="text-xs font-medium text-content-muted">Rotation schedule</p>
-            {isTouchscreen ? (
-              <div className="rounded-lg border border-brand-500/40 bg-brand-500/10 px-4 py-3 text-body-sm text-brand-700 dark:text-brand-300">
-                <p className="font-medium">Join Global Rotation</p>
-                <p className="mt-1 text-caption text-content-secondary">
-                  Synchronize with the Portal&apos;s global 36-day rotation using a rolling 7-day
-                  content cache. Touchscreen deployments cannot use a custom rotation schedule.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-2 sm:grid-cols-2">
-                <label
-                  className={cn(
-                    'flex cursor-pointer flex-col gap-1 rounded-lg border px-4 py-2 text-body-sm',
-                    rotationMode === 'GLOBAL'
-                      ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
-                      : 'border-surface-border bg-surface-muted/20 text-content-secondary',
-                  )}
-                >
-                  <span className="flex items-center gap-2 font-medium">
-                    <input
-                      type="radio"
-                      name="rotationMode"
-                      className="accent-brand-600"
-                      checked={rotationMode === 'GLOBAL'}
-                      onChange={() => setRotationMode('GLOBAL')}
-                    />
-                    Global Rotation
-                  </span>
-                  <span className="pl-6 text-caption text-content-secondary">
-                    Deployment follows the synchronized Perform6 global rotation.
-                  </span>
-                </label>
-                <label
-                  className={cn(
-                    'flex cursor-pointer flex-col gap-1 rounded-lg border px-4 py-2 text-body-sm',
-                    rotationMode === 'DEVICE'
-                      ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
-                      : 'border-surface-border bg-surface-muted/20 text-content-secondary',
-                  )}
-                >
-                  <span className="flex items-center gap-2 font-medium">
-                    <input
-                      type="radio"
-                      name="rotationMode"
-                      className="accent-brand-600"
-                      checked={rotationMode === 'DEVICE'}
-                      onChange={() => setRotationMode('DEVICE')}
-                    />
-                    Custom Rotation
-                  </span>
-                  <span className="pl-6 text-caption text-content-secondary">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label
+                className={cn(
+                  'flex cursor-pointer flex-col gap-1 rounded-lg border px-4 py-2 text-body-sm',
+                  rotationMode === 'GLOBAL'
+                    ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
+                    : 'border-surface-border bg-surface-muted/20 text-content-secondary',
+                )}
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <input
+                    type="radio"
+                    name="rotationMode"
+                    className="accent-brand-600"
+                    checked={rotationMode === 'GLOBAL'}
+                    onChange={() => setRotationMode('GLOBAL')}
+                  />
+                  Global Rotation
+                </span>
+                <span className="pl-6 text-caption text-content-secondary">
+                  Deployment follows the synchronized Perform6 global rotation.
+                </span>
+              </label>
+              <label
+                className={cn(
+                  'flex cursor-pointer flex-col gap-1 rounded-lg border px-4 py-2 text-body-sm',
+                  rotationMode === 'DEVICE'
+                    ? 'border-brand-500/40 bg-brand-500/10 text-brand-700 dark:text-brand-300'
+                    : 'border-surface-border bg-surface-muted/20 text-content-secondary',
+                )}
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <input
+                    type="radio"
+                    name="rotationMode"
+                    className="accent-brand-600"
+                    checked={rotationMode === 'DEVICE'}
+                    onChange={() => setRotationMode('DEVICE')}
+                  />
+                  Custom Rotation
+                </span>
+                <span className="pl-6 text-caption text-content-secondary">
                   Deployment follows an independent rotation based on its configured start date.
-                  </span>
-                </label>
-              </div>
-            )}
+                </span>
+              </label>
+            </div>
           </div>
 
-          {rotationMode === 'DEVICE' && !isTouchscreen ? (
+          {rotationMode === 'DEVICE' ? (
             <div>
               <p className="mb-1 text-xs font-medium text-content-muted">Rotation start date</p>
               <DatePicker value={rotationStartDate} onChange={setRotationStartDate} />
@@ -899,8 +984,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-body-sm font-medium text-content-primary">
-                            {screen?.label ?? `Player ${index + 1}`} ·{' '}
-                            {screen?.clusterLabel ?? `DEVICE_${String.fromCharCode(65 + index)}`}
+                            {screen?.label ?? `Device ${index + 1} · Screen ${index + 1}`}
                           </p>
                           {hdRows.length > 1 && (
                             <Button
@@ -999,10 +1083,22 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       )}
 
       {step === 3 && (
-        <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-6')}>
+        <div className={cn(CARD_SURFACE_CLASS, 'w-full space-y-4 p-4 sm:p-6')}>
           <SectionLabel className="block">Step 3 — Preview</SectionLabel>
           <p className="text-body-sm text-content-secondary">
             Videos and rotation for the categories assigned to your selected device screens.
+          </p>
+          <p className="text-caption text-content-muted">
+            Schedule:{' '}
+            {rotationMode === 'GLOBAL'
+              ? `Global Rotation${
+                  globalRotationStartDate
+                    ? ` · ${formatPortalDate(globalRotationStartDate)}`
+                    : ''
+                }`
+              : rotationStartDate
+                ? `Custom Rotation · ${formatPortalDate(rotationStartDate)}`
+                : '—'}
           </p>
           {previewLoading && (
             <p className="text-body-sm text-content-muted">Loading preview…</p>
@@ -1012,15 +1108,22 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               No preview content for this configuration.
             </p>
           )}
-          <div className="max-h-[min(70vh,560px)] space-y-4 overflow-y-auto pr-1">
+          <div className="max-h-[min(70vh,560px)] w-full space-y-4 overflow-y-auto pr-1">
             {previewSlots.map((slot) => (
-              <section key={slot.key}>
+              <section key={slot.key} className="w-full">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-caption font-semibold uppercase tracking-wide text-content-muted">
+                  <p className="text-caption font-semibold tracking-wide text-content-muted">
                     {slot.label}
                   </p>
-                  <div className="flex items-center gap-2">
-                    {slot.isRotating && <Badge variant="brand">36-day rotation</Badge>}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {slot.isRotating ? (
+                      <Badge variant="brand">
+                        {rotationMode === 'GLOBAL' ? 'Global Rotation' : 'Custom Rotation'} · Day
+                        1–36
+                      </Badge>
+                    ) : (
+                      <Badge variant="neutral">All Days</Badge>
+                    )}
                     <Badge variant="success">
                       {slot.items.length} video{slot.items.length === 1 ? '' : 's'}
                     </Badge>
@@ -1028,8 +1131,10 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                 </div>
                 <ul
                   className={cn(
-                    'grid gap-2',
-                    slot.isRotating ? 'sm:grid-cols-2 xl:grid-cols-3' : 'sm:grid-cols-2',
+                    'grid w-full gap-2',
+                    slot.isRotating
+                      ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'
+                      : 'grid-cols-1',
                   )}
                 >
                   {slot.items.map((item, index) => {
@@ -1038,7 +1143,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                     return (
                       <li
                         key={`${slot.key}-${item.mediaVersionId || item.day}-${index}`}
-                        className="flex items-start gap-4 rounded-lg border border-surface-border bg-surface-muted/30 px-4 py-2"
+                        className="flex w-full items-start gap-4 rounded-lg border border-surface-border bg-surface-muted/30 px-4 py-2"
                       >
                         <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-md border border-surface-border bg-surface-muted">
                           {thumbnailUrl ? (
@@ -1063,7 +1168,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                             {item.video}
                           </p>
                           <p className="text-caption text-content-secondary">
-                            {slot.isRotating ? `Rotation day ${item.day}` : `Day ${item.day}`}
+                            {slot.isRotating ? `Day ${item.day}` : 'All Days'}
                             {durationLabel ? ` · ${durationLabel}` : ''}
                           </p>
                         </div>
@@ -1081,45 +1186,104 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-6')}>
           <SectionLabel className="block">Step 4 — Finalize deployment</SectionLabel>
 
+          <Input
+            label="Deployment Name"
+            placeholder="P6-HD-D2"
+            value={deploymentName}
+            onChange={(event) => setDeploymentName(event.target.value)}
+            required
+          />
+          <p className="text-caption text-content-muted">
+            This name identifies the deployment in Registered Deployments. It stays
+            independent of device names and serial numbers.
+          </p>
+
           <div className="space-y-4">
             <p className="text-xs font-medium text-content-muted">
-              Site owner (offline alerts)
+              Facility Contact – Device Notifications
             </p>
             <p className="text-body-sm text-content-secondary">
-              Stored on the device record — not a login. Used for scheduled offline
-              reminders before next week&apos;s content download opens (1 day, 6 hours,
-              and 45 minutes before local midnight in the gym timezone) — not on every offline event.
+              This contact will receive notifications about device connectivity and content
+              synchronization.
             </p>
             <Input
-              label="Owner name"
-              placeholder="Alex Morgan"
+              label="Contact Name"
+              placeholder="John Smith"
               value={ownerName}
               onChange={(event) => setOwnerName(event.target.value)}
               required
             />
             <Input
-              label="Owner email"
+              label="Contact Email"
               type="email"
-              placeholder="alex@acmegym.com"
+              placeholder="john@example.com"
               value={ownerEmail}
               onChange={(event) => setOwnerEmail(event.target.value)}
               required
             />
             <Input
-              label="Site address"
-              placeholder="12 High St, Austin TX"
-              value={siteAddress}
-              onChange={(event) => setSiteAddress(event.target.value)}
+              label="Facility Address"
+              placeholder="123 Main Street"
+              value={facilityAddress}
+              onChange={(event) => setFacilityAddress(event.target.value)}
+              required
             />
             <Input
-              label="Phone (optional)"
-              placeholder="+1 555 0100"
+              label="City"
+              placeholder="Jacksonville"
+              value={facilityCity}
+              onChange={(event) => setFacilityCity(event.target.value)}
+              required
+            />
+            <Input
+              label="State"
+              placeholder="FL"
+              value={facilityState}
+              onChange={(event) => setFacilityState(event.target.value.toUpperCase())}
+              required
+            />
+            <Input
+              label="ZIP Code"
+              placeholder="32256"
+              value={facilityZip}
+              onChange={(event) => setFacilityZip(event.target.value)}
+              required
+            />
+            <Input
+              label="Contact Phone"
+              placeholder="(555) 555-0100"
               value={ownerPhone}
               onChange={(event) => setOwnerPhone(event.target.value)}
             />
+            <div>
+              <p className="mb-1 text-xs font-medium text-content-muted">Facility Time Zone</p>
+              <Dropdown
+                options={timezoneOptions}
+                value={facilityTimezone}
+                onChange={setFacilityTimezone}
+                fullWidth
+                disabled={!facilityAddressComplete || timezoneLookingUp}
+                placeholder={
+                  !facilityAddressComplete
+                    ? 'Fill address, city, state, and ZIP first'
+                    : timezoneLookingUp
+                      ? 'Looking up timezone…'
+                      : 'Select timezone'
+                }
+              />
+              <p className="mt-1 text-caption text-content-muted">
+                {timezoneLookupError
+                  ? timezoneLookupError
+                  : 'Fetched from the facility address once street, city, state, and ZIP are filled. Confirm the IANA zone (DST is automatic).'}
+              </p>
+            </div>
           </div>
 
           <div className="space-y-2 rounded-lg border border-surface-border bg-surface-muted/20 p-4 text-body-sm text-content-secondary">
+            <p>
+              <span className="font-medium text-content-primary">Deployment Name:</span>{' '}
+              {deploymentName.trim() || '—'}
+            </p>
             <p>
               <span className="font-medium text-content-primary">Deployment Type:</span>{' '}
               {formatDeploymentTypeLabel(deploymentType)}
@@ -1135,7 +1299,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             {((isDefault || isTouchscreen) && (needsField || needsVariant)) && (
               <p>
                 <span className="font-medium text-content-primary">Content Type / Environment:</span>{' '}
-                {fieldCategory || '—'} / {exerciseVariant || '—'}
+                {titleCaseEnumLabel(fieldCategory)} / {titleCaseEnumLabel(exerciseVariant)}
               </p>
             )}
             <p>
@@ -1155,6 +1319,14 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               {isDefault
                 ? `HD226 · ${hdRows.length} player${hdRows.length === 1 ? '' : 's'}`
                 : 'XT2145'}
+            </p>
+            <p>
+              <span className="font-medium text-content-primary">Facility:</span>{' '}
+              {[facilityCity.trim(), facilityState.trim().toUpperCase()]
+                .filter(Boolean)
+                .join(', ')}
+              {facilityZip.trim() ? ` ${facilityZip.trim()}` : ''}
+              {facilityTimezone ? ` · ${facilityTimezone}` : ''}
             </p>
 
             {isDefault && (
@@ -1180,7 +1352,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
                   return (
                     <p key={row.id}>
                       <span className="font-medium text-content-primary">
-                        {screen?.label ?? `Player ${index + 1}`}:
+                        {screen?.label ?? `Device ${index + 1} · Screen ${index + 1}`}:
                       </span>{' '}
                       {device?.deviceName || device?.serialNumber || '—'} ·{' '}
                       {category ? paletteLabel(category) : '—'}

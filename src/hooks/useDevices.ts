@@ -17,8 +17,11 @@ import {
   restoreDevice,
   retryDeviceOta,
   retryDeviceMedia,
+  updateDeviceFacility,
+  updateDeviceName,
   updateScheduleTimezone,
 } from '../services/devices.api';
+import type { UpdateFacilityPayload } from '../services/devices.api';
 import type {
   ClaimPairingPayload,
   DeviceInventoryQuery,
@@ -29,6 +32,8 @@ import type { QueueDeviceRemoteCommandPayload } from '../types/monitoring';
 function invalidateDeviceQueries(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: ['devices'] });
   void queryClient.invalidateQueries({ queryKey: ['deployments'] });
+  void queryClient.invalidateQueries({ queryKey: ['sync'] });
+  void queryClient.invalidateQueries({ queryKey: ['monitoring'] });
 }
 
 /** GET /devices?state=&hardwareProfile=&search=&page=&limit= */
@@ -184,6 +189,29 @@ export function useUpdateScheduleTimezone() {
   return useMutation({
     mutationFn: (vars: { deviceId: string; timezone: string }) =>
       updateScheduleTimezone(vars.deviceId, vars.timezone),
+    onSuccess: () => {
+      invalidateDeviceQueries(queryClient);
+    },
+  });
+}
+
+export function useUpdateDeviceFacility() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { deviceId: string; payload: UpdateFacilityPayload }) =>
+      updateDeviceFacility(vars.deviceId, vars.payload),
+    onSuccess: () => {
+      invalidateDeviceQueries(queryClient);
+    },
+  });
+}
+
+/** PATCH /devices/:id/name — claim name (registered deviceId or pairingId). */
+export function useUpdateDeviceName() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; deviceName: string }) =>
+      updateDeviceName(vars.id, vars.deviceName),
     onSuccess: () => {
       invalidateDeviceQueries(queryClient);
     },

@@ -72,7 +72,13 @@ export function Modal({
   const hasBody = children != null && children !== false;
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-end justify-center p-0 sm:items-center sm:p-4">
+    <div
+      className={cn(
+        'fixed inset-0 z-[200] grid place-items-center',
+        'px-[max(1rem,env(safe-area-inset-left),env(safe-area-inset-right))]',
+        'py-[max(1rem,env(safe-area-inset-top),env(safe-area-inset-bottom))]',
+      )}
+    >
       <button
         type="button"
         aria-label="Close dialog"
@@ -89,15 +95,17 @@ export function Modal({
         tabIndex={-1}
         className={cn(
           CARD_SURFACE_CLASS,
-          'ui-modal-panel relative z-10 flex max-h-[min(92vh,720px)] w-full flex-col outline-none',
-          'rounded-t-2xl sm:rounded-xl',
+          'ui-modal-panel relative z-10 mx-auto flex w-full flex-col outline-none',
+          'max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)]',
+          'sm:max-h-[min(92dvh,720px)]',
+          'rounded-2xl',
           sizeStyles[size],
           className,
         )}
       >
         <div
           className={cn(
-            'flex items-start justify-between gap-4 px-4 py-4 sm:px-6',
+            'flex shrink-0 items-start justify-between gap-4 px-4 py-4 sm:px-6',
             hasBody && 'border-b border-surface-border',
           )}
         >
@@ -119,11 +127,13 @@ export function Modal({
         </div>
 
         {hasBody && (
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
+            {children}
+          </div>
         )}
 
         {footer && (
-          <div className="flex flex-col-reverse gap-2 border-t border-surface-border px-4 py-4 sm:flex-row sm:justify-end sm:px-6">
+          <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-surface-border px-4 py-4 sm:flex-row sm:justify-end sm:px-6">
             {footer}
           </div>
         )}

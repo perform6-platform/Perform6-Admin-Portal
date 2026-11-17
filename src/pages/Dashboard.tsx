@@ -32,8 +32,8 @@ export default function Dashboard() {
   const deviceStatusSegments = useMemo(
     () => [
       { label: 'Online', value: active, color: '#28C76F' },
-      { label: 'Offline', value: offline, color: '#FF9F43' },
-      { label: 'Pending', value: pending, color: '#1155CC' },
+      { label: 'Offline', value: offline, color: '#EA5455' },
+      { label: 'Pending', value: pending, color: '#9ca3af' },
     ],
     [active, offline, pending],
   );
@@ -46,7 +46,7 @@ export default function Dashboard() {
       time: device.lastSeenAt
         ? new Date(device.lastSeenAt).toLocaleString()
         : '—',
-      status: device.isOnline ? ('success' as const) : ('warning' as const),
+      status: device.isOnline ? ('success' as const) : ('danger' as const),
     }));
   }, [fleetStatus]);
 
@@ -91,7 +91,7 @@ export default function Dashboard() {
           label="Offline Devices"
           value={String(offline)}
           subtext={`${offlinePct}% offline`}
-          accent="warning"
+          accent="danger"
           icon={<WifiOff className="h-5 w-5" />}
           onClick={() => navigate('/devices?status=offline&state=registered')}
         />

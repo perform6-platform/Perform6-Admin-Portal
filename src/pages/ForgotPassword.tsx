@@ -6,7 +6,7 @@ import { Button, Input } from '../components/ui';
 import { useToast } from '../context/ToastContext';
 import { forgotPasswordRequest } from '../services/auth.api';
 import { getApiErrorMessage } from '../services/axios';
-import loginBg from '../assets/login-bg.jpg';
+import loginBg from '../assets/Portal_Login_Image_2.jpeg';
 
 const FEATURES = [
   {

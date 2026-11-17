@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { RefreshCw } from 'lucide-react';
 import {
@@ -11,6 +11,12 @@ import {
 } from '../components/ui';
 import { useRetryDeviceMedia } from '../hooks/useDevices';
 import { useSyncDeviceDetail, useSyncFleet } from '../hooks/useSyncFleet';
+import { namedPlaylistDisplayLabel } from '../lib/contentCategoryGroups';
+import {
+  formatCategoryShortLabel,
+  formatDeploymentTypeLabel,
+  formatEnumLabel,
+} from '../lib/deploymentDisplay';
 import type { RequiredMediaRow, SyncFleetDeviceRow, SyncFleetStatus } from '../types/sync';
 
 const filterOptions = [
@@ -31,8 +37,10 @@ function formatBytes(value: string | null | undefined): string {
   if (!value) return '—';
   const bytes = Number(value);
   if (!Number.isFinite(bytes) || bytes <= 0) return '—';
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 function downloadPercent(
@@ -48,10 +56,46 @@ function downloadPercent(
 function deploymentLabel(device: SyncFleetDeviceRow): string {
   const dep = device.deployment;
   if (!dep) return '—';
+
+  const typeLabel = dep.deploymentType
+    ? formatDeploymentTypeLabel(dep.deploymentType)
+    : '';
+
+  // Fitness / Golf deployments keep content type · environment.
+  if (dep.fieldCategory || dep.exerciseVariant) {
+    return (
+      [
+        typeLabel,
+        dep.fieldCategory ? formatEnumLabel(dep.fieldCategory) : '',
+        dep.exerciseVariant ? formatEnumLabel(dep.exerciseVariant) : '',
+      ]
+        .filter(Boolean)
+        .join(' · ') || '—'
+    );
+  }
+
+  // Axis-free HD (Full Program 4-Zone): show category · zone like Step 2.
+  const categoryLabel = formatCategoryShortLabel(
+    dep.categoryName,
+    dep.categorySlug,
+  );
+  const zoneLabel = dep.playlistKey
+    ? namedPlaylistDisplayLabel({
+        name: dep.playlistKey,
+        playlistKey: dep.playlistKey,
+      })
+    : '';
+
   return (
-    [dep.deploymentType, dep.fieldCategory, dep.exerciseVariant]
+    [
+      typeLabel,
+      categoryLabel !== '—' ? categoryLabel : '',
+      zoneLabel,
+    ]
       .filter(Boolean)
-      .join(' · ') || '—'
+      .join(' · ') ||
+    typeLabel ||
+    '—'
   );
 }
 
@@ -108,6 +152,15 @@ function mediaStatusVariant(status: RequiredMediaRow['downloadStatus']) {
     default:
       return 'warning';
   }
+}
+
+/** Keep table rows fixed while downloads/heartbeats refresh fleet data. */
+function compareSyncFleetRows(a: SyncFleetDeviceRow, b: SyncFleetDeviceRow): number {
+  const labelA = (a.deviceName || a.serialNumber || a.deviceId || '').toLowerCase();
+  const labelB = (b.deviceName || b.serialNumber || b.deviceId || '').toLowerCase();
+  const byLabel = labelA.localeCompare(labelB, undefined, { sensitivity: 'base' });
+  if (byLabel !== 0) return byLabel;
+  return (a.deviceId || '').localeCompare(b.deviceId || '');
 }
 
 function ProgressBar({ percent, label }: { percent: number; label?: string }) {
@@ -527,7 +580,10 @@ export default function ContentSyncing() {
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const { data, isLoading, isError, refetch } = useSyncFleet();
 
-  const devices = data?.devices ?? [];
+  const devices = useMemo(() => {
+    const rows = data?.devices ?? [];
+    return [...rows].sort(compareSyncFleetRows);
+  }, [data?.devices]);
 
   const filteredDevices = useMemo(() => {
     if (filter === 'incomplete') {
@@ -538,12 +594,18 @@ export default function ContentSyncing() {
     return devices;
   }, [devices, filter]);
 
+  // Pin selection once — do not keep following filteredDevices[0] on each poll.
+  useEffect(() => {
+    if (selectedDeviceId) return;
+    const first = filteredDevices[0] ?? devices[0];
+    if (first?.deviceId) setSelectedDeviceId(first.deviceId);
+  }, [selectedDeviceId, filteredDevices, devices]);
+
+  // Resolve selection from the full fleet so filter/refetch order cannot swap the detail panel.
   const selectedDevice = useMemo(() => {
-    if (selectedDeviceId) {
-      return filteredDevices.find((d) => d.deviceId === selectedDeviceId) ?? null;
-    }
-    return filteredDevices[0] ?? null;
-  }, [filteredDevices, selectedDeviceId]);
+    if (!selectedDeviceId) return null;
+    return devices.find((d) => d.deviceId === selectedDeviceId) ?? null;
+  }, [devices, selectedDeviceId]);
 
   async function handleManualRefresh() {
     setIsManualRefreshing(true);
@@ -556,12 +618,20 @@ export default function ContentSyncing() {
 
   const columns: TableColumn<SyncFleetDeviceRow>[] = [
     {
-      key: 'serialNumber',
+      key: 'deviceName',
       header: 'Device',
       render: (row) => (
-        <span className="font-medium text-content-primary">
-          {row.serialNumber ?? row.deviceName ?? row.deviceId?.slice(0, 8) ?? '—'}
-        </span>
+        <div>
+          <span className="font-medium text-content-primary">
+            {row.deviceName?.trim() ||
+              row.serialNumber ||
+              row.deviceId?.slice(0, 8) ||
+              '—'}
+          </span>
+          {row.deviceName?.trim() && row.serialNumber ? (
+            <div className="text-caption text-content-muted">{row.serialNumber}</div>
+          ) : null}
+        </div>
       ),
     },
     {
@@ -569,7 +639,7 @@ export default function ContentSyncing() {
       header: 'Status',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <Badge variant={row.isOnline ? 'success' : 'neutral'}>
+          <Badge variant={row.isOnline ? 'success' : 'danger'}>
             {row.isOnline ? 'Online' : 'Offline'}
           </Badge>
           <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
@@ -623,18 +693,19 @@ export default function ContentSyncing() {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex w-full flex-nowrap items-center gap-3 lg:w-auto">
           <Dropdown
             options={[...filterOptions]}
             value={filter}
             onChange={(value) => setFilter(value as (typeof filterOptions)[number]['value'])}
-            className="w-full sm:w-auto"
+            fullWidth
+            className="min-w-0 flex-1 lg:w-auto lg:flex-none lg:[&>button]:w-auto lg:[&>button]:min-w-[160px]"
           />
           <button
             type="button"
             onClick={() => void handleManualRefresh()}
             disabled={isManualRefreshing}
-            className="min-w-[5.5rem] rounded-lg border border-surface-border px-4 py-2 text-sm text-content-secondary hover:bg-surface-muted disabled:opacity-70"
+            className="shrink-0 rounded-lg border border-surface-border px-4 py-2 text-sm text-content-secondary hover:bg-surface-muted disabled:opacity-70"
           >
             {isManualRefreshing ? 'Refreshing…' : 'Refresh'}
           </button>

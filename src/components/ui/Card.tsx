@@ -80,7 +80,7 @@ export interface PageShellProps {
 
 export function PageShell({ title, children }: PageShellProps) {
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
       <PageTitle>{title}</PageTitle>
       {children}
     </div>

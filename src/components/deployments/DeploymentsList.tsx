@@ -1,25 +1,30 @@
 import { useMemo, useState } from 'react';
-import { Eye, Pencil, Search } from 'lucide-react';
+import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import {
   Badge,
   Button,
   Card,
+  ConfirmModal,
   EmptyState,
   IconButton,
   Input,
   Pagination,
   SectionLabel,
 } from '../ui';
-import { useDeploymentsList } from '../../hooks/useDeployments';
+import { useDeleteDeployment, useDeploymentsList } from '../../hooks/useDeployments';
 import { useCategories } from '../../hooks/useCategories';
+import { useToast } from '../../context/ToastContext';
 import {
   formatBrandingModeLabel,
   formatDeploymentAxes,
+  formatDeploymentDisplayName,
   formatDeploymentTypeLabel,
+  formatLinkedDeviceNames,
   formatRotationScheduleLabel,
   resolveDeploymentRotationMode,
 } from '../../lib/deploymentDisplay';
 import { cn } from '../../lib/cn';
+import { getApiErrorMessage } from '../../services/axios';
 import type { DeploymentEntity } from '../../types/deployments';
 import { DeploymentDetailsModal } from './DeploymentDetailsModal';
 import { EditDeploymentModal } from './EditDeploymentModal';
@@ -27,11 +32,13 @@ import { EditDeploymentModal } from './EditDeploymentModal';
 const PAGE_SIZE = 10;
 
 export function DeploymentsList() {
+  const { showToast } = useToast();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchDraft, setSearchDraft] = useState('');
   const [editing, setEditing] = useState<DeploymentEntity | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<DeploymentEntity | null>(null);
 
   const query = useMemo(
     () => ({
@@ -43,9 +50,30 @@ export function DeploymentsList() {
   );
 
   const { data, isLoading, isError } = useDeploymentsList(query);
+  const { mutateAsync: deleteDeployment, isPending: isDeleting } = useDeleteDeployment();
   const { data: contentCategories = [] } = useCategories();
   const items = data?.items ?? [];
   const meta = data?.meta;
+
+  async function handleDelete(deployment: DeploymentEntity) {
+    try {
+      const result = await deleteDeployment(deployment.id);
+      const count = result.disconnectedDeviceIds.length;
+      showToast({
+        title: 'Deployment deleted',
+        message:
+          count > 0
+            ? `${count} device${count === 1 ? '' : 's'} disconnected. Tokens stay valid for Attach.`
+            : 'Deployment removed.',
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Failed to delete deployment'),
+        variant: 'error',
+      });
+    }
+  }
 
   return (
     <>
@@ -90,7 +118,8 @@ export function DeploymentsList() {
             <table className="min-w-full text-left text-body-sm">
               <thead className="bg-surface text-caption uppercase tracking-wide text-content-muted">
                 <tr>
-                  <th className="whitespace-nowrap px-4 py-2 font-medium">Name</th>
+                  <th className="whitespace-nowrap px-4 py-2 font-medium">Deployment Name</th>
+                  <th className="whitespace-nowrap px-4 py-2 font-medium">Device Name</th>
                   <th className="whitespace-nowrap px-4 py-2 font-medium">Deployment Type</th>
                   <th className="whitespace-nowrap px-4 py-2 font-medium">Content Type</th>
                   <th className="whitespace-nowrap px-4 py-2 font-medium">Environment</th>
@@ -106,6 +135,7 @@ export function DeploymentsList() {
                     categories: contentCategories,
                   });
                   const rotationMode = resolveDeploymentRotationMode(deployment);
+                  const deploymentLabel = formatDeploymentDisplayName(deployment);
                   return (
                     <tr
                       key={deployment.id}
@@ -117,7 +147,10 @@ export function DeploymentsList() {
                       )}
                     >
                       <td className="px-4 py-4 font-medium text-content-primary">
-                        {deployment.name || deployment.id.slice(0, 8)}
+                        {deploymentLabel}
+                      </td>
+                      <td className="px-4 py-4 text-content-secondary">
+                        {formatLinkedDeviceNames(deployment)}
                       </td>
                       <td className="px-4 py-4 text-content-secondary">
                         {formatDeploymentTypeLabel(deployment.deploymentType)}
@@ -148,16 +181,22 @@ export function DeploymentsList() {
                       <td className="px-4 py-4">
                         <div className="flex justify-end gap-1">
                           <IconButton
-                            label={`View details for ${deployment.name ?? 'deployment'}`}
+                            label={`View details for ${deploymentLabel}`}
                             onClick={() => setViewingId(deployment.id)}
                           >
                             <Eye />
                           </IconButton>
                           <IconButton
-                            label={`Edit ${deployment.name ?? 'deployment'}`}
+                            label={`Edit ${deploymentLabel}`}
                             onClick={() => setEditing(deployment)}
                           >
                             <Pencil />
+                          </IconButton>
+                          <IconButton
+                            label={`Delete ${deploymentLabel}`}
+                            onClick={() => setDeleting(deployment)}
+                          >
+                            <Trash2 />
                           </IconButton>
                         </div>
                       </td>
@@ -191,6 +230,27 @@ export function DeploymentsList() {
         deployment={editing}
         onClose={() => setEditing(null)}
         onSaved={() => setEditing(null)}
+      />
+
+      <ConfirmModal
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => {
+          if (!deleting || isDeleting) return;
+          void handleDelete(deleting);
+        }}
+        title="Delete deployment?"
+        description={
+          deleting
+            ? `Deletes “${formatDeploymentDisplayName(deleting)}” and disconnects ${
+                deleting.devices?.length ?? 0
+              } linked device${
+                (deleting.devices?.length ?? 0) === 1 ? '' : 's'
+              }. Device tokens stay valid for Attach. Players keep running but lose this deployment’s content until reattached.`
+            : undefined
+        }
+        confirmLabel={isDeleting ? 'Deleting…' : 'Delete'}
+        tone="danger"
       />
     </>
   );

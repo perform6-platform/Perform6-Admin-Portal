@@ -38,6 +38,11 @@ export interface SyncFleetDeviceRow {
     deploymentType: string;
     fieldCategory: string;
     exerciseVariant: string;
+    /** Axis-free HD content (e.g. Full Program 4-Zone). */
+    categorySlug?: string | null;
+    categoryName?: string | null;
+    /** Named playlist / zone key (A–D) for this device's screen. */
+    playlistKey?: string | null;
   } | null;
   rotationDay: number | null;
   cacheWindow: {

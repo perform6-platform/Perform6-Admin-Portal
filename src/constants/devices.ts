@@ -42,6 +42,14 @@ export interface Device {
   inventoryState?: 'pending' | 'claimed' | 'registered';
   pairingCode?: string | null;
   timezone?: string | null;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  ownerPhone?: string | null;
+  siteAddress?: string | null;
+  facilityAddress?: string | null;
+  facilityCity?: string | null;
+  facilityState?: string | null;
+  facilityZip?: string | null;
   /** IANA zone that selects this gym's rotation day. */
   scheduleTimeZone?: string | null;
   /** YYYY-MM-DD in the schedule timezone. */

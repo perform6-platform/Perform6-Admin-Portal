@@ -138,7 +138,7 @@ export default function DeviceLogs() {
           type="button"
           size="sm"
           variant="outline"
-          className="shrink-0 self-start"
+          className="w-full shrink-0 sm:w-auto sm:self-start"
           disabled={exporting}
           onClick={() => void handleDownload()}
         >
@@ -148,10 +148,28 @@ export default function DeviceLogs() {
       </div>
 
       <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <Dropdown options={deviceOptions} value={deviceId} onChange={setDeviceId} />
-          <Dropdown options={levelOptions} value={level} onChange={setLevel} />
-          <Dropdown options={sourceOptions} value={source} onChange={setSource} />
+        <div className="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+          <Dropdown
+            options={deviceOptions}
+            value={deviceId}
+            onChange={setDeviceId}
+            fullWidth
+            className="sm:w-auto sm:[&>button]:w-auto sm:[&>button]:min-w-[160px]"
+          />
+          <Dropdown
+            options={levelOptions}
+            value={level}
+            onChange={setLevel}
+            fullWidth
+            className="sm:w-auto sm:[&>button]:w-auto sm:[&>button]:min-w-[160px]"
+          />
+          <Dropdown
+            options={sourceOptions}
+            value={source}
+            onChange={setSource}
+            fullWidth
+            className="sm:w-auto sm:[&>button]:w-auto sm:[&>button]:min-w-[160px]"
+          />
         </div>
         <input
           type="search"

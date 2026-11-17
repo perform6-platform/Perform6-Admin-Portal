@@ -1,6 +1,8 @@
 import type { ApiResponse } from '../types/api';
 import type { Branding } from '../types/branding';
 import type {
+  AddClusterMemberPayload,
+  AddClusterMemberResult,
   CategoryOption,
   CreateScreenAssignmentPayload,
   DeploymentEntity,
@@ -43,6 +45,20 @@ export async function updateDeployment(
   const { data } = await apiClient.patch<ApiResponse<DeploymentEntity>>(
     `/deployments/${id}`,
     payload,
+  );
+  return data.data;
+}
+
+export interface DeleteDeploymentResult {
+  action: 'delete';
+  deploymentId: string;
+  disconnectedDeviceIds: string[];
+}
+
+/** DELETE /deployments/:id — auto-disconnects linked devices, then deletes. */
+export async function deleteDeployment(id: string): Promise<DeleteDeploymentResult> {
+  const { data } = await apiClient.delete<ApiResponse<DeleteDeploymentResult>>(
+    `/deployments/${id}`,
   );
   return data.data;
 }
@@ -106,6 +122,18 @@ export async function registerDeployment(
 /** GET /deployments/:id */
 export async function getDeployment(id: string): Promise<DeploymentEntity> {
   const { data } = await apiClient.get<ApiResponse<DeploymentEntity>>(`/deployments/${id}`);
+  return data.data;
+}
+
+/** POST /deployments/:id/cluster-members — next free HD226 slot only. */
+export async function addClusterMember(
+  id: string,
+  payload: AddClusterMemberPayload,
+): Promise<AddClusterMemberResult> {
+  const { data } = await apiClient.post<ApiResponse<AddClusterMemberResult>>(
+    `/deployments/${id}/cluster-members`,
+    payload,
+  );
   return data.data;
 }
 
