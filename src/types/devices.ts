@@ -79,14 +79,6 @@ export interface DeviceInventoryItem {
   model: string | null;
   location: string | null;
   timezone: string | null;
-  facilityAddress?: string | null;
-  facilityCity?: string | null;
-  facilityState?: string | null;
-  facilityZip?: string | null;
-  ownerName?: string | null;
-  ownerEmail?: string | null;
-  ownerPhone?: string | null;
-  siteAddress?: string | null;
   deploymentId: string | null;
   deploymentName?: string | null;
   deploymentType?: string | null;
