@@ -11,6 +11,12 @@ import {
 } from '../components/ui';
 import { useRetryDeviceMedia } from '../hooks/useDevices';
 import { useSyncDeviceDetail, useSyncFleet } from '../hooks/useSyncFleet';
+import { namedPlaylistDisplayLabel } from '../lib/contentCategoryGroups';
+import {
+  formatCategoryShortLabel,
+  formatDeploymentTypeLabel,
+  formatEnumLabel,
+} from '../lib/deploymentDisplay';
 import type { RequiredMediaRow, SyncFleetDeviceRow, SyncFleetStatus } from '../types/sync';
 
 const filterOptions = [
@@ -48,10 +54,46 @@ function downloadPercent(
 function deploymentLabel(device: SyncFleetDeviceRow): string {
   const dep = device.deployment;
   if (!dep) return '—';
+
+  const typeLabel = dep.deploymentType
+    ? formatDeploymentTypeLabel(dep.deploymentType)
+    : '';
+
+  // Fitness / Golf deployments keep content type · environment.
+  if (dep.fieldCategory || dep.exerciseVariant) {
+    return (
+      [
+        typeLabel,
+        dep.fieldCategory ? formatEnumLabel(dep.fieldCategory) : '',
+        dep.exerciseVariant ? formatEnumLabel(dep.exerciseVariant) : '',
+      ]
+        .filter(Boolean)
+        .join(' · ') || '—'
+    );
+  }
+
+  // Axis-free HD (Full Program 4-Zone): show category · zone like Step 2.
+  const categoryLabel = formatCategoryShortLabel(
+    dep.categoryName,
+    dep.categorySlug,
+  );
+  const zoneLabel = dep.playlistKey
+    ? namedPlaylistDisplayLabel({
+        name: dep.playlistKey,
+        playlistKey: dep.playlistKey,
+      })
+    : '';
+
   return (
-    [dep.deploymentType, dep.fieldCategory, dep.exerciseVariant]
+    [
+      typeLabel,
+      categoryLabel !== '—' ? categoryLabel : '',
+      zoneLabel,
+    ]
       .filter(Boolean)
-      .join(' · ') || '—'
+      .join(' · ') ||
+    typeLabel ||
+    '—'
   );
 }
 

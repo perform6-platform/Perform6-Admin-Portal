@@ -131,6 +131,7 @@ export function EditFacilityModal({
         <form id="edit-facility-form" onSubmit={handleSubmit} className="space-y-4">
           <Input
             label="Contact Name"
+            placeholder="John Smith"
             value={ownerName}
             onChange={(event) => setOwnerName(event.target.value)}
             required
@@ -138,38 +139,44 @@ export function EditFacilityModal({
           <Input
             label="Contact Email"
             type="email"
+            placeholder="john@example.com"
             value={ownerEmail}
             onChange={(event) => setOwnerEmail(event.target.value)}
             required
           />
           <Input
-            label="Contact Phone"
-            value={ownerPhone}
-            onChange={(event) => setOwnerPhone(event.target.value)}
-          />
-          <Input
             label="Facility Address"
+            placeholder="123 Main Street"
             value={facilityAddress}
             onChange={(event) => setFacilityAddress(event.target.value)}
             required
           />
           <Input
             label="City"
+            placeholder="Jacksonville"
             value={facilityCity}
             onChange={(event) => setFacilityCity(event.target.value)}
             required
           />
           <Input
             label="State"
+            placeholder="FL"
             value={facilityState}
             onChange={(event) => setFacilityState(event.target.value.toUpperCase())}
             required
           />
           <Input
             label="ZIP Code"
+            placeholder="32256"
             value={facilityZip}
             onChange={(event) => setFacilityZip(event.target.value)}
             required
+          />
+          <Input
+            label="Contact Phone"
+            placeholder="(555) 555-0100"
+            value={ownerPhone}
+            onChange={(event) => setOwnerPhone(event.target.value)}
           />
           <div>
             <p className="mb-1 text-xs font-medium text-content-muted">Facility Time Zone</p>

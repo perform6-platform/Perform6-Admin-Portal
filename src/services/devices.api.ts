@@ -201,6 +201,12 @@ export interface DeviceLifecycleResult {
   deploymentId?: string | null;
   deploymentName?: string;
   cluster?: boolean;
+  /** Disconnect queues CLEAR_SD_CACHE so the player wipes media and stops playback. */
+  contentCleared?: boolean;
+  reservedMemberKey?: string | null;
+  reservedScreenKey?: string | null;
+  restoredMemberKey?: string | null;
+  restoredScreenKey?: string | null;
   activationStatus?: string;
   rePairAllowed?: boolean;
 }

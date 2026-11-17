@@ -25,6 +25,7 @@ import { resolveStorageUrl } from '../../lib/libraryType';
 import {
   formatPreviewDuration,
   parseDeploymentPreviewSlots,
+  type PreviewAssignmentLabel,
 } from '../../lib/deploymentPreview';
 import {
   buildCategoryPalette,
@@ -118,6 +119,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   });
   const [hdRows, setHdRows] = useState<HdPlayerRow[]>([createHdRow()]);
 
+  const [deploymentName, setDeploymentName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
@@ -301,7 +303,37 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
   ]);
 
   const { data: preview, isLoading: previewLoading } = useDeploymentPreview(previewQuery);
-  const previewSlots = useMemo(() => parseDeploymentPreviewSlots(preview), [preview]);
+
+  // Same labels as Step 2: Zone 1 (Mobility / Stability), Full Program (4-Zone), etc.
+  const previewAssignmentLabels = useMemo((): PreviewAssignmentLabel[] => {
+    if (!screenCategoryPayload?.length) return [];
+    return screenCategoryPayload.map((entry) => {
+      const category = findCategoryById(contentCategories, entry.categoryId);
+      if (entry.playlistKey) {
+        const playlist = category?.playlists.find(
+          (item) => item.playlistKey === entry.playlistKey,
+        );
+        return {
+          screenKey: entry.screenKey,
+          label: namedPlaylistDisplayLabel(
+            playlist ?? {
+              name: entry.playlistKey,
+              playlistKey: entry.playlistKey,
+            },
+          ),
+        };
+      }
+      return {
+        screenKey: entry.screenKey,
+        label: category ? paletteLabel(category) : entry.screenKey,
+      };
+    });
+  }, [screenCategoryPayload, contentCategories]);
+
+  const previewSlots = useMemo(
+    () => parseDeploymentPreviewSlots(preview, previewAssignmentLabels),
+    [preview, previewAssignmentLabels],
+  );
 
   useEffect(() => {
     if (types.length > 0 && !deploymentType) {
@@ -479,7 +511,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
     if (step === 1) return step1Valid();
     if (step === 2) return step2Valid();
     if (step === 3) return true;
-    return siteContactValid();
+    return Boolean(deploymentName.trim()) && siteContactValid();
   }
 
   function siteContactValid(): boolean {
@@ -561,6 +593,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       SCREEN_3: { categoryId: '' },
     });
     setHdRows([createHdRow()]);
+    setDeploymentName('');
     setOwnerName('');
     setOwnerEmail('');
     setOwnerPhone('');
@@ -576,6 +609,13 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
       showToast({ title: 'Complete configuration and device steps first', variant: 'error' });
       return;
     }
+    if (!deploymentName.trim()) {
+      showToast({
+        title: 'Deployment name is required',
+        variant: 'error',
+      });
+      return;
+    }
     if (!siteContactValid()) {
       showToast({
         title: 'Contact name, email, facility address, and timezone are required',
@@ -589,6 +629,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         ? format(rotationStartDate, 'yyyy-MM-dd')
         : undefined;
     const siteContact = buildSiteContact();
+    const trimmedDeploymentName = deploymentName.trim();
 
     setIsSubmitting(true);
     try {
@@ -606,6 +647,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         const payload: RegisterClusterPayload = {
           hardwareProfile: 'HD226',
           members,
+          name: trimmedDeploymentName,
           deploymentType,
           ...(fieldCategory ? { fieldCategory } : {}),
           ...(exerciseVariant ? { exerciseVariant } : {}),
@@ -634,6 +676,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
 
       const payload: RegisterSinglePayload = {
         pairingId: xcPairingId,
+        name: trimmedDeploymentName,
         deploymentType,
         ...(fieldCategory ? { fieldCategory } : {}),
         ...(exerciseVariant ? { exerciseVariant } : {}),
@@ -1069,7 +1112,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             {previewSlots.map((slot) => (
               <section key={slot.key} className="w-full">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-caption font-semibold uppercase tracking-wide text-content-muted">
+                  <p className="text-caption font-semibold tracking-wide text-content-muted">
                     {slot.label}
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
@@ -1143,6 +1186,18 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
         <div className={cn(CARD_SURFACE_CLASS, 'space-y-4 p-4 sm:p-6')}>
           <SectionLabel className="block">Step 4 — Finalize deployment</SectionLabel>
 
+          <Input
+            label="Deployment Name"
+            placeholder="P6-HD-D2"
+            value={deploymentName}
+            onChange={(event) => setDeploymentName(event.target.value)}
+            required
+          />
+          <p className="text-caption text-content-muted">
+            This name identifies the deployment in Registered Deployments. It stays
+            independent of device names and serial numbers.
+          </p>
+
           <div className="space-y-4">
             <p className="text-xs font-medium text-content-muted">
               Facility Contact – Device Notifications
@@ -1153,7 +1208,7 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             </p>
             <Input
               label="Contact Name"
-              placeholder="Alex Morgan"
+              placeholder="John Smith"
               value={ownerName}
               onChange={(event) => setOwnerName(event.target.value)}
               required
@@ -1161,16 +1216,10 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
             <Input
               label="Contact Email"
               type="email"
-              placeholder="alex@acmegym.com"
+              placeholder="john@example.com"
               value={ownerEmail}
               onChange={(event) => setOwnerEmail(event.target.value)}
               required
-            />
-            <Input
-              label="Contact Phone"
-              placeholder="+1 555 0100"
-              value={ownerPhone}
-              onChange={(event) => setOwnerPhone(event.target.value)}
             />
             <Input
               label="Facility Address"
@@ -1200,6 +1249,12 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
               onChange={(event) => setFacilityZip(event.target.value)}
               required
             />
+            <Input
+              label="Contact Phone"
+              placeholder="(555) 555-0100"
+              value={ownerPhone}
+              onChange={(event) => setOwnerPhone(event.target.value)}
+            />
             <div>
               <p className="mb-1 text-xs font-medium text-content-muted">Facility Time Zone</p>
               <Dropdown
@@ -1225,6 +1280,10 @@ export function NewDeploymentForm({ onSuccess }: NewDeploymentFormProps) {
           </div>
 
           <div className="space-y-2 rounded-lg border border-surface-border bg-surface-muted/20 p-4 text-body-sm text-content-secondary">
+            <p>
+              <span className="font-medium text-content-primary">Deployment Name:</span>{' '}
+              {deploymentName.trim() || '—'}
+            </p>
             <p>
               <span className="font-medium text-content-primary">Deployment Type:</span>{' '}
               {formatDeploymentTypeLabel(deploymentType)}

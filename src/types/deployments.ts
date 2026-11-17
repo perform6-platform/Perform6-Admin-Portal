@@ -99,6 +99,8 @@ export interface DeviceSiteContact {
 /** Single-player register (XC4055 / XT2145). */
 export interface RegisterSinglePayload {
   pairingId: string;
+  /** Required deployment identity — independent of device claim names. */
+  name: string;
   deploymentType: string;
   fieldCategory?: string;
   exerciseVariant?: string;
@@ -122,6 +124,8 @@ export interface RegisterSinglePayload {
 export interface RegisterClusterPayload {
   hardwareProfile: 'HD226';
   members: Hd226ClusterMember[];
+  /** Required deployment identity — independent of device claim names. */
+  name: string;
   deploymentType: string;
   fieldCategory?: string;
   exerciseVariant?: string;
@@ -290,6 +294,41 @@ export interface DeploymentScreenSummary {
   sortOrder?: number;
 }
 
+/** HD226 cluster membership from GET /deployments/:id — includes reserved (disconnected) slots. */
+export interface DeploymentClusterSlot {
+  memberKey: string;
+  screenKey: string;
+  sortOrder: number;
+  status: 'active' | 'reserved';
+  deviceId: string;
+  deviceName: string | null;
+  serialNumber: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  playlistKey: string | null;
+}
+
+export interface AddClusterMemberPayload {
+  pairingId: string;
+  deviceName?: string;
+  categoryId: string;
+  playlistKey?: string;
+}
+
+export interface AddClusterMemberResult {
+  action: 'add_cluster_member';
+  deploymentId: string;
+  memberKey: string;
+  screenKey: string;
+  deviceId: string;
+  pairingId: string;
+  apiToken: string;
+  deviceName: string | null;
+  screenAssignmentId: string;
+  categoryId: string;
+  playlistKey: string | null;
+}
+
 export interface DeploymentEntity {
   id: string;
   name?: string;
@@ -315,6 +354,8 @@ export interface DeploymentEntity {
   screenAssignments?: ScreenAssignment[];
   /** Enriched by GET /deployments/:id */
   screens?: DeploymentScreenSummary[];
+  /** HD226 slots including reserved holes (GET /deployments/:id). */
+  clusterSlots?: DeploymentClusterSlot[];
   /** Facility contact from the first linked device (GET /deployments/:id). */
   siteContact?: DeploymentSiteContact | null;
   createdAt?: string;

@@ -123,11 +123,14 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
     if (!registeredDeviceId) return;
     try {
       const result = await disconnect(registeredDeviceId);
+      const reservedLabel = result.reservedScreenKey
+        ? result.reservedScreenKey.replace('SCREEN_', 'Screen ')
+        : null;
       showToast({
         title: 'Device disconnected',
-        message: result.cluster
-          ? 'Entire cluster was removed from the deployment. Token kept for re-attach.'
-          : 'Removed from deployment. Token kept for re-attach.',
+        message: reservedLabel
+          ? `Unlinked. ${reservedLabel} reserved. SD media clears and playback stops on next heartbeat; Attach restores content.`
+          : 'Unlinked. SD media clears and playback stops on next heartbeat; Attach restores content. Token kept.',
         variant: 'success',
       });
     } catch (error) {
@@ -179,11 +182,18 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
     try {
       const result = await attach({ deviceId: registeredDeviceId, deploymentId });
       setAttachOpen(false);
+      const restoredLabel = result.restoredScreenKey
+        ? result.restoredScreenKey.replace('SCREEN_', 'Screen ')
+        : null;
       showToast({
         title: 'Device attached',
-        message: result.deploymentName
-          ? `Connected to ${result.deploymentName}.`
-          : 'Connected to deployment.',
+        message: restoredLabel
+          ? `Restored to ${restoredLabel}${
+              result.deploymentName ? ` on ${result.deploymentName}` : ''
+            }.`
+          : result.deploymentName
+            ? `Connected to ${result.deploymentName}.`
+            : 'Connected to deployment.',
         variant: 'success',
       });
     } catch (error) {
@@ -513,8 +523,8 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         title="Disconnect device?"
         description={
           device.model.toUpperCase().includes('HD226')
-            ? 'Removes this unit (and the full HD226 cluster if linked) from the deployment. Auth token stays valid for Attach.'
-            : 'Removes this device from its deployment. Auth token stays valid for Attach.'
+            ? 'Unlinks only this unit from the cluster (other players stay). Clears this unit’s SD media and stops playback on the next heartbeat (logo until Attach). Slot stays reserved; token stays valid for Attach.'
+            : 'Unlinks from the deployment, clears SD media, and stops playback on the next heartbeat (logo until Attach). Token stays valid for Attach.'
         }
         confirmLabel="Disconnect"
         tone="danger"

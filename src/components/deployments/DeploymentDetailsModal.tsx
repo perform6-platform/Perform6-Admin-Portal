@@ -7,6 +7,7 @@ import {
   formatDeploymentAxes,
   formatDeploymentDisplayName,
   formatDeploymentTypeLabel,
+  formatLinkedDeviceNames,
   formatPlaylistKeyLabel,
   formatPortalDate,
   formatRotationScheduleLabel,
@@ -112,8 +113,12 @@ export function DeploymentDetailsModal({
               <SectionLabel className="mb-4 block">Overview</SectionLabel>
               <dl className="divide-y divide-surface-border rounded-lg border border-surface-border">
                 <DetailRow
-                  label="Name"
+                  label="Deployment Name"
                   value={formatDeploymentDisplayName(deployment)}
+                />
+                <DetailRow
+                  label="Device Name"
+                  value={formatLinkedDeviceNames(deployment)}
                 />
                 <DetailRow
                   label="Deployment Type"

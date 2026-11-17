@@ -106,19 +106,28 @@ export function resolveLinkedDeviceName(device: {
 }
 
 /**
- * Portal deployment title: prefer linked claim names so tables match Devices.
- * Falls back to the stored deployment.name (legacy serial-based names).
+ * Stored deployment identity from registration / Edit Deployment.
+ * Independent of linked device claim names.
  */
 export function formatDeploymentDisplayName(
   deployment: Pick<DeploymentEntity, 'id' | 'name' | 'devices'>,
+): string {
+  return deployment.name?.trim() || deployment.id.slice(0, 8);
+}
+
+/**
+ * Linked claim names for the Device Name column (Name1 / Name2 for clusters).
+ */
+export function formatLinkedDeviceNames(
+  deployment: Pick<DeploymentEntity, 'devices'>,
 ): string {
   const names = (deployment.devices ?? [])
     .map((device) => resolveLinkedDeviceName(device))
     .map((name) => name.trim())
     .filter((name) => name && name !== '—');
+  if (names.length === 0) return '—';
   if (names.length === 1) return names[0]!;
-  if (names.length > 1) return names.join(' / ');
-  return deployment.name?.trim() || deployment.id.slice(0, 8);
+  return names.join(' / ');
 }
 
 /** Prefer GLOBAL if any linked device is global; else first device mode; else —. */

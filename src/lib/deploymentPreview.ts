@@ -10,6 +10,12 @@ const FALLBACK_SLOT_LABELS: Record<string, string> = {
   fullProgram: 'Full Program',
 };
 
+/** Wizard Step 2 screen → display label (zone / category). Overrides API category.name. */
+export type PreviewAssignmentLabel = {
+  screenKey: string;
+  label: string;
+};
+
 /** Slots whose preview payload is a rotation day list (not a single video). */
 const ROTATING_SLOT_KEYS = new Set([
   'phase1',
@@ -82,7 +88,10 @@ export function isRotatingPreviewSlot(key: string): boolean {
 }
 
 function resolveSlotLabel(slot: PreviewSlot): string {
-  return slot.label?.trim() || FALLBACK_SLOT_LABELS[slot.key] || slot.key;
+  const raw = slot.label?.trim() || FALLBACK_SLOT_LABELS[slot.key] || slot.key;
+  // Portal renamed the 15-minutes system category; API still returns the DB name.
+  if (/^15\s*minutes?$/i.test(raw)) return 'Full Program (4-Zone)';
+  return raw;
 }
 
 function readSlotItems(preview: DeploymentPreview, slotKey: string): PreviewItem[] {
@@ -99,8 +108,17 @@ function readSlotItems(preview: DeploymentPreview, slotKey: string): PreviewItem
 }
 
 /** Parse GET /deployments/preview — all assigned videos per slot (arrays for rotating libraries). */
-export function parseDeploymentPreviewSlots(preview: DeploymentPreview | null | undefined): DeploymentPreviewSlotView[] {
+export function parseDeploymentPreviewSlots(
+  preview: DeploymentPreview | null | undefined,
+  assignmentLabels?: PreviewAssignmentLabel[],
+): DeploymentPreviewSlotView[] {
   if (!preview) return [];
+
+  const labelByScreen = new Map(
+    (assignmentLabels ?? [])
+      .map((entry) => [entry.screenKey, entry.label.trim()] as const)
+      .filter((entry) => Boolean(entry[1])),
+  );
 
   const slots = Array.isArray(preview.slots) ? preview.slots : [];
 
@@ -108,7 +126,7 @@ export function parseDeploymentPreviewSlots(preview: DeploymentPreview | null | 
     return slots
       .map((slot) => ({
         key: slot.key,
-        label: resolveSlotLabel(slot),
+        label: labelByScreen.get(slot.key) || resolveSlotLabel(slot),
         libraryType: slot.libraryType ?? undefined,
         isRotating:
           typeof slot.isRotating === 'boolean'

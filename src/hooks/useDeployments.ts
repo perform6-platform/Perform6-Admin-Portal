@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryKeys';
 import {
+  addClusterMember,
   createScreenAssignment,
+  deleteDeployment,
   getCategoryVariants,
   getDeployment,
   getDeploymentBranding,
@@ -18,6 +20,7 @@ import {
   updateScreenAssignment,
 } from '../services/deployments.api';
 import type {
+  AddClusterMemberPayload,
   CreateScreenAssignmentPayload,
   DeploymentPreviewQuery,
   DeploymentScheduleTableQuery,
@@ -46,6 +49,20 @@ export function useUpdateDeployment() {
       queryClient.invalidateQueries({ queryKey: queryKeys.deployments.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.deployments.detail(vars.id) });
       queryClient.invalidateQueries({ queryKey: ['devices'] });
+    },
+  });
+}
+
+/** DELETE /deployments/:id */
+export function useDeleteDeployment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteDeployment(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.deployments.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.deployments.detail(id) });
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sync.fleet });
     },
   });
 }
@@ -143,6 +160,23 @@ export function useRegisterDeployment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['devices'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.deployments.all });
+    },
+  });
+}
+
+/** POST /deployments/:id/cluster-members */
+export function useAddClusterMember(deploymentId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AddClusterMemberPayload) =>
+      addClusterMember(deploymentId as string, payload),
+    onSuccess: () => {
+      if (!deploymentId) return;
+      queryClient.invalidateQueries({ queryKey: queryKeys.deployments.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.deployments.detail(deploymentId),
+      });
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
     },
   });
 }
