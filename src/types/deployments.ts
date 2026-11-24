@@ -356,7 +356,7 @@ export interface DeploymentEntity {
   screens?: DeploymentScreenSummary[];
   /** HD226 slots including reserved holes (GET /deployments/:id). */
   clusterSlots?: DeploymentClusterSlot[];
-  /** Facility contact from the first linked device (GET /deployments/:id). */
+  /** Deployment-owned facility/contact/timezone record (GET /deployments/:id). */
   siteContact?: DeploymentSiteContact | null;
   createdAt?: string;
   updatedAt?: string;
