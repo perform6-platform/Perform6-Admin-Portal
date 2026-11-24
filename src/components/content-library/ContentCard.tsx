@@ -284,9 +284,18 @@ export function ContentCard({
         )}
 
         {uploadVisual === 'ready' && item.preservation && (
-          <div className="mt-1">
+          <div
+            className="mt-1"
+            title={
+              item.preservation === 'preserved'
+                ? 'Processing result: the stored video is byte-for-byte identical to the uploaded file.'
+                : 'Processing result: the uploaded video was re-encoded for BrightSign compatibility.'
+            }
+          >
             <Badge variant={item.preservation === 'preserved' ? 'success' : 'neutral'}>
-              {item.preservation === 'preserved' ? 'Preserved' : 'Transcoded'}
+              {item.preservation === 'preserved'
+                ? 'Preserved unchanged'
+                : 'Transcoded for BrightSign'}
             </Badge>
           </div>
         )}
