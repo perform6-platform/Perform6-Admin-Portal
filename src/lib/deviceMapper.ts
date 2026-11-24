@@ -366,5 +366,10 @@ export function mapMediaAssetToContentItem(asset: MediaAsset): ContentItem | nul
           pixelFormat: activeVersion.pixelFormat ?? null,
         }
       : undefined,
+    preservation:
+      activeVersion?.preservation === 'preserved' ||
+      activeVersion?.preservation === 'transcoded'
+        ? activeVersion.preservation
+        : undefined,
   };
 }

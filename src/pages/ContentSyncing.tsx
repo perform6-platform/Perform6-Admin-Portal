@@ -262,7 +262,9 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
     );
   }
 
-  if (isLoading) {
+  const detailIsForSelection = data?.device?.deviceId === deviceId;
+
+  if (isLoading || (data?.device && !detailIsForSelection)) {
     return (
       <div className="rounded-xl border border-surface-border bg-surface p-6 text-sm text-content-secondary">
         Loading sync detail…
@@ -373,6 +375,14 @@ function DeviceDetailPanel({ deviceId }: { deviceId: string }) {
               percent={pct}
               label={`${pct}% · ${formatBytes(row.bytesDownloaded)} / ${formatBytes(sizeForPct)}`}
             />
+          );
+        }
+
+        if (row.downloadStatus === 'FAILED' || row.downloadStatus === 'MISSING') {
+          return (
+            <span className="text-caption text-content-muted">
+              {row.downloadStatus === 'FAILED' ? 'Failed' : 'Not cached'}
+            </span>
           );
         }
 

@@ -45,6 +45,9 @@ export interface MediaVersion {
   bitrateKbps: number | null;
   fileSize: string;
   isActive: boolean;
+  originalFileSize?: string | null;
+  originalChecksum?: string | null;
+  preservation?: 'preserved' | 'transcoded' | null;
 }
 
 export interface MediaUploadResult {

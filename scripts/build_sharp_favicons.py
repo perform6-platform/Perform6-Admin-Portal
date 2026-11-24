@@ -164,6 +164,10 @@ def write_ico(path: str, images: list[Image.Image]) -> None:
 
 
 def main() -> None:
+    raise SystemExit(
+        "Favicon SVGs are vector paths from the EPS. "
+        "This script embeds PNGs and must not replace them."
+    )
     src_path = resolve_source()
     raw = Image.open(src_path)
     light = crop_to_content(remove_white_background(raw))

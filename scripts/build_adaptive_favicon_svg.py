@@ -17,6 +17,10 @@ def b64_png(img: Image.Image) -> str:
 
 
 def main() -> None:
+    raise SystemExit(
+        "public/favicon.svg is vector path art from the EPS. "
+        "This script embeds a PNG and must not replace it."
+    )
     light = Image.open(os.path.join(PUBLIC, "apple-touch-icon.png")).convert("RGBA")
     dark = (
         Image.open(os.path.join(PUBLIC, "favicon-32x32-dark-scheme.png"))

@@ -283,6 +283,14 @@ export function ContentCard({
           </p>
         )}
 
+        {uploadVisual === 'ready' && item.preservation && (
+          <div className="mt-1">
+            <Badge variant={item.preservation === 'preserved' ? 'success' : 'neutral'}>
+              {item.preservation === 'preserved' ? 'Preserved' : 'Transcoded'}
+            </Badge>
+          </div>
+        )}
+
         <div className="mt-1 flex items-center justify-between gap-2 text-caption text-content-muted">
           <span>{item.dateLabel}</span>
           <span className="uppercase">{item.format}</span>
