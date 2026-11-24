@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryKeys';
 import {
+  allowDeviceCardRecovery,
   attachDevice,
+  cancelDeviceCardRecovery,
   claimPairingRequest,
   disableDevice,
   disconnectDevice,
   getClaimedPairings,
   getDeviceById,
+  getDeviceCardRecovery,
   getDeviceSdFs,
   getDevices,
   getPairingById,
@@ -224,5 +227,41 @@ export function useDeviceSdFs(deviceId: string | null, options?: { enabled?: boo
     queryFn: () => getDeviceSdFs(deviceId!),
     enabled: Boolean(deviceId) && (options?.enabled ?? true),
     refetchInterval: options?.refetchInterval ?? false,
+  });
+}
+
+export function useDeviceCardRecovery(
+  deviceId: string | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: queryKeys.devices.cardRecovery(deviceId ?? 'none'),
+    queryFn: () => getDeviceCardRecovery(deviceId!),
+    enabled: Boolean(deviceId) && (options?.enabled ?? true),
+    refetchInterval: (query) => (query.state.data?.allowed ? 5_000 : 20_000),
+  });
+}
+
+export function useAllowDeviceCardRecovery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (deviceId: string) => allowDeviceCardRecovery(deviceId),
+    onSuccess: (_data, deviceId) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.devices.cardRecovery(deviceId),
+      });
+    },
+  });
+}
+
+export function useCancelDeviceCardRecovery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (deviceId: string) => cancelDeviceCardRecovery(deviceId),
+    onSuccess: (_data, deviceId) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.devices.cardRecovery(deviceId),
+      });
+    },
   });
 }

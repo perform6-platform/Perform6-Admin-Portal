@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { Download, Link2, Link2Off, Ban, RotateCcw } from 'lucide-react';
+import { Download, Link2, Link2Off, Ban, RotateCcw, MemoryStick } from 'lucide-react';
 import type { Device } from '../../constants/devices';
 import { useToast } from '../../context/ToastContext';
 import {
+  useAllowDeviceCardRecovery,
   useAttachDevice,
+  useCancelDeviceCardRecovery,
+  useDeviceCardRecovery,
   useDisableDevice,
   useDisconnectDevice,
   useRestoreDevice,
@@ -59,13 +62,28 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const { mutateAsync: attach, isPending: isAttaching } = useAttachDevice();
   const { mutateAsync: restore, isPending: isRestoring } = useRestoreDevice();
   const { mutateAsync: updateFacility, isPending: isSavingFacility } = useUpdateDeviceFacility();
+  const { mutateAsync: allowCardRecovery, isPending: isAllowingRecovery } =
+    useAllowDeviceCardRecovery();
+  const { mutateAsync: cancelCardRecovery, isPending: isCancellingRecovery } =
+    useCancelDeviceCardRecovery();
 
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [facilityOpen, setFacilityOpen] = useState(false);
+  const [cardRecoveryOpen, setCardRecoveryOpen] = useState(false);
   const [isExportingSchedule, setIsExportingSchedule] = useState(false);
+
+  const registeredDeviceId = device?.deviceId ?? null;
+  const isRegistered =
+    device?.inventoryState === 'registered' && Boolean(registeredDeviceId);
+  const isDisabled = device?.activationStatus === 'DISABLED';
+  const canUseCardRecovery = Boolean(isRegistered && registeredDeviceId && !isDisabled);
+
+  const { data: cardRecovery } = useDeviceCardRecovery(registeredDeviceId, {
+    enabled: canUseCardRecovery,
+  });
 
   if (!device) {
     return (
@@ -75,9 +93,6 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
     );
   }
 
-  const registeredDeviceId = device.deviceId ?? null;
-  const isRegistered = device.inventoryState === 'registered' && Boolean(registeredDeviceId);
-  const isDisabled = device.activationStatus === 'DISABLED';
   const needsRepair = device.pairingStatus === 'EXPIRED' && Boolean(registeredDeviceId);
   const isAttached = Boolean(device.deploymentId);
   const canDisconnect = isRegistered && isAttached && !isDisabled && !needsRepair;
@@ -85,6 +100,18 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const canAttach = isRegistered && !isAttached && !isDisabled && !needsRepair;
   const canRestore = Boolean(registeredDeviceId) && (isDisabled || needsRepair);
   const axes = formatDeviceContentAxes(device);
+  const recoveryAllowed = Boolean(cardRecovery?.allowed && cardRecovery.expiresAt);
+  const recoveryExpiresLabel = (() => {
+    if (!cardRecovery?.expiresAt) return null;
+    const zoned = formatScheduleInstant(
+      cardRecovery.expiresAt,
+      device.scheduleTimeZone ?? device.timezone,
+    );
+    if (zoned) return zoned;
+    const date = new Date(cardRecovery.expiresAt);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString();
+  })();
 
   async function handleExportSchedule() {
     const deploymentId = device!.deploymentId;
@@ -199,6 +226,42 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
     } catch (error) {
       showToast({
         title: getApiErrorMessage(error, 'Failed to attach device'),
+        variant: 'error',
+      });
+    }
+  }
+
+  async function handleAllowCardRecovery() {
+    if (!registeredDeviceId) return;
+    try {
+      const result = await allowCardRecovery(registeredDeviceId);
+      setCardRecoveryOpen(false);
+      const until = new Date(result.expiresAt).toLocaleString();
+      showToast({
+        title: 'Card recovery allowed',
+        message: `Insert the new startup card and reboot within 15 minutes (until ${until}).`,
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Failed to allow card recovery'),
+        variant: 'error',
+      });
+    }
+  }
+
+  async function handleCancelCardRecovery() {
+    if (!registeredDeviceId) return;
+    try {
+      await cancelCardRecovery(registeredDeviceId);
+      showToast({
+        title: 'Card recovery cancelled',
+        message: 'A blank card can no longer obtain a token until you allow recovery again.',
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Failed to cancel card recovery'),
         variant: 'error',
       });
     }
@@ -502,6 +565,46 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
             Disable frees the serial for a fresh pair → claim → register.
           </p>
         )}
+        {canUseCardRecovery && recoveryAllowed ? (
+          <div className="space-y-2 rounded-lg border border-brand-500/25 bg-brand-50/40 p-3 dark:bg-brand-600/10">
+            <p className="text-body-sm font-medium text-content-primary">
+              Recovery allowed
+              {recoveryExpiresLabel ? ` until ${recoveryExpiresLabel}` : ''}
+            </p>
+            <p className="text-caption text-content-secondary">
+              Insert the new startup card and reboot. This running player is unchanged until a blank
+              card uses the approval.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 w-full gap-2"
+              disabled={isCancellingRecovery}
+              onClick={() => void handleCancelCardRecovery()}
+            >
+              {isCancellingRecovery ? 'Cancelling…' : 'Cancel recovery'}
+            </Button>
+          </div>
+        ) : null}
+        {canUseCardRecovery && !recoveryAllowed ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 w-full gap-2"
+              disabled={isAllowingRecovery}
+              onClick={() => setCardRecoveryOpen(true)}
+            >
+              <MemoryStick className="h-4 w-4" />
+              {isAllowingRecovery ? 'Allowing…' : 'Allow card recovery'}
+            </Button>
+            <p className="text-caption text-content-muted">
+              Required before a blank startup card can get a token for this serial. No new deployment.
+            </p>
+          </>
+        ) : null}
         <Button
           type="button"
           size="sm"
@@ -555,6 +658,17 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
             : 'Revokes auth and queues a reboot. The device stays visible as Disabled. After reboot the player shows a new pairing code — claim, register, then attach to your deployment.'
         }
         confirmLabel={needsRepair ? 'Repair' : 'Restore'}
+      />
+
+      <ConfirmModal
+        open={cardRecoveryOpen}
+        onClose={() => setCardRecoveryOpen(false)}
+        onConfirm={() => {
+          void handleAllowCardRecovery();
+        }}
+        title="Allow card recovery?"
+        description="For the next 15 minutes, one blank startup card with this serial can receive a new API token and resume the existing deployment. The current player keeps running until that new card boots. No re-pair and no new deployment."
+        confirmLabel="Allow recovery"
       />
 
       <AttachDeviceModal

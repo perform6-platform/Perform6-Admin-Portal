@@ -288,6 +288,58 @@ export async function attachDevice(
   return data.data;
 }
 
+export interface CardRecoveryStatus {
+  allowed: boolean;
+  expiresAt: string | null;
+  usedAt: string | null;
+  cancelledAt: string | null;
+  grantId: string | null;
+}
+
+export interface CardRecoveryAllowResult {
+  action: 'allow_card_recovery';
+  deviceId: string;
+  serialNumber: string;
+  expiresAt: string;
+  grantId: string;
+  cardRecovery: CardRecoveryStatus;
+}
+
+export interface CardRecoveryCancelResult {
+  action: 'cancel_card_recovery';
+  deviceId: string;
+  cancelledCount: number;
+  cardRecovery: CardRecoveryStatus;
+}
+
+/** GET /devices/:id/card-recovery */
+export async function getDeviceCardRecovery(deviceId: string): Promise<CardRecoveryStatus> {
+  const { data } = await apiClient.get<ApiResponse<CardRecoveryStatus>>(
+    `/devices/${deviceId}/card-recovery`,
+  );
+  return data.data;
+}
+
+/** POST /devices/:id/card-recovery/allow — 15-minute single-use blank-card approval. */
+export async function allowDeviceCardRecovery(
+  deviceId: string,
+): Promise<CardRecoveryAllowResult> {
+  const { data } = await apiClient.post<ApiResponse<CardRecoveryAllowResult>>(
+    `/devices/${deviceId}/card-recovery/allow`,
+  );
+  return data.data;
+}
+
+/** POST /devices/:id/card-recovery/cancel */
+export async function cancelDeviceCardRecovery(
+  deviceId: string,
+): Promise<CardRecoveryCancelResult> {
+  const { data } = await apiClient.post<ApiResponse<CardRecoveryCancelResult>>(
+    `/devices/${deviceId}/card-recovery/cancel`,
+  );
+  return data.data;
+}
+
 // ---------------------------------------------------------------------------
 // Device-auth endpoints
 // ---------------------------------------------------------------------------
