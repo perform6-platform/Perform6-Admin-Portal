@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:card-recovery": "node --experimental-strip-types --test src/lib/cardRecoveryStatus.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.1",

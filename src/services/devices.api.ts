@@ -288,12 +288,23 @@ export async function attachDevice(
   return data.data;
 }
 
+export type CardRecoveryState =
+  | 'none'
+  | 'allowed'
+  | 'used'
+  | 'cancelled'
+  | 'expired';
+
 export interface CardRecoveryStatus {
+  state: CardRecoveryState;
   allowed: boolean;
   expiresAt: string | null;
   usedAt: string | null;
   cancelledAt: string | null;
   grantId: string | null;
+  approvedAt: string | null;
+  approvedByUserId: string | null;
+  claimedFromIp: string | null;
 }
 
 export interface CardRecoveryAllowResult {
@@ -302,6 +313,8 @@ export interface CardRecoveryAllowResult {
   serialNumber: string;
   expiresAt: string;
   grantId: string;
+  approvedAt?: string;
+  approvedByUserId?: string | null;
   cardRecovery: CardRecoveryStatus;
 }
 

@@ -238,7 +238,8 @@ export function useDeviceCardRecovery(
     queryKey: queryKeys.devices.cardRecovery(deviceId ?? 'none'),
     queryFn: () => getDeviceCardRecovery(deviceId!),
     enabled: Boolean(deviceId) && (options?.enabled ?? true),
-    refetchInterval: (query) => (query.state.data?.allowed ? 5_000 : 20_000),
+    refetchInterval: (query) =>
+      query.state.data?.state === 'allowed' || query.state.data?.allowed ? 5_000 : 20_000,
   });
 }
 

@@ -13,6 +13,12 @@ import {
   useUpdateDeviceFacility,
 } from '../../hooks/useDevices';
 import { cn } from '../../lib/cn';
+import {
+  CARD_RECOVERY_REVOKE_WARNING,
+  cardRecoveryStatusDetail,
+  cardRecoveryStatusHeadline,
+  normalizeCardRecoveryStatus,
+} from '../../lib/cardRecoveryStatus';
 import { formatScheduleInstant } from '../../lib/deviceSchedule';
 import { formatDeviceContentAxes } from '../../lib/deploymentDisplay';
 import { getDeviceScheduleExportFilename } from '../../lib/exportRotationSchedule';
@@ -81,7 +87,11 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const isDisabled = device?.activationStatus === 'DISABLED';
   const canUseCardRecovery = Boolean(isRegistered && registeredDeviceId && !isDisabled);
 
-  const { data: cardRecovery } = useDeviceCardRecovery(registeredDeviceId, {
+  const {
+    data: cardRecovery,
+    error: cardRecoveryError,
+    isError: isCardRecoveryError,
+  } = useDeviceCardRecovery(registeredDeviceId, {
     enabled: canUseCardRecovery,
   });
 
@@ -100,18 +110,26 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const canAttach = isRegistered && !isAttached && !isDisabled && !needsRepair;
   const canRestore = Boolean(registeredDeviceId) && (isDisabled || needsRepair);
   const axes = formatDeviceContentAxes(device);
-  const recoveryAllowed = Boolean(cardRecovery?.allowed && cardRecovery.expiresAt);
+  const recoveryStatus = normalizeCardRecoveryStatus(
+    cardRecovery,
+    isCardRecoveryError
+      ? getApiErrorMessage(cardRecoveryError, 'Could not load card recovery status')
+      : null,
+  );
+  const recoveryAllowed = recoveryStatus.state === 'allowed';
   const recoveryExpiresLabel = (() => {
-    if (!cardRecovery?.expiresAt) return null;
+    if (!recoveryStatus.expiresAt) return null;
     const zoned = formatScheduleInstant(
-      cardRecovery.expiresAt,
+      recoveryStatus.expiresAt,
       device.scheduleTimeZone ?? device.timezone,
     );
     if (zoned) return zoned;
-    const date = new Date(cardRecovery.expiresAt);
+    const date = new Date(recoveryStatus.expiresAt);
     if (Number.isNaN(date.getTime())) return null;
     return date.toLocaleString();
   })();
+  const recoveryHeadline = cardRecoveryStatusHeadline(recoveryStatus);
+  const recoveryDetail = cardRecoveryStatusDetail(recoveryStatus, recoveryExpiresLabel);
 
   async function handleExportSchedule() {
     const deploymentId = device!.deploymentId;
@@ -239,7 +257,7 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
       const until = new Date(result.expiresAt).toLocaleString();
       showToast({
         title: 'Card recovery allowed',
-        message: `Insert the new startup card and reboot within 15 minutes (until ${until}).`,
+        message: `Insert the new startup card and reboot within 15 minutes (until ${until}). ${CARD_RECOVERY_REVOKE_WARNING}`,
         variant: 'success',
       });
     } catch (error) {
@@ -565,45 +583,51 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
             Disable frees the serial for a fresh pair → claim → register.
           </p>
         )}
-        {canUseCardRecovery && recoveryAllowed ? (
-          <div className="space-y-2 rounded-lg border border-brand-500/25 bg-brand-50/40 p-3 dark:bg-brand-600/10">
+        {canUseCardRecovery ? (
+          <div
+            className={cn(
+              'space-y-2 rounded-lg border p-3',
+              recoveryStatus.state === 'allowed' &&
+                'border-brand-500/25 bg-brand-50/40 dark:bg-brand-600/10',
+              recoveryStatus.state === 'used' &&
+                'border-status-success/30 bg-status-success/5',
+              (recoveryStatus.state === 'cancelled' || recoveryStatus.state === 'expired') &&
+                'border-border-subtle bg-surface-muted/40',
+              recoveryStatus.state === 'error' &&
+                'border-status-danger/30 bg-status-danger/5',
+              recoveryStatus.state === 'none' && 'border-border-subtle bg-transparent',
+            )}
+          >
             <p className="text-body-sm font-medium text-content-primary">
-              Recovery allowed
-              {recoveryExpiresLabel ? ` until ${recoveryExpiresLabel}` : ''}
+              {recoveryHeadline}
+              {recoveryAllowed && recoveryExpiresLabel ? ` until ${recoveryExpiresLabel}` : ''}
             </p>
-            <p className="text-caption text-content-secondary">
-              Insert the new startup card and reboot. This running player is unchanged until a blank
-              card uses the approval.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 w-full gap-2"
-              disabled={isCancellingRecovery}
-              onClick={() => void handleCancelCardRecovery()}
-            >
-              {isCancellingRecovery ? 'Cancelling…' : 'Cancel recovery'}
-            </Button>
+            <p className="text-caption text-content-secondary">{recoveryDetail}</p>
+            {recoveryAllowed ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 w-full gap-2"
+                disabled={isCancellingRecovery}
+                onClick={() => void handleCancelCardRecovery()}
+              >
+                {isCancellingRecovery ? 'Cancelling…' : 'Cancel recovery'}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 w-full gap-2"
+                disabled={isAllowingRecovery || recoveryStatus.state === 'error'}
+                onClick={() => setCardRecoveryOpen(true)}
+              >
+                <MemoryStick className="h-4 w-4" />
+                {isAllowingRecovery ? 'Allowing…' : 'Allow card recovery'}
+              </Button>
+            )}
           </div>
-        ) : null}
-        {canUseCardRecovery && !recoveryAllowed ? (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9 w-full gap-2"
-              disabled={isAllowingRecovery}
-              onClick={() => setCardRecoveryOpen(true)}
-            >
-              <MemoryStick className="h-4 w-4" />
-              {isAllowingRecovery ? 'Allowing…' : 'Allow card recovery'}
-            </Button>
-            <p className="text-caption text-content-muted">
-              Required before a blank startup card can get a token for this serial. No new deployment.
-            </p>
-          </>
         ) : null}
         <Button
           type="button"
@@ -667,7 +691,7 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
           void handleAllowCardRecovery();
         }}
         title="Allow card recovery?"
-        description="For the next 15 minutes, one blank startup card with this serial can receive a new API token and resume the existing deployment. The current player keeps running until that new card boots. No re-pair and no new deployment."
+        description={`For the next 15 minutes, one blank startup card with this serial can receive a new API token and resume the existing deployment. ${CARD_RECOVERY_REVOKE_WARNING} The current player keeps running until that claim succeeds. No re-pair and no new deployment.`}
         confirmLabel="Allow recovery"
       />
 
