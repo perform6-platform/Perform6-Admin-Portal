@@ -5,7 +5,7 @@ import {
   cardRecoveryStatusDetail,
   cardRecoveryStatusHeadline,
   normalizeCardRecoveryStatus,
-} from './cardRecoveryStatus.ts';
+} from './cardRecoveryStatus.mjs';
 
 describe('card recovery status UI helpers', () => {
   it('normalizes allowed approval from API', () => {
