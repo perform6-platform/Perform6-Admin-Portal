@@ -104,6 +104,65 @@ export async function getFleetOverview(): Promise<DeviceInventoryResult> {
   return getDevices({ state: 'all', page: 1, limit: 100 });
 }
 
+export interface UpdateFacilityPayload {
+  ownerName?: string;
+  ownerEmail?: string;
+  ownerPhone?: string | null;
+  facilityAddress?: string | null;
+  facilityCity?: string | null;
+  facilityState?: string | null;
+  facilityZip?: string | null;
+  timezone?: string;
+}
+
+/** PATCH /devices/:id/name — admin rename (deviceId or pairingId). */
+export async function updateDeviceName(
+  id: string,
+  deviceName: string,
+): Promise<{
+  deviceId: string | null;
+  pairingId: string;
+  deviceName: string;
+  deploymentId: string | null;
+  deploymentName: string | null;
+}> {
+  const { data } = await apiClient.patch<
+    ApiResponse<{
+      deviceId: string | null;
+      pairingId: string;
+      deviceName: string;
+      deploymentId: string | null;
+      deploymentName: string | null;
+    }>
+  >(`/devices/${id}/name`, { deviceName });
+  return data.data;
+}
+
+/** PATCH /devices/:id/facility — contact, address, timezone after registration. */
+export async function updateDeviceFacility(
+  deviceId: string,
+  payload: UpdateFacilityPayload,
+): Promise<{
+  deviceId: string;
+  location: string | null;
+  timezone: string | null;
+  facilityCity: string | null;
+  facilityState: string | null;
+  facilityZip: string | null;
+}> {
+  const { data } = await apiClient.patch<
+    ApiResponse<{
+      deviceId: string;
+      location: string | null;
+      timezone: string | null;
+      facilityCity: string | null;
+      facilityState: string | null;
+      facilityZip: string | null;
+    }>
+  >(`/devices/${deviceId}/facility`, payload);
+  return data.data;
+}
+
 /** PATCH /devices/:id/schedule-timezone — admin confirms the gym IANA zone. */
 export async function updateScheduleTimezone(
   deviceId: string,
@@ -142,6 +201,12 @@ export interface DeviceLifecycleResult {
   deploymentId?: string | null;
   deploymentName?: string;
   cluster?: boolean;
+  /** Disconnect queues CLEAR_SD_CACHE so the player wipes media and stops playback. */
+  contentCleared?: boolean;
+  reservedMemberKey?: string | null;
+  reservedScreenKey?: string | null;
+  restoredMemberKey?: string | null;
+  restoredScreenKey?: string | null;
   activationStatus?: string;
   rePairAllowed?: boolean;
 }
@@ -219,6 +284,71 @@ export async function attachDevice(
   const { data } = await apiClient.post<ApiResponse<DeviceLifecycleResult>>(
     `/devices/${deviceId}/attach`,
     { deploymentId },
+  );
+  return data.data;
+}
+
+export type CardRecoveryState =
+  | 'none'
+  | 'allowed'
+  | 'used'
+  | 'cancelled'
+  | 'expired';
+
+export interface CardRecoveryStatus {
+  state: CardRecoveryState;
+  allowed: boolean;
+  expiresAt: string | null;
+  usedAt: string | null;
+  cancelledAt: string | null;
+  grantId: string | null;
+  approvedAt: string | null;
+  approvedByUserId: string | null;
+  claimedFromIp: string | null;
+}
+
+export interface CardRecoveryAllowResult {
+  action: 'allow_card_recovery';
+  deviceId: string;
+  serialNumber: string;
+  expiresAt: string;
+  grantId: string;
+  approvedAt?: string;
+  approvedByUserId?: string | null;
+  cardRecovery: CardRecoveryStatus;
+}
+
+export interface CardRecoveryCancelResult {
+  action: 'cancel_card_recovery';
+  deviceId: string;
+  cancelledCount: number;
+  cardRecovery: CardRecoveryStatus;
+}
+
+/** GET /devices/:id/card-recovery */
+export async function getDeviceCardRecovery(deviceId: string): Promise<CardRecoveryStatus> {
+  const { data } = await apiClient.get<ApiResponse<CardRecoveryStatus>>(
+    `/devices/${deviceId}/card-recovery`,
+  );
+  return data.data;
+}
+
+/** POST /devices/:id/card-recovery/allow — 15-minute single-use blank-card approval. */
+export async function allowDeviceCardRecovery(
+  deviceId: string,
+): Promise<CardRecoveryAllowResult> {
+  const { data } = await apiClient.post<ApiResponse<CardRecoveryAllowResult>>(
+    `/devices/${deviceId}/card-recovery/allow`,
+  );
+  return data.data;
+}
+
+/** POST /devices/:id/card-recovery/cancel */
+export async function cancelDeviceCardRecovery(
+  deviceId: string,
+): Promise<CardRecoveryCancelResult> {
+  const { data } = await apiClient.post<ApiResponse<CardRecoveryCancelResult>>(
+    `/devices/${deviceId}/card-recovery/cancel`,
   );
   return data.data;
 }

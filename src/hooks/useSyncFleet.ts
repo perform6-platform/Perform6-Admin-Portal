@@ -6,6 +6,8 @@ export function useSyncFleet() {
   return useQuery({
     queryKey: queryKeys.sync.fleet,
     queryFn: getSyncFleet,
+    // Keep previous rows visible while polling so the table does not flash/reorder.
+    placeholderData: (previous) => previous,
     refetchInterval: (query) => {
       const devices = query.state.data?.devices ?? [];
       const hasIncomplete = devices.some(
@@ -26,6 +28,13 @@ export function useSyncDeviceDetail(deviceId: string | null) {
     queryKey: queryKeys.sync.deviceDetail(deviceId ?? ''),
     queryFn: () => getSyncDeviceDetail(deviceId!),
     enabled: Boolean(deviceId),
+    // Keep this device's rows during its own refresh. A different device must
+    // not reuse the previous selection's progress.
+    placeholderData: (previous, previousQuery) => {
+      const previousId = previousQuery?.queryKey?.[2];
+      if (previousId !== deviceId) return undefined;
+      return previous;
+    },
     refetchInterval: (query) => {
       const rows = query.state.data?.requiredMedia ?? [];
       const unsettled = rows.some(

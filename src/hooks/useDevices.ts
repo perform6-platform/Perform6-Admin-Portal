@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryKeys';
 import {
+  allowDeviceCardRecovery,
   attachDevice,
+  cancelDeviceCardRecovery,
   claimPairingRequest,
   disableDevice,
   disconnectDevice,
   getClaimedPairings,
   getDeviceById,
+  getDeviceCardRecovery,
   getDeviceSdFs,
   getDevices,
   getPairingById,
@@ -17,8 +20,11 @@ import {
   restoreDevice,
   retryDeviceOta,
   retryDeviceMedia,
+  updateDeviceFacility,
+  updateDeviceName,
   updateScheduleTimezone,
 } from '../services/devices.api';
+import type { UpdateFacilityPayload } from '../services/devices.api';
 import type {
   ClaimPairingPayload,
   DeviceInventoryQuery,
@@ -29,6 +35,8 @@ import type { QueueDeviceRemoteCommandPayload } from '../types/monitoring';
 function invalidateDeviceQueries(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: ['devices'] });
   void queryClient.invalidateQueries({ queryKey: ['deployments'] });
+  void queryClient.invalidateQueries({ queryKey: ['sync'] });
+  void queryClient.invalidateQueries({ queryKey: ['monitoring'] });
 }
 
 /** GET /devices?state=&hardwareProfile=&search=&page=&limit= */
@@ -190,11 +198,71 @@ export function useUpdateScheduleTimezone() {
   });
 }
 
+export function useUpdateDeviceFacility() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { deviceId: string; payload: UpdateFacilityPayload }) =>
+      updateDeviceFacility(vars.deviceId, vars.payload),
+    onSuccess: () => {
+      invalidateDeviceQueries(queryClient);
+    },
+  });
+}
+
+/** PATCH /devices/:id/name — claim name (registered deviceId or pairingId). */
+export function useUpdateDeviceName() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { id: string; deviceName: string }) =>
+      updateDeviceName(vars.id, vars.deviceName),
+    onSuccess: () => {
+      invalidateDeviceQueries(queryClient);
+    },
+  });
+}
+
 export function useDeviceSdFs(deviceId: string | null, options?: { enabled?: boolean; refetchInterval?: number | false }) {
   return useQuery({
     queryKey: queryKeys.devices.sdFs(deviceId ?? 'none'),
     queryFn: () => getDeviceSdFs(deviceId!),
     enabled: Boolean(deviceId) && (options?.enabled ?? true),
     refetchInterval: options?.refetchInterval ?? false,
+  });
+}
+
+export function useDeviceCardRecovery(
+  deviceId: string | null,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: queryKeys.devices.cardRecovery(deviceId ?? 'none'),
+    queryFn: () => getDeviceCardRecovery(deviceId!),
+    enabled: Boolean(deviceId) && (options?.enabled ?? true),
+    refetchInterval: (query) =>
+      query.state.data?.state === 'allowed' || query.state.data?.allowed ? 5_000 : 20_000,
+  });
+}
+
+export function useAllowDeviceCardRecovery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (deviceId: string) => allowDeviceCardRecovery(deviceId),
+    onSuccess: (_data, deviceId) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.devices.cardRecovery(deviceId),
+      });
+    },
+  });
+}
+
+export function useCancelDeviceCardRecovery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (deviceId: string) => cancelDeviceCardRecovery(deviceId),
+    onSuccess: (_data, deviceId) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.devices.cardRecovery(deviceId),
+      });
+    },
   });
 }

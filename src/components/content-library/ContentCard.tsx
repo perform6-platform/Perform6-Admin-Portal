@@ -283,6 +283,23 @@ export function ContentCard({
           </p>
         )}
 
+        {uploadVisual === 'ready' && item.preservation && (
+          <div
+            className="mt-1"
+            title={
+              item.preservation === 'preserved'
+                ? 'Processing result: the stored video is byte-for-byte identical to the uploaded file.'
+                : 'Processing result: the uploaded video was re-encoded for BrightSign compatibility.'
+            }
+          >
+            <Badge variant={item.preservation === 'preserved' ? 'success' : 'neutral'}>
+              {item.preservation === 'preserved'
+                ? 'Preserved unchanged'
+                : 'Transcoded for BrightSign'}
+            </Badge>
+          </div>
+        )}
+
         <div className="mt-1 flex items-center justify-between gap-2 text-caption text-content-muted">
           <span>{item.dateLabel}</span>
           <span className="uppercase">{item.format}</span>

@@ -1,14 +1,24 @@
 import { useState } from 'react';
-import { Download, Link2, Link2Off, Ban, RotateCcw } from 'lucide-react';
+import { Download, Link2, Link2Off, Ban, RotateCcw, MemoryStick } from 'lucide-react';
 import type { Device } from '../../constants/devices';
 import { useToast } from '../../context/ToastContext';
 import {
+  useAllowDeviceCardRecovery,
   useAttachDevice,
+  useCancelDeviceCardRecovery,
+  useDeviceCardRecovery,
   useDisableDevice,
   useDisconnectDevice,
   useRestoreDevice,
+  useUpdateDeviceFacility,
 } from '../../hooks/useDevices';
 import { cn } from '../../lib/cn';
+import {
+  CARD_RECOVERY_REVOKE_WARNING,
+  cardRecoveryStatusDetail,
+  cardRecoveryStatusHeadline,
+  normalizeCardRecoveryStatus,
+} from '../../lib/cardRecoveryStatus';
 import { formatScheduleInstant } from '../../lib/deviceSchedule';
 import { formatDeviceContentAxes } from '../../lib/deploymentDisplay';
 import { getDeviceScheduleExportFilename } from '../../lib/exportRotationSchedule';
@@ -17,6 +27,7 @@ import { getApiErrorMessage } from '../../services/axios';
 import { getDeploymentScheduleTable } from '../../services/deployments.api';
 import { AttachDeviceModal } from './AttachDeviceModal';
 import { BrightSignDeviceImage } from './BrightSignDeviceImage';
+import { EditFacilityModal } from './EditFacilityModal';
 import { DeviceRemoteOps } from '../device-monitoring/DeviceRemoteOps';
 import { DeviceStoragePanel } from '../device-monitoring/DeviceStoragePanel';
 import { Badge, Button, Card, CardTitle, ConfirmModal } from '../ui';
@@ -56,12 +67,33 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const { mutateAsync: disable, isPending: isDisabling } = useDisableDevice();
   const { mutateAsync: attach, isPending: isAttaching } = useAttachDevice();
   const { mutateAsync: restore, isPending: isRestoring } = useRestoreDevice();
+  const { mutateAsync: updateFacility, isPending: isSavingFacility } = useUpdateDeviceFacility();
+  const { mutateAsync: allowCardRecovery, isPending: isAllowingRecovery } =
+    useAllowDeviceCardRecovery();
+  const { mutateAsync: cancelCardRecovery, isPending: isCancellingRecovery } =
+    useCancelDeviceCardRecovery();
 
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [facilityOpen, setFacilityOpen] = useState(false);
+  const [cardRecoveryOpen, setCardRecoveryOpen] = useState(false);
   const [isExportingSchedule, setIsExportingSchedule] = useState(false);
+
+  const registeredDeviceId = device?.deviceId ?? null;
+  const isRegistered =
+    device?.inventoryState === 'registered' && Boolean(registeredDeviceId);
+  const isDisabled = device?.activationStatus === 'DISABLED';
+  const canUseCardRecovery = Boolean(isRegistered && registeredDeviceId && !isDisabled);
+
+  const {
+    data: cardRecovery,
+    error: cardRecoveryError,
+    isError: isCardRecoveryError,
+  } = useDeviceCardRecovery(registeredDeviceId, {
+    enabled: canUseCardRecovery,
+  });
 
   if (!device) {
     return (
@@ -71,9 +103,6 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
     );
   }
 
-  const registeredDeviceId = device.deviceId ?? null;
-  const isRegistered = device.inventoryState === 'registered' && Boolean(registeredDeviceId);
-  const isDisabled = device.activationStatus === 'DISABLED';
   const needsRepair = device.pairingStatus === 'EXPIRED' && Boolean(registeredDeviceId);
   const isAttached = Boolean(device.deploymentId);
   const canDisconnect = isRegistered && isAttached && !isDisabled && !needsRepair;
@@ -81,6 +110,26 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
   const canAttach = isRegistered && !isAttached && !isDisabled && !needsRepair;
   const canRestore = Boolean(registeredDeviceId) && (isDisabled || needsRepair);
   const axes = formatDeviceContentAxes(device);
+  const recoveryStatus = normalizeCardRecoveryStatus(
+    cardRecovery,
+    isCardRecoveryError
+      ? getApiErrorMessage(cardRecoveryError, 'Could not load card recovery status')
+      : null,
+  );
+  const recoveryAllowed = recoveryStatus.state === 'allowed';
+  const recoveryExpiresLabel = (() => {
+    if (!recoveryStatus.expiresAt) return null;
+    const zoned = formatScheduleInstant(
+      recoveryStatus.expiresAt,
+      device.scheduleTimeZone ?? device.timezone,
+    );
+    if (zoned) return zoned;
+    const date = new Date(recoveryStatus.expiresAt);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString();
+  })();
+  const recoveryHeadline = cardRecoveryStatusHeadline(recoveryStatus);
+  const recoveryDetail = cardRecoveryStatusDetail(recoveryStatus, recoveryExpiresLabel);
 
   async function handleExportSchedule() {
     const deploymentId = device!.deploymentId;
@@ -119,11 +168,14 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
     if (!registeredDeviceId) return;
     try {
       const result = await disconnect(registeredDeviceId);
+      const reservedLabel = result.reservedScreenKey
+        ? result.reservedScreenKey.replace('SCREEN_', 'Screen ')
+        : null;
       showToast({
         title: 'Device disconnected',
-        message: result.cluster
-          ? 'Entire cluster was removed from the deployment. Token kept for re-attach.'
-          : 'Removed from deployment. Token kept for re-attach.',
+        message: reservedLabel
+          ? `Unlinked. ${reservedLabel} reserved. SD media clears and playback stops on next heartbeat; Attach restores content.`
+          : 'Unlinked. SD media clears and playback stops on next heartbeat; Attach restores content. Token kept.',
         variant: 'success',
       });
     } catch (error) {
@@ -175,16 +227,86 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
     try {
       const result = await attach({ deviceId: registeredDeviceId, deploymentId });
       setAttachOpen(false);
+      const restoredLabel = result.restoredScreenKey
+        ? result.restoredScreenKey.replace('SCREEN_', 'Screen ')
+        : null;
       showToast({
         title: 'Device attached',
-        message: result.deploymentName
-          ? `Connected to ${result.deploymentName}.`
-          : 'Connected to deployment.',
+        message: restoredLabel
+          ? `Restored to ${restoredLabel}${
+              result.deploymentName ? ` on ${result.deploymentName}` : ''
+            }.`
+          : result.deploymentName
+            ? `Connected to ${result.deploymentName}.`
+            : 'Connected to deployment.',
         variant: 'success',
       });
     } catch (error) {
       showToast({
         title: getApiErrorMessage(error, 'Failed to attach device'),
+        variant: 'error',
+      });
+    }
+  }
+
+  async function handleAllowCardRecovery() {
+    if (!registeredDeviceId) return;
+    try {
+      const result = await allowCardRecovery(registeredDeviceId);
+      setCardRecoveryOpen(false);
+      const until = new Date(result.expiresAt).toLocaleString();
+      showToast({
+        title: 'Card recovery allowed',
+        message: `Insert the new startup card and reboot within 15 minutes (until ${until}). ${CARD_RECOVERY_REVOKE_WARNING}`,
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Failed to allow card recovery'),
+        variant: 'error',
+      });
+    }
+  }
+
+  async function handleCancelCardRecovery() {
+    if (!registeredDeviceId) return;
+    try {
+      await cancelCardRecovery(registeredDeviceId);
+      showToast({
+        title: 'Card recovery cancelled',
+        message: 'A blank card can no longer obtain a token until you allow recovery again.',
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Failed to cancel card recovery'),
+        variant: 'error',
+      });
+    }
+  }
+
+  async function handleFacilitySave(payload: {
+    ownerName: string;
+    ownerEmail: string;
+    ownerPhone: string | null;
+    facilityAddress: string;
+    facilityCity: string;
+    facilityState: string;
+    facilityZip: string;
+    timezone: string;
+  }) {
+    if (!registeredDeviceId) return;
+    try {
+      await updateFacility({ deviceId: registeredDeviceId, payload });
+      setFacilityOpen(false);
+      showToast({
+        title: 'Facility updated',
+        message: 'Contact, address, and timezone saved for this device.',
+        variant: 'success',
+      });
+    } catch (error) {
+      showToast({
+        title: getApiErrorMessage(error, 'Failed to update facility'),
         variant: 'error',
       });
     }
@@ -202,7 +324,7 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <Badge variant={device.status === 'online' ? 'success' : 'neutral'}>
+          <Badge variant={device.status === 'online' ? 'success' : 'danger'}>
             {device.status === 'online' ? 'Online' : 'Offline'}
           </Badge>
           {device.sdPresent === true && (
@@ -242,6 +364,22 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
           value={device.macAddress?.trim() || '—'}
         />
         <DetailRow label="Location" value={device.location} />
+        <DetailRow label="Contact Name" value={device.ownerName?.trim() || '—'} />
+        <DetailRow label="Contact Email" value={device.ownerEmail?.trim() || '—'} />
+        <DetailRow label="Contact Phone" value={device.ownerPhone?.trim() || '—'} />
+        <DetailRow
+          label="Facility Address"
+          value={
+            [
+              device.facilityAddress,
+              [device.facilityCity, device.facilityState].filter(Boolean).join(', '),
+              device.facilityZip,
+            ]
+              .map((part) => part?.trim())
+              .filter(Boolean)
+              .join(' · ') || device.siteAddress?.trim() || '—'
+          }
+        />
         <DetailRow
           label={axes.isAxisFree ? 'Content' : 'Field'}
           value={axes.fieldLabel}
@@ -323,6 +461,28 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         </div>
         <DetailRow label="Mac Address" value={device.macAddress?.trim() || '—'} />
       </div>
+
+      {isRegistered && registeredDeviceId ? (
+        <div className="mt-4 rounded-lg border border-surface-border bg-surface-muted/30 p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-body-sm font-medium text-content-primary">
+              Facility Contact – Device Notifications
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 px-3"
+              onClick={() => setFacilityOpen(true)}
+            >
+              Edit
+            </Button>
+          </div>
+          <p className="text-caption text-content-secondary">
+            Update contact, facility address, and timezone without re-registering the deployment.
+          </p>
+        </div>
+      ) : null}
 
       {isRegistered && registeredDeviceId && !isDisabled ? (
         <div className="mt-4 rounded-lg border border-surface-border bg-surface-muted/30 p-4">
@@ -423,6 +583,52 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
             Disable frees the serial for a fresh pair → claim → register.
           </p>
         )}
+        {canUseCardRecovery ? (
+          <div
+            className={cn(
+              'space-y-2 rounded-lg border p-3',
+              recoveryStatus.state === 'allowed' &&
+                'border-brand-500/25 bg-brand-50/40 dark:bg-brand-600/10',
+              recoveryStatus.state === 'used' &&
+                'border-status-success/30 bg-status-success/5',
+              (recoveryStatus.state === 'cancelled' || recoveryStatus.state === 'expired') &&
+                'border-border-subtle bg-surface-muted/40',
+              recoveryStatus.state === 'error' &&
+                'border-status-danger/30 bg-status-danger/5',
+              recoveryStatus.state === 'none' && 'border-border-subtle bg-transparent',
+            )}
+          >
+            <p className="text-body-sm font-medium text-content-primary">
+              {recoveryHeadline}
+              {recoveryAllowed && recoveryExpiresLabel ? ` until ${recoveryExpiresLabel}` : ''}
+            </p>
+            <p className="text-caption text-content-secondary">{recoveryDetail}</p>
+            {recoveryAllowed ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 w-full gap-2"
+                disabled={isCancellingRecovery}
+                onClick={() => void handleCancelCardRecovery()}
+              >
+                {isCancellingRecovery ? 'Cancelling…' : 'Cancel recovery'}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 w-full gap-2"
+                disabled={isAllowingRecovery || recoveryStatus.state === 'error'}
+                onClick={() => setCardRecoveryOpen(true)}
+              >
+                <MemoryStick className="h-4 w-4" />
+                {isAllowingRecovery ? 'Allowing…' : 'Allow card recovery'}
+              </Button>
+            )}
+          </div>
+        ) : null}
         <Button
           type="button"
           size="sm"
@@ -444,8 +650,8 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         title="Disconnect device?"
         description={
           device.model.toUpperCase().includes('HD226')
-            ? 'Removes this unit (and the full HD226 cluster if linked) from the deployment. Auth token stays valid for Attach.'
-            : 'Removes this device from its deployment. Auth token stays valid for Attach.'
+            ? 'Unlinks only this unit from the cluster (other players stay). Clears this unit’s SD media and stops playback on the next heartbeat (logo until Attach). Slot stays reserved; token stays valid for Attach.'
+            : 'Unlinks from the deployment, clears SD media, and stops playback on the next heartbeat (logo until Attach). Token stays valid for Attach.'
         }
         confirmLabel="Disconnect"
         tone="danger"
@@ -478,6 +684,17 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         confirmLabel={needsRepair ? 'Repair' : 'Restore'}
       />
 
+      <ConfirmModal
+        open={cardRecoveryOpen}
+        onClose={() => setCardRecoveryOpen(false)}
+        onConfirm={() => {
+          void handleAllowCardRecovery();
+        }}
+        title="Allow card recovery?"
+        description={`For the next 15 minutes, one blank startup card with this serial can receive a new API token and resume the existing deployment. ${CARD_RECOVERY_REVOKE_WARNING} The current player keeps running until that claim succeeds. No re-pair and no new deployment.`}
+        confirmLabel="Allow recovery"
+      />
+
       <AttachDeviceModal
         open={attachOpen}
         deviceName={device.name}
@@ -485,6 +702,16 @@ export function DeviceDetailsPanel({ device, className }: DeviceDetailsPanelProp
         onClose={() => setAttachOpen(false)}
         onSubmit={(deploymentId) => {
           void handleAttach(deploymentId);
+        }}
+      />
+
+      <EditFacilityModal
+        open={facilityOpen}
+        device={device}
+        isSaving={isSavingFacility}
+        onClose={() => setFacilityOpen(false)}
+        onSubmit={(payload) => {
+          void handleFacilitySave(payload);
         }}
       />
     </Card>

@@ -31,6 +31,8 @@ export interface ContentItem {
     codec: string | null;
     pixelFormat: string | null;
   };
+  /** Set after processing compares the stored file with the original upload. */
+  preservation?: 'preserved' | 'transcoded';
 }
 
 export const defaultContentThumbnail =

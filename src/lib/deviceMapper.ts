@@ -205,6 +205,14 @@ export function mapInventoryItem(item: DeviceInventoryItem): Device {
     nextRotationAt: item.nextRotationAt ?? null,
     rotationDay,
     rotationMode: item.rotationMode,
+    ownerName: item.ownerName ?? null,
+    ownerEmail: item.ownerEmail ?? null,
+    ownerPhone: item.ownerPhone ?? null,
+    siteAddress: item.siteAddress ?? null,
+    facilityAddress: item.facilityAddress ?? null,
+    facilityCity: item.facilityCity ?? null,
+    facilityState: item.facilityState ?? null,
+    facilityZip: item.facilityZip ?? null,
   };
 }
 
@@ -296,6 +304,14 @@ export function mapRegisteredDevice(device: RegisteredDevice): Device {
     rotationMode: device.rotationMode,
     screens: device.screens ?? [],
     touchUi: device.touchUi ?? null,
+    ownerName: device.ownerName ?? null,
+    ownerEmail: device.ownerEmail ?? null,
+    ownerPhone: device.ownerPhone ?? null,
+    siteAddress: device.siteAddress ?? null,
+    facilityAddress: device.facilityAddress ?? null,
+    facilityCity: device.facilityCity ?? null,
+    facilityState: device.facilityState ?? null,
+    facilityZip: device.facilityZip ?? null,
   };
 }
 
@@ -350,5 +366,10 @@ export function mapMediaAssetToContentItem(asset: MediaAsset): ContentItem | nul
           pixelFormat: activeVersion.pixelFormat ?? null,
         }
       : undefined,
+    preservation:
+      activeVersion?.preservation === 'preserved' ||
+      activeVersion?.preservation === 'transcoded'
+        ? activeVersion.preservation
+        : undefined,
   };
 }

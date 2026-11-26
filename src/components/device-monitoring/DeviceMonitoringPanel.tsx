@@ -7,6 +7,8 @@ import { cn } from '../../lib/cn';
 import {
   formatTouchPlaybackState,
   formatTouchSlotLabel,
+  HD226_OUTPUT_LABEL,
+  isHd226Device,
   isTouchscreenDeployment,
   resolveScreenOutputLabel,
 } from '../../lib/screenOutputLabels';
@@ -122,6 +124,8 @@ function xtOutputEntries(
       ?.categoryName ||
     null;
   const isSessionPlaying = touchUi?.playbackState === 'PLAYING';
+  const isSessionPaused = touchUi?.playbackState === 'PAUSED';
+  const pausedLabel = selectedLabel ? `Paused · ${selectedLabel}` : 'Paused';
 
   return [
     {
@@ -138,11 +142,13 @@ function xtOutputEntries(
       group: 'LED · HDMI-2',
       // Title stays the output name. The playing category is only the description.
       label: 'Main Display',
-      video: nativePlaying
-        ? `Now Playing: ${playingCategory || 'Main Display'}`
-        : selectedLabel && !isSessionPlaying
-          ? `Pending selection · ${selectedLabel}`
-          : 'Awaiting Main Display playback',
+      video: isSessionPaused
+        ? pausedLabel
+        : nativePlaying
+          ? `Now Playing: ${playingCategory || 'Main Display'}`
+          : selectedLabel && !isSessionPlaying
+            ? `Pending selection · ${selectedLabel}`
+            : 'Awaiting Main Display playback',
       previewTitle: playingCategory || undefined,
       thumbnail: resolveStorageUrl(activeAssignment?.thumbnail) ?? undefined,
     },
@@ -184,11 +190,16 @@ function formatSessionElapsed(
 
   if (typeof reported === 'number' && Number.isFinite(reported)) {
     let sec = Math.max(0, reported) / 1000;
-    if (playing && touchUi.updatedAt) {
+    if (!playing) {
+      // Keep the first paused sample. Later wall-clock reports must not advance it.
+      if (latch.heldSec == null) latch.heldSec = sec;
+      return formatElapsedClock(latch.heldSec);
+    }
+    latch.heldSec = null;
+    if (touchUi.updatedAt) {
       const age = (nowMs - new Date(touchUi.updatedAt).getTime()) / 1000;
       if (Number.isFinite(age) && age > 0 && age < 30) sec += age;
     }
-    latch.heldSec = sec;
     return formatElapsedClock(sec);
   }
 
@@ -278,6 +289,7 @@ export function DeviceMonitoringPanel({
 
   const touchUi = livePlayback?.touchUi ?? device?.touchUi ?? null;
   const isXt2145 = (device?.model ?? '').toUpperCase() === 'XT2145';
+  const isHd226 = isHd226Device(device?.model);
 
   const currentVideos = useMemo(() => {
     if (!device) return [];
@@ -339,8 +351,8 @@ export function DeviceMonitoringPanel({
       {/* 2. Playback Summary */}
       <section className="mb-6 rounded-lg border border-surface-border bg-surface-muted/30 p-4 sm:p-6">
         <SectionLabel className="mb-4 block">Playback Summary</SectionLabel>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {isTouchDevice ? (
+        <div className={cn('grid grid-cols-1 gap-4', isHd226 ? '' : 'md:grid-cols-2')}>
+          {isHd226 ? null : isTouchDevice ? (
             <div className="rounded-lg border border-surface-border bg-surface-card p-4">
               <div className="mb-3 flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-400">
@@ -364,7 +376,9 @@ export function DeviceMonitoringPanel({
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-400">
                 <Monitor className="h-4 w-4" />
               </div>
-              <SectionLabel className="block">HDMI-2 — Main Display</SectionLabel>
+              <SectionLabel className="block">
+                {isHd226 ? HD226_OUTPUT_LABEL : 'HDMI-2 — Main Display'}
+              </SectionLabel>
             </div>
             {mainDisplayEntry ? (
               <div className="space-y-1">
@@ -380,7 +394,11 @@ export function DeviceMonitoringPanel({
                 ) : null}
               </div>
             ) : (
-              <p className="text-body-sm text-content-muted">No Main Display content reported.</p>
+              <p className="text-body-sm text-content-muted">
+                {isHd226
+                  ? 'No display content reported for this HD226.'
+                  : 'No Main Display content reported.'}
+              </p>
             )}
           </div>
         </div>
