@@ -25,6 +25,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:card-recovery
+      - run: npm run test:media-catalog
       - run: npm run build
       - run: npm run typecheck
 

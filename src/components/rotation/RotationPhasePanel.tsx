@@ -23,6 +23,9 @@ interface RotationPhasePanelProps {
   group: CategoryGroup;
   assignments: Record<string, VideoAssignmentState>;
   isSaving?: boolean;
+  /** False while later media pages are still loading. Save would drop those days. */
+  catalogReady?: boolean;
+  catalogError?: boolean;
   onSave?: () => void;
   onViewSchedule?: () => void;
   onAssignmentChange: (
@@ -58,6 +61,8 @@ export function RotationPhasePanel({
   group,
   assignments,
   isSaving = false,
+  catalogReady = true,
+  catalogError = false,
   onSave,
   onViewSchedule,
   onAssignmentChange,
@@ -129,7 +134,7 @@ export function RotationPhasePanel({
                     type="button"
                     size="md"
                     className="h-9 w-full gap-2 px-4 sm:w-auto"
-                    disabled={isSaving}
+                    disabled={isSaving || !catalogReady}
                     onClick={onSave}
                   >
                     <Save className="h-4 w-4" />
@@ -140,7 +145,15 @@ export function RotationPhasePanel({
             ) : null}
           </div>
         </section>
-        <EmptyState message={rotationEmptyPlaylistMessage(group.label)} />
+        <EmptyState
+          message={
+            catalogReady
+              ? rotationEmptyPlaylistMessage(group.label)
+              : catalogError
+                ? 'Videos could not be loaded. Refresh before saving.'
+                : 'Loading videos…'
+          }
+        />
       </div>
     );
   }
@@ -175,7 +188,7 @@ export function RotationPhasePanel({
                   type="button"
                   size="md"
                   className="h-9 w-full gap-2 px-4 sm:w-auto"
-                  disabled={isSaving}
+                  disabled={isSaving || !catalogReady}
                   onClick={onSave}
                 >
                   <Save className="h-4 w-4" />
