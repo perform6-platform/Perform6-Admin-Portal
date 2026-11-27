@@ -1,16 +1,24 @@
+import { useQuery } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
 import type { ContentCategoryId, ContentItem } from '../constants/contentLibrary';
 import type { PlaybackCategoryId } from '../constants/contentPlayback';
-import { useMediaAssets } from '../hooks/useMedia';
 import { isAuthenticated } from '../lib/authStorage';
 import { mapMediaAssetToContentItem } from '../lib/deviceMapper';
+import {
+  MEDIA_CATALOG_PAGE_SIZE,
+  loadMediaCatalogPages,
+} from '../lib/mediaCatalog.mjs';
 import { getManageableCategoryIds } from '../lib/programHelpers';
+import { queryKeys } from '../lib/queryKeys';
 import { isInterruptedUploadAsset } from '../lib/uploadFileCache';
+import { getMediaAssets } from '../services/media.api';
 
 interface ContentContextValue {
   items: ContentItem[];
   isLoading: boolean;
   isError: boolean;
+  /** True only after every media page has been merged. Rotation save must wait for this. */
+  isCatalogReady: boolean;
   refetch: () => Promise<void>;
   getVideosByCategory: (categoryId: ContentCategoryId) => ContentItem[];
   getVideoCountByCategory: (categoryId: ContentCategoryId) => number;
@@ -24,15 +32,19 @@ function isReadyVideo(item: ContentItem): boolean {
   return item.mediaType === 'video' && (!item.status || item.status === 'READY');
 }
 
-const MEDIA_LIST_QUERY = {
-  page: 1,
-  limit: 100,
+const MEDIA_CATALOG_QUERY = {
+  limit: MEDIA_CATALOG_PAGE_SIZE,
   sortBy: 'createdAt',
   sortOrder: 'DESC' as const,
 };
 
 export function ContentProvider({ children }: { children: ReactNode }) {
-  const { data, isLoading, isError, refetch } = useMediaAssets(MEDIA_LIST_QUERY, {
+  const { data, isLoading, isError, isSuccess, refetch } = useQuery({
+    queryKey: queryKeys.media.list({ catalog: 'all', ...MEDIA_CATALOG_QUERY }),
+    queryFn: () =>
+      loadMediaCatalogPages((page) =>
+        getMediaAssets({ ...MEDIA_CATALOG_QUERY, page }),
+      ),
     enabled: isAuthenticated(),
     refetchInterval: (query) => {
       if (query.state.error) return false;
@@ -89,6 +101,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       items,
       isLoading,
       isError,
+      isCatalogReady: isSuccess && !isError,
       refetch: async () => {
         await refetch();
       },
@@ -101,6 +114,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
       items,
       isLoading,
       isError,
+      isSuccess,
       refetch,
       getVideosByCategory,
       getVideoCountByCategory,

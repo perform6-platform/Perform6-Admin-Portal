@@ -63,7 +63,7 @@ function assignmentsEqual(
 
 export default function Rotation() {
   const navigate = useNavigate();
-  const { getVideosByCategory, items } = useContent();
+  const { getVideosByCategory, items, isCatalogReady, isError: catalogError } = useContent();
   const { programs, applyRotationAssignments } = useRotationSchedule();
   const { showToast } = useToast();
   const { data: apiCategories = [] } = useCategories();
@@ -87,6 +87,7 @@ export default function Rotation() {
   );
 
   useEffect(() => {
+    if (!isCatalogReady) return;
     if (!programs) return;
     if (skipNextProgramsSyncRef.current) {
       skipNextProgramsSyncRef.current = false;
@@ -96,7 +97,7 @@ export default function Rotation() {
     const next = buildVideoAssignmentsFromPrograms(programs, getVideosByCategory);
     setAssignments(next);
     setSavedBaseline(next);
-  }, [programs, getVideosByCategory]);
+  }, [isCatalogReady, programs, getVideosByCategory]);
 
   useEffect(() => {
     if (categoryGroups.some((group) => group.groupKey === activeGroupKey)) {
@@ -180,7 +181,7 @@ export default function Rotation() {
   );
 
   async function handleSave() {
-    if (!activeGroup) return;
+    if (!activeGroup || !isCatalogReady) return;
 
     const videoAssignments: VideoAssignment[] = Object.entries(assignments).map(
       ([key, state]) => {
@@ -285,6 +286,8 @@ export default function Rotation() {
         group={activeGroup}
         assignments={assignments}
         isSaving={isSaving}
+        catalogReady={isCatalogReady}
+        catalogError={catalogError}
         onSave={() => void handleSave()}
         onViewSchedule={() => {
           if (!confirmLeaveIfDirty()) return;

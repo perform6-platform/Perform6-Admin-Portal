@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test:card-recovery": "node --test src/lib/cardRecoveryStatus.test.mjs"
+    "test:card-recovery": "node --test src/lib/cardRecoveryStatus.test.mjs",
+    "test:media-catalog": "node --test src/lib/mediaCatalog.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.1",
